@@ -1,4 +1,5 @@
 {
+  "database": "hackutd2026-h9s81",
   "module-path": "./spacetimedb",
   "server": "maincloud"
 }

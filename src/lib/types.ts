@@ -30,12 +30,16 @@ export interface Incident {
   notes: string;
 }
 
+export type ChatChannel = 'warroom' | 'admin' | 'general';
+
 export interface Message {
   id: string;
   sender_name: string;
   sender_role: Role;
   content: string;
   timestamp: string;
+  channel?: ChatChannel;
+  is_broadcast?: boolean;
 }
 
 export interface Task {

@@ -16,6 +16,7 @@ import {
   Role,
   ScopeStatus,
   ScenarioType,
+  ChatChannel,
 } from './types';
 
 export interface AppState {
@@ -32,6 +33,8 @@ export interface AppState {
   drillPlayers: DrillPlayer[];
   drillEvents: DrillEvent[];
   reducerLogs: ReducerCallLog[];
+  activeBroadcast?: { id: string; message: string; author: string; timestamp: string } | null;
+  slowModeSeconds: number;
 }
 
 const INITIAL_STATE: AppState = {
@@ -88,10 +91,35 @@ const INITIAL_STATE: AppState = {
   messages: [
     {
       id: 'msg-1',
-      sender_name: 'System',
+      sender_name: 'System Dispatch',
       sender_role: 'it_lead',
       content: 'Out-of-band crisis channel initialized. Secure network established.',
       timestamp: new Date(Date.now() - 3600000).toISOString(),
+      channel: 'warroom',
+    },
+    {
+      id: 'msg-2',
+      sender_name: 'Taylor IT Lead',
+      sender_role: 'it_lead',
+      content: 'Network switch port 4 disconnected. Forensic memory image acquisition started.',
+      timestamp: new Date(Date.now() - 1800000).toISOString(),
+      channel: 'warroom',
+    },
+    {
+      id: 'msg-3',
+      sender_name: 'Alex Rivera',
+      sender_role: 'owner',
+      content: 'Privileged executive channel opened. Outside counsel retention confirmed.',
+      timestamp: new Date(Date.now() - 1200000).toISOString(),
+      channel: 'admin',
+    },
+    {
+      id: 'msg-4',
+      sender_name: 'Casey (Accounting Staff)',
+      sender_role: 'owner',
+      content: 'Will Friday bi-weekly payroll processing be impacted by the IT outage?',
+      timestamp: new Date(Date.now() - 600000).toISOString(),
+      channel: 'general',
     },
   ],
   tasks: [
@@ -199,6 +227,8 @@ const INITIAL_STATE: AppState = {
     },
   ],
   reducerLogs: [],
+  activeBroadcast: null,
+  slowModeSeconds: 0,
 };
 
 const STORAGE_KEY = 'drill_night_state_v1';
@@ -396,8 +426,8 @@ export const store = {
   },
 
   // Reducer: sendMessage
-  sendMessage(sender_name: string, sender_role: Role, content: string) {
-    return this.callReducer('send_message', { sender_name, sender_role, content }, (draft) => {
+  sendMessage(sender_name: string, sender_role: Role, content: string, channel: ChatChannel = 'warroom') {
+    return this.callReducer('send_message', { sender_name, sender_role, content, channel }, (draft) => {
       if (!content.trim()) throw new Error('Message cannot be empty');
       draft.messages.push({
         id: 'msg-' + Date.now(),
@@ -405,7 +435,41 @@ export const store = {
         sender_role,
         content,
         timestamp: new Date().toISOString(),
+        channel,
       });
+    });
+  },
+
+  // Reducer: setBroadcast
+  setBroadcast(author: string, message: string) {
+    return this.callReducer('set_broadcast', { author, message }, (draft) => {
+      draft.activeBroadcast = {
+        id: 'bcast-' + Date.now(),
+        message,
+        author,
+        timestamp: new Date().toISOString(),
+      };
+      draft.auditLogs.unshift({
+        id: 'aud-' + Date.now(),
+        actor: author,
+        action: 'EMERGENCY_BROADCAST',
+        timestamp: new Date().toISOString(),
+        details: `[ALL-HANDS BROADCAST] ${message}`,
+      });
+    });
+  },
+
+  // Reducer: clearBroadcast
+  clearBroadcast(author: string) {
+    return this.callReducer('clear_broadcast', { author }, (draft) => {
+      draft.activeBroadcast = null;
+    });
+  },
+
+  // Reducer: setSlowMode
+  setSlowMode(seconds: number) {
+    return this.callReducer('set_slow_mode', { seconds }, (draft) => {
+      draft.slowModeSeconds = seconds;
     });
   },
 

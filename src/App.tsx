@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './lib/authContext';
 import { TopBar } from './components/TopBar';
 import { LoginPage } from './pages/LoginPage';
+import { AdminDashboard } from './pages/AdminDashboard';
 import { MembersPage } from './pages/MembersPage';
 import { IncidentPage } from './pages/IncidentPage';
 import { WarRoomPage } from './pages/WarRoomPage';
@@ -18,21 +19,22 @@ export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <div className="min-h-screen bg-[#0B0D11] text-slate-100 flex flex-col font-sans">
           <TopBar />
-          <main style={{ marginTop: '16px' }}>
+          <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
             <Routes>
-              <Route path="/" element={<Navigate to="/warroom" replace />} />
+              <Route path="/" element={<Navigate to="/admin" replace />} />
+              <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/members" element={<MembersPage />} />
-              <Route path="/incident" element={<IncidentPage />} />
               <Route path="/warroom" element={<WarRoomPage />} />
+              <Route path="/drill" element={<DrillPage />} />
+              <Route path="/incident" element={<IncidentPage />} />
+              <Route path="/members" element={<MembersPage />} />
               <Route path="/docs" element={<DocsPage />} />
               <Route path="/scope" element={<ScopePage />} />
               <Route path="/notify" element={<NotifyPage />} />
               <Route path="/editor" element={<EditorPage />} />
               <Route path="/export" element={<ExportPage />} />
-              <Route path="/drill" element={<DrillPage />} />
               <Route path="/debug" element={<DebugPage />} />
             </Routes>
           </main>

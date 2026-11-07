@@ -4,8 +4,7 @@ import { store } from '../lib/store';
 import { Member, Role } from '../lib/types';
 import { ROLES } from '../lib/constants';
 import { DataTable, Column } from '../components/DataTable';
-import { RoleBadge } from '../components/RoleBadge';
-import { Field } from '../components/Field';
+import { Users, UserPlus, Trash2, AlertCircle } from 'lucide-react';
 
 export const MembersPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -62,100 +61,129 @@ export const MembersPage: React.FC = () => {
 
   const columns: Column<Member>[] = [
     {
-      header: 'Name',
-      render: (m) => <strong>{m.name}</strong>,
+      header: 'Responder Name',
+      render: (m) => <strong className="text-white text-sm">{m.name}</strong>,
     },
     {
-      header: 'Role',
+      header: 'Crisis Role',
       render: (m) => (
-        <div>
-          <RoleBadge role={m.role} />
-          <div style={{ marginTop: '4px' }}>
-            <select
-              value={m.role}
-              onChange={(e) => handleRoleChange(m.id, e.target.value as Role)}
-              style={{ fontSize: '0.85em' }}
-            >
-              {ROLES.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <select
+          value={m.role}
+          onChange={(e) => handleRoleChange(m.id, e.target.value as Role)}
+          className="text-xs font-bold"
+        >
+          {ROLES.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </select>
       ),
     },
     {
-      header: 'Phone (Out-of-Band)',
-      render: (m) => m.phone,
+      header: 'Out-of-Band Phone',
+      render: (m) => <span className="font-mono text-xs text-slate-300">{m.phone}</span>,
     },
     {
       header: 'SpacetimeDB Identity',
       render: (m) => (
-        <code title={m.identity}>
+        <code className="text-[11px] text-slate-400 bg-[#0B0D11] px-2 py-0.5 rounded border border-[#1E2431]" title={m.identity}>
           {m.identity.slice(0, 10)}...{m.identity.slice(-6)}
         </code>
       ),
     },
     {
-      header: 'Guest Expiration',
-      render: (m) => (m.expires_at ? new Date(m.expires_at).toLocaleDateString() : 'Permanent'),
+      header: 'Guest Expiry',
+      render: (m) => (
+        <span className="text-xs text-slate-400">
+          {m.expires_at ? new Date(m.expires_at).toLocaleDateString() : 'Permanent'}
+        </span>
+      ),
     },
     {
       header: 'Actions',
       render: (m) => (
-        <button onClick={() => handleRemove(m.id)} style={{ color: 'red' }}>
-          Remove
+        <button
+          onClick={() => handleRemove(m.id)}
+          className="text-rose-400 hover:text-rose-300 p-1 rounded hover:bg-rose-950/30 transition-all"
+          title="Remove Member"
+        >
+          <Trash2 className="w-4 h-4" />
         </button>
       ),
     },
   ];
 
   return (
-    <div>
-      <h3>Crisis Team &amp; Role-Based Access Control</h3>
-      <p>
-        Manage pre-cleared crisis personnel and emergency outside advisors (insurers, forensic counsel).
-        Role-based access is strictly enforced in backend reducers and database views.
-      </p>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
+        <div>
+          <h2 className="text-xl font-black text-white flex items-center gap-2 m-0">
+            <Users className="w-5 h-5 text-hazard-yellow" />
+            <span>Crisis Command Team &amp; Roster</span>
+          </h2>
+          <p className="text-xs text-slate-400 mt-1 mb-0">
+            Pre-cleared emergency personnel and time-limited outside advisors (forensic counsel, cyber underwriters).
+          </p>
+        </div>
+      </div>
 
-      {error && <div style={{ color: 'red', fontWeight: 'bold', marginBottom: '10px' }}>Error: {error}</div>}
+      {error && (
+        <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>Error: {error}</span>
+        </div>
+      )}
 
-      <div style={{ marginBottom: '24px' }}>
-        <h4>Authorized Members</h4>
+      {/* Directory Table */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-slate-200 m-0">Authorized Responders</h3>
         <DataTable columns={columns} data={members} />
       </div>
 
-      <fieldset style={{ padding: '16px' }}>
-        <legend><strong>Add Incident Response Member / Advisor</strong></legend>
-        <form onSubmit={handleAddMember}>
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-            <Field label="Full Name">
+      {/* Add Member Form */}
+      <div className="bg-card border border-border rounded-xl p-5 shadow-xl">
+        <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+          <UserPlus className="w-4 h-4 text-hazard-yellow" />
+          <span>Add Emergency Responder or Advisor</span>
+        </h4>
+
+        <form onSubmit={handleAddMember} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1">
+                Full Name
+              </label>
               <input
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="e.g. Jordan Ellis"
-                style={{ padding: '6px', width: '220px' }}
+                className="w-full text-xs"
               />
-            </Field>
+            </div>
 
-            <Field label="Personal Phone (SMS Auth)">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1">
+                Personal Phone (SMS Auth)
+              </label>
               <input
                 type="text"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
-                placeholder="+1 (555) 123-4567"
-                style={{ padding: '6px', width: '200px' }}
+                placeholder="+1 (555) 000-0000"
+                className="w-full text-xs"
               />
-            </Field>
+            </div>
 
-            <Field label="Designated Role">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1">
+                Designated Crisis Role
+              </label>
               <select
                 value={newRole}
                 onChange={(e) => setNewRole(e.target.value as Role)}
-                style={{ padding: '6px' }}
+                className="w-full text-xs font-semibold"
               >
                 {ROLES.map((r) => (
                   <option key={r.value} value={r.value}>
@@ -163,28 +191,33 @@ export const MembersPage: React.FC = () => {
                   </option>
                 ))}
               </select>
-            </Field>
+            </div>
 
             {(newRole === 'insurer' || newRole === 'outside_counsel') && (
-              <Field label="Guest Access Expiration (Days)">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Guest Expiration (Days)
+                </label>
                 <input
                   type="number"
                   value={guestDays}
                   onChange={(e) => setGuestDays(e.target.value)}
                   min="1"
                   max="90"
-                  style={{ padding: '6px', width: '80px' }}
+                  className="w-full text-xs"
                 />
-              </Field>
+              </div>
             )}
           </div>
 
-          <button type="submit" style={{ padding: '8px 16px', fontWeight: 'bold' }}>
-            Add Authorized Member
+          <button
+            type="submit"
+            className="min-h-[44px] px-6 bg-hazard-yellow hover:bg-hazard-bright text-black font-extrabold text-xs uppercase tracking-wider rounded-lg shadow-lg shadow-hazard-yellow/20 transition-all flex items-center gap-2"
+          >
+            <span>Add to Crisis Roster</span>
           </button>
         </form>
-      </fieldset>
+      </div>
     </div>
   );
 };
-

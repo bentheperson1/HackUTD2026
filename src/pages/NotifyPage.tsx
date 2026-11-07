@@ -3,6 +3,7 @@ import { store } from '../lib/store';
 import { STATE_BREACH_RULES } from '../lib/constants';
 import { ScopeItem } from '../lib/types';
 import { DataTable, Column } from '../components/DataTable';
+import { Scale, AlertTriangle, Clock } from 'lucide-react';
 
 interface TriggeredRule {
   state: string;
@@ -24,13 +25,10 @@ export const NotifyPage: React.FC = () => {
     });
   }, []);
 
-  // Compute triggered rules based on scope records
   const triggeredRules: TriggeredRule[] = [];
-
   const baseDate = incidentStartedAt ? new Date(incidentStartedAt) : new Date();
 
   scopeItems.forEach((item) => {
-    // Only items that are exfiltrated or locked or unknown trigger notifications
     item.affected_states.forEach((stateCode) => {
       const rule = STATE_BREACH_RULES[stateCode];
       if (rule) {
@@ -53,70 +51,73 @@ export const NotifyPage: React.FC = () => {
   const columns: Column<TriggeredRule>[] = [
     {
       header: 'State',
-      render: (r) => <strong style={{ fontSize: '1.2em' }}>{r.state}</strong>,
+      render: (r) => <span className="font-black text-base text-hazard-bright font-mono">{r.state}</span>,
     },
     {
       header: 'Governing Statute',
-      render: (r) => <div><strong>{r.statute}</strong></div>,
+      render: (r) => <span className="font-bold text-white text-xs block">{r.statute}</span>,
     },
     {
       header: 'Statutory Authority',
-      render: (r) => r.authority,
+      render: (r) => <span className="text-xs text-slate-300">{r.authority}</span>,
     },
     {
-      header: 'Triggering Scope Category',
+      header: 'Triggering Scope Item',
       render: (r) => (
-        <span>
-          {r.triggerCategory} (<code>{r.status}</code>)
+        <span className="text-xs text-slate-200">
+          {r.triggerCategory} (<code className="text-hazard-yellow">{r.status}</code>)
         </span>
       ),
     },
     {
-      header: 'Statutory Window',
-      render: (r) => `${r.deadlineDays} calendar days`,
+      header: 'Notice Window',
+      render: (r) => <span className="text-xs font-mono text-slate-300">{r.deadlineDays} calendar days</span>,
     },
     {
       header: 'Countdown Deadline',
       render: (r) => (
-        <div style={{ color: r.daysRemaining <= 10 ? 'red' : 'green', fontWeight: 'bold' }}>
-          ⏳ {r.daysRemaining} days remaining
+        <div className={`font-bold font-mono text-xs flex items-center gap-1.5 ${r.daysRemaining <= 10 ? 'text-rose-400' : 'text-emerald-400'}`}>
+          <Clock className="w-3.5 h-3.5" />
+          <span>{r.daysRemaining} days remaining</span>
         </div>
       ),
     },
   ];
 
   return (
-    <div>
-      <div
-        style={{
-          border: '2px solid #e65100',
-          backgroundColor: '#fff3e0',
-          padding: '12px',
-          marginBottom: '20px',
-        }}
-      >
-        <h4 style={{ margin: '0 0 6px 0', color: '#e65100' }}>⚠️ Mandatory Legal Disclaimer</h4>
-        <p style={{ margin: 0, fontWeight: 'bold' }}>
-          Guidance for counsel to review, not legal advice.
-        </p>
-        <small>
-          Notification timelines and triggers are determined by jurisdictional state statutes and privacy regulations.
-          Final notice obligations and filings must be verified and executed by outside legal counsel.
-        </small>
+    <div className="space-y-6">
+      {/* Legal Disclaimer Box */}
+      <div className="bg-amber-950/20 border border-hazard-yellow/40 rounded-xl p-4 text-xs flex items-start gap-3 shadow-md">
+        <AlertTriangle className="w-5 h-5 text-hazard-yellow shrink-0 mt-0.5" />
+        <div>
+          <strong className="text-white block font-bold text-sm mb-0.5">
+            ⚠️ Guidance for Counsel to Review, Not Legal Advice
+          </strong>
+          <span className="text-slate-300">
+            Statutory notification windows are triggered by jurisdictional state privacy statutes.
+            Formal filings must be authorized and conducted under attorney-client privilege.
+          </span>
+        </div>
       </div>
 
-      <h3>Statutory Breach-Notification Countdown Engine</h3>
-      <p>
-        Calculated dynamically from scope records (TX, CA, NY). Identifies applicable state laws, notice windows,
-        and statutory reporting bodies once compromise or exfiltration is suspected.
-      </p>
+      <div className="border-b border-border pb-4">
+        <h2 className="text-xl font-black text-white flex items-center gap-2 m-0">
+          <Scale className="w-5 h-5 text-hazard-yellow" />
+          <span>Statutory Breach-Notification Countdown Engine</span>
+        </h2>
+        <p className="text-xs text-slate-400 mt-1 mb-0">
+          Computed dynamically from impacted scope records (TX, CA, NY). Monitors statutory notice deadlines and Attorney General portals.
+        </p>
+      </div>
 
-      <DataTable
-        columns={columns}
-        data={triggeredRules}
-        emptyMessage="No breach notification triggers active. Add affected states in the Scope tab to evaluate."
-      />
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-slate-200 m-0">Active State Notice Clocks</h3>
+        <DataTable
+          columns={columns}
+          data={triggeredRules}
+          emptyMessage="No breach notification triggers active. Add affected states in the Scope tab to evaluate."
+        />
+      </div>
     </div>
   );
 };
-

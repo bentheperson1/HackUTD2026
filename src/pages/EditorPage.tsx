@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { store } from '../lib/store';
 import { ReportTemplate } from '../lib/types';
-import { Field } from '../components/Field';
+import { FileEdit, Save, CheckCircle2 } from 'lucide-react';
 
 export const EditorPage: React.FC = () => {
   const [templates] = useState<ReportTemplate[]>(store.getState().reportTemplates);
@@ -32,66 +32,79 @@ export const EditorPage: React.FC = () => {
   };
 
   return (
-    <div>
-      <h3>Formal Documentation &amp; Report Draft Editor</h3>
-      <p>
-        Standardized communication templates for cyber underwriters, outside legal counsel, and state regulators.
-      </p>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
+        <div>
+          <h2 className="text-xl font-black text-white flex items-center gap-2 m-0">
+            <FileEdit className="w-5 h-5 text-hazard-yellow" />
+            <span>Insurance &amp; Counsel Documentation Editor</span>
+          </h2>
+          <p className="text-xs text-slate-400 mt-1 mb-0">
+            Standardized templates for cyber underwriters, outside counsel privileged memos, and state regulators.
+          </p>
+        </div>
+      </div>
 
-      {statusMessage && <div style={{ color: 'green', fontWeight: 'bold', marginBottom: '10px' }}>{statusMessage}</div>}
+      {statusMessage && (
+        <div className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-800/40 text-emerald-400 text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>{statusMessage}</span>
+        </div>
+      )}
 
-      <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
+      {/* Template Selector Buttons */}
+      <div className="flex gap-2 flex-wrap">
         {templates.map((tpl) => (
           <button
             key={tpl.id}
             onClick={() => setSelectedTemplateId(tpl.id)}
-            style={{
-              padding: '8px 12px',
-              backgroundColor: selectedTemplateId === tpl.id ? '#000' : '#eee',
-              color: selectedTemplateId === tpl.id ? '#fff' : '#000',
-              fontWeight: selectedTemplateId === tpl.id ? 'bold' : 'normal',
-              border: '1px solid black',
-              cursor: 'pointer',
-            }}
+            className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
+              selectedTemplateId === tpl.id
+                ? 'bg-hazard-yellow text-black shadow-lg shadow-hazard-yellow/20 font-black'
+                : 'bg-card text-slate-300 hover:text-white border border-border'
+            }`}
           >
             {tpl.name}
           </button>
         ))}
       </div>
 
-      <fieldset style={{ padding: '16px' }}>
-        <legend><strong>Draft Workspace</strong></legend>
-        <form onSubmit={handleSave}>
-          <Field label="Document Title">
+      {/* Draft Workspace */}
+      <div className="bg-card border border-border rounded-xl p-5 shadow-xl">
+        <form onSubmit={handleSave} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-300 mb-1">
+              Document Title
+            </label>
             <input
               type="text"
               value={draftTitle}
               onChange={(e) => setDraftTitle(e.target.value)}
-              style={{ width: '100%', padding: '6px', fontSize: '1em' }}
+              className="w-full text-sm font-bold text-white"
             />
-          </Field>
+          </div>
 
-          <Field label="Draft Body Content">
+          <div>
+            <label className="block text-xs font-bold text-slate-300 mb-1">
+              Draft Body Content
+            </label>
             <textarea
               value={draftContent}
               onChange={(e) => setDraftContent(e.target.value)}
               rows={16}
-              style={{
-                width: '100%',
-                padding: '10px',
-                fontFamily: 'monospace',
-                fontSize: '0.95em',
-                lineHeight: '1.4',
-              }}
+              className="w-full font-mono text-xs leading-relaxed text-slate-200"
             />
-          </Field>
+          </div>
 
-          <button type="submit" style={{ padding: '10px 20px', fontWeight: 'bold' }}>
-            Save Draft to Store
+          <button
+            type="submit"
+            className="min-h-[44px] px-6 bg-hazard-yellow hover:bg-hazard-bright text-black font-extrabold text-xs uppercase tracking-wider rounded-lg shadow-lg shadow-hazard-yellow/20 transition-all flex items-center gap-2"
+          >
+            <Save className="w-4 h-4" />
+            <span>Save Working Draft</span>
           </button>
         </form>
-      </fieldset>
+      </div>
     </div>
   );
 };
-

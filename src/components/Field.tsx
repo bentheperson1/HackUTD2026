@@ -9,14 +9,13 @@ interface FieldProps {
 
 export const Field: React.FC<FieldProps> = ({ label, error, help, children }) => {
   return (
-    <div style={{ marginBottom: '12px' }}>
-      <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>
+    <div className="space-y-1.5">
+      <label className="block text-xs font-bold text-slate-300">
         {label}
       </label>
       {children}
-      {help && <div style={{ fontSize: '0.85em', color: '#555', marginTop: '2px' }}>{help}</div>}
-      {error && <div style={{ color: 'red', fontSize: '0.85em', marginTop: '2px' }}>Error: {error}</div>}
+      {help && <p className="text-[11px] text-slate-400 m-0">{help}</p>}
+      {error && <p className="text-xs text-rose-400 font-semibold m-0">{error}</p>}
     </div>
   );
 };
-

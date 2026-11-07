@@ -1,12 +1,13 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import './index.css';
 import { Identity } from 'spacetimedb';
 import { SpacetimeDBProvider } from 'spacetimedb/react';
 import { DbConnection, ErrorContext } from './module_bindings/index.ts';
 
 const HOST = import.meta.env.VITE_SPACETIMEDB_HOST ?? 'wss://maincloud.spacetimedb.com';
-const DB_NAME = import.meta.env.VITE_SPACETIMEDB_DB_NAME ?? 'drillnight-dev';
+const DB_NAME = import.meta.env.VITE_SPACETIMEDB_DB_NAME ?? 'hackutd2026-h9s81';
 const TOKEN_KEY = `${HOST}/${DB_NAME}/auth_token`;
 
 const onConnect = (_conn: DbConnection, identity: Identity, token: string) => {

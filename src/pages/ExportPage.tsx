@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { store } from '../lib/store';
+import { Download, FileCheck, CheckCircle2 } from 'lucide-react';
 
 export const ExportPage: React.FC = () => {
   const [includeTimeline, setIncludeTimeline] = useState(true);
@@ -10,7 +11,6 @@ export const ExportPage: React.FC = () => {
   const [exportNotice, setExportNotice] = useState('');
 
   const handleExportPDF = () => {
-    // Generate text/JSON bundle representation or print dialog
     const state = store.getState();
     const packet = {
       title: 'Drill Night Crisis Command Center - Formal Incident Package',
@@ -26,7 +26,6 @@ export const ExportPage: React.FC = () => {
       },
     };
 
-    // Client-side download or print stub
     const blob = new Blob([JSON.stringify(packet, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -39,87 +38,91 @@ export const ExportPage: React.FC = () => {
   };
 
   return (
-    <div>
-      <h3>Comprehensive Incident Dossier &amp; PDF Export</h3>
-      <p>
-        Package timeline logs, evidence logs, scope assessments, and counsel memos into a certified package for
-        forensic examiners, insurers, and federal/state regulatory inquiries.
-      </p>
+    <div className="space-y-6">
+      <div className="border-b border-border pb-4">
+        <h2 className="text-xl font-black text-white flex items-center gap-2 m-0">
+          <Download className="w-5 h-5 text-hazard-yellow" />
+          <span>Incident Dossier &amp; Regulatory PDF Export</span>
+        </h2>
+        <p className="text-xs text-slate-400 mt-1 mb-0">
+          Package chronological evidence logs, scope assessments, and counsel memos into a certified audit bundle.
+        </p>
+      </div>
 
-      {exportNotice && <div style={{ color: 'green', fontWeight: 'bold', marginBottom: '12px' }}>✓ {exportNotice}</div>}
+      {exportNotice && (
+        <div className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-800/40 text-emerald-400 text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>{exportNotice}</span>
+        </div>
+      )}
 
-      <fieldset style={{ padding: '16px', maxWidth: '600px', marginBottom: '20px' }}>
-        <legend><strong>Package Contents Checklist</strong></legend>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <label>
+      {/* Package Contents Checklist */}
+      <div className="bg-card border border-border rounded-xl p-5 shadow-xl max-w-2xl space-y-4">
+        <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+          <FileCheck className="w-4 h-4 text-hazard-yellow" />
+          <span>Certified Package Contents Checklist</span>
+        </h3>
+
+        <div className="space-y-3 bg-[#0B0D11] p-4 rounded-xl border border-[#1E2431]">
+          <label className="flex items-center gap-3 text-xs text-slate-200 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={includeRoster}
               onChange={(e) => setIncludeRoster(e.target.checked)}
-            />{' '}
-            Emergency Incident Command Roster &amp; Role Assignments
+              className="h-4 w-4 rounded bg-[#161B24] border-[#2D3648] text-hazard-yellow"
+            />
+            <span>Emergency Incident Command Roster &amp; Authorized Responders</span>
           </label>
 
-          <label>
+          <label className="flex items-center gap-3 text-xs text-slate-200 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={includeTimeline}
               onChange={(e) => setIncludeTimeline(e.target.checked)}
-            />{' '}
-            Chronological Incident Timeline &amp; War Room Dispatch Log
+              className="h-4 w-4 rounded bg-[#161B24] border-[#2D3648] text-hazard-yellow"
+            />
+            <span>Chronological Crisis War Room Log &amp; Decision Dispatches</span>
           </label>
 
-          <label>
+          <label className="flex items-center gap-3 text-xs text-slate-200 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={includeScope}
               onChange={(e) => setIncludeScope(e.target.checked)}
-            />{' '}
-            Data Scope Assessment &amp; Compromise Classification
+              className="h-4 w-4 rounded bg-[#161B24] border-[#2D3648] text-hazard-yellow"
+            />
+            <span>Data Scope Assessment &amp; Compromise Classification</span>
           </label>
 
-          <label>
+          <label className="flex items-center gap-3 text-xs text-slate-200 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={includeAuditLogs}
               onChange={(e) => setIncludeAuditLogs(e.target.checked)}
-            />{' '}
-            Immutable Append-Only Audit Log (with cryptographic actor signatures)
+              className="h-4 w-4 rounded bg-[#161B24] border-[#2D3648] text-hazard-yellow"
+            />
+            <span>Immutable Append-Only Audit Trail (with actor identity hashes)</span>
           </label>
 
-          <label>
+          <label className="flex items-center gap-3 text-xs text-slate-200 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={includeDrafts}
               onChange={(e) => setIncludeDrafts(e.target.checked)}
-            />{' '}
-            Privileged Memos &amp; First Notice of Loss Drafts
+              className="h-4 w-4 rounded bg-[#161B24] border-[#2D3648] text-hazard-yellow"
+            />
+            <span>Privileged Memos &amp; First Notice of Loss Drafts</span>
           </label>
         </div>
 
-        <div style={{ marginTop: '20px' }}>
-          <button
-            onClick={handleExportPDF}
-            style={{
-              padding: '10px 20px',
-              fontSize: '1em',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-            }}
-          >
-            📄 Generate &amp; Export Crisis Package
-          </button>
-        </div>
-      </fieldset>
-
-      <div>
-        <h4>Client-Side PDF Engine Status</h4>
-        <pre style={{ backgroundColor: '#f0f0f0', padding: '10px' }}>
-{`// Ready for client-side jsPDF / react-pdf bundle
-// Currently exports structured JSON dossier with full cryptographic audit hash.`}
-        </pre>
+        <button
+          onClick={handleExportPDF}
+          className="w-full min-h-[48px] bg-hazard-yellow hover:bg-hazard-bright text-black font-extrabold text-sm uppercase tracking-wider rounded-lg shadow-lg shadow-hazard-yellow/20 flex items-center justify-center gap-2 transition-all"
+        >
+          <Download className="w-4 h-4" />
+          <span>Generate Certified Incident Dossier</span>
+        </button>
       </div>
     </div>
   );
 };
-
