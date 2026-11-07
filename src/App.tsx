@@ -1,70 +1,45 @@
-import { useState } from 'react';
-import { tables, reducers } from './module_bindings';
-import { useSpacetimeDB, useTable, useReducer } from 'spacetimedb/react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './lib/authContext';
+import { TopBar } from './components/TopBar';
+import { LoginPage } from './pages/LoginPage';
+import { MembersPage } from './pages/MembersPage';
+import { IncidentPage } from './pages/IncidentPage';
+import { WarRoomPage } from './pages/WarRoomPage';
+import { DocsPage } from './pages/DocsPage';
+import { ScopePage } from './pages/ScopePage';
+import { NotifyPage } from './pages/NotifyPage';
+import { EditorPage } from './pages/EditorPage';
+import { ExportPage } from './pages/ExportPage';
+import { DrillPage } from './pages/DrillPage';
+import { DebugPage } from './pages/DebugPage';
 
-function App() {
-  const [name, setName] = useState('');
-
-  const conn = useSpacetimeDB();
-  const { isActive: connected } = conn;
-
-  // Subscribe to all people in the database
-  const [people] = useTable(tables.person);
-
-  const addReducer = useReducer(reducers.add);
-
-  const addPerson = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !connected) return;
-
-    // Call the add reducer
-    addReducer({ name: name });
-    setName('');
-  };
-
+export const App: React.FC = () => {
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>SpacetimeDB React App</h1>
-
-      <div style={{ marginBottom: '1rem' }}>
-        Status:{' '}
-        <strong style={{ color: connected ? 'green' : 'red' }}>
-          {connected ? 'Connected' : 'Disconnected'}
-        </strong>
-      </div>
-
-      <form onSubmit={addPerson} style={{ marginBottom: '2rem' }}>
-        <input
-          type="text"
-          placeholder="Enter name"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          style={{ padding: '0.5rem', marginRight: '0.5rem' }}
-          disabled={!connected}
-        />
-        <button
-          type="submit"
-          style={{ padding: '0.5rem 1rem' }}
-          disabled={!connected}
-        >
-          Add Person
-        </button>
-      </form>
-
-      <div>
-        <h2>People ({people.length})</h2>
-        {people.length === 0 ? (
-          <p>No people yet. Add someone above!</p>
-        ) : (
-          <ul>
-            {people.map((person, index) => (
-              <li key={index}>{person.name}</li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
+    <BrowserRouter>
+      <AuthProvider>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+          <TopBar />
+          <main style={{ marginTop: '16px' }}>
+            <Routes>
+              <Route path="/" element={<Navigate to="/warroom" replace />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/members" element={<MembersPage />} />
+              <Route path="/incident" element={<IncidentPage />} />
+              <Route path="/warroom" element={<WarRoomPage />} />
+              <Route path="/docs" element={<DocsPage />} />
+              <Route path="/scope" element={<ScopePage />} />
+              <Route path="/notify" element={<NotifyPage />} />
+              <Route path="/editor" element={<EditorPage />} />
+              <Route path="/export" element={<ExportPage />} />
+              <Route path="/drill" element={<DrillPage />} />
+              <Route path="/debug" element={<DebugPage />} />
+            </Routes>
+          </main>
+        </div>
+      </AuthProvider>
+    </BrowserRouter>
   );
-}
+};
 
 export default App;

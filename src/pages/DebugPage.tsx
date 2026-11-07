@@ -2,67 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { store, AppState } from '../lib/store';
 import { DataTable, Column } from '../components/DataTable';
 import { ReducerCallLog } from '../lib/types';
-import { useSpacetimeDB, useTable, useReducer } from 'spacetimedb/react';
 import { tables, reducers } from '../module_bindings';
+import { useSpacetimeDB, useTable, useReducer } from 'spacetimedb/react';
 
 export const DebugPage: React.FC = () => {
   const [state, setState] = useState<AppState>(store.getState());
   const [selectedTable, setSelectedTable] = useState<keyof AppState>('members');
-  const [newPersonName, setNewPersonName] = useState('');
-  const [spacetimedbStatusMsg, setSpacetimedbStatusMsg] = useState('');
+  const [personName, setPersonName] = useState('');
 
-  // SpacetimeDB Live Connection & Hooks
-  let conn: any = null;
-  try {
-    conn = useSpacetimeDB();
-  } catch {
-    // Graceful fallback
-  }
-
-  const isConnected = !!conn?.isActive;
-  let people: readonly { name: string }[] = [];
-  try {
-    const [personTable] = useTable(tables.person);
-    people = personTable || [];
-  } catch {
-    // If not subscribed yet
-  }
-
-  let addPersonReducer: any = null;
-  let sayHelloReducer: any = null;
-  try {
-    addPersonReducer = useReducer(reducers.add);
-    sayHelloReducer = useReducer(reducers.sayHello);
-  } catch {
-    // Fallback
-  }
-
-  const handleAddPerson = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPersonName.trim()) return;
-    try {
-      if (addPersonReducer) {
-        addPersonReducer({ name: newPersonName.trim() });
-        setSpacetimedbStatusMsg(`Called add({ name: "${newPersonName.trim()}" }) successfully!`);
-        setNewPersonName('');
-      } else {
-        setSpacetimedbStatusMsg('SpacetimeDB add reducer not available');
-      }
-    } catch (err: any) {
-      setSpacetimedbStatusMsg(`Error: ${err?.message || err}`);
-    }
-  };
-
-  const handleSayHello = () => {
-    try {
-      if (sayHelloReducer) {
-        sayHelloReducer();
-        setSpacetimedbStatusMsg('Triggered say_hello reducer! Check terminal/logs.');
-      }
-    } catch (err: any) {
-      setSpacetimedbStatusMsg(`Error: ${err?.message || err}`);
-    }
-  };
+  // Live SpacetimeDB hook connection
+  const conn = useSpacetimeDB();
+  const dbConnected = conn?.isActive ?? false;
+  const [people] = useTable(tables.person);
+  const addReducer = useReducer(reducers.add);
 
   useEffect(() => {
     return store.subscribe((nextState) => {
@@ -73,6 +25,17 @@ export const DebugPage: React.FC = () => {
   const handleReset = () => {
     if (confirm('Reset store back to default demo state?')) {
       store.resetToDefaults();
+    }
+  };
+
+  const handleAddPerson = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!personName.trim()) return;
+    try {
+      addReducer({ name: personName });
+      setPersonName('');
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -127,67 +90,54 @@ export const DebugPage: React.FC = () => {
           Reset Demo State
         </button>
       </div>
-      <p>
-        Live introspection harness. Inspects raw table subscriptions and logs every reducer execution with its status
-        and arguments in real time.
-      </p>
 
-      <fieldset style={{ marginBottom: '20px', padding: '16px', border: '2px solid #0066cc', backgroundColor: '#f0f7ff' }}>
-        <legend><strong style={{ color: '#0066cc' }}>⚡ SpacetimeDB Live Connection &amp; Sample Reducer Test</strong></legend>
-        <div style={{ marginBottom: '8px' }}>
+      {/* Live SpacetimeDB Integration Status */}
+      <fieldset style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f0f7ff', border: '1px solid #90caf9' }}>
+        <legend><strong>⚡ Live SpacetimeDB Connection &amp; Reducer Test</strong></legend>
+        <div>
           <strong>Status:</strong>{' '}
-          <span style={{ color: isConnected ? 'green' : 'orange', fontWeight: 'bold' }}>
-            ● {isConnected ? 'Connected to SpacetimeDB Cloud (wss://maincloud.spacetimedb.com)' : 'Connecting / Checking SpacetimeDB...'}
+          <span style={{ color: dbConnected ? 'green' : 'orange', fontWeight: 'bold' }}>
+            {dbConnected ? '● Connected to SpacetimeDB Maincloud (drillnight-dev)' : 'Connecting to SpacetimeDB...'}
           </span>
         </div>
-        <div style={{ marginBottom: '8px' }}>
-          <strong>Database:</strong> <code>drillnight-dev</code> | <strong>Identity:</strong> <code>{conn?.identity ? conn.identity.toHexString() : 'Anonymous / Pending'}</code>
+        <div style={{ fontSize: '0.9em', marginTop: '4px' }}>
+          <strong>Connected Identity:</strong> <code>{conn?.identity ? conn.identity.toHexString() : 'Pending auth'}</code>
         </div>
-
-        <div style={{ marginTop: '12px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <form onSubmit={handleAddPerson} style={{ display: 'flex', gap: '8px' }}>
-            <input
-              type="text"
-              placeholder="Enter name (e.g. Alice)"
-              value={newPersonName}
-              onChange={(e) => setNewPersonName(e.target.value)}
-              style={{ padding: '6px' }}
-            />
-            <button type="submit" style={{ padding: '6px 12px', fontWeight: 'bold', backgroundColor: '#0066cc', color: '#fff', border: 'none', cursor: 'pointer' }}>
-              Call add(name) Reducer
-            </button>
-          </form>
-          <button onClick={handleSayHello} style={{ padding: '6px 12px', cursor: 'pointer' }}>
-            Call say_hello Reducer
-          </button>
-        </div>
-
-        {spacetimedbStatusMsg && (
-          <div style={{ marginTop: '8px', color: '#004499', fontWeight: 'bold' }}>
-            ℹ️ {spacetimedbStatusMsg}
-          </div>
-        )}
 
         <div style={{ marginTop: '12px' }}>
-          <strong>Live <code>person</code> Table Subscription ({people.length} rows):</strong>
+          <strong>Live Database Table <code>person</code> ({people.length} rows):</strong>
           {people.length === 0 ? (
-            <div style={{ color: '#666', fontStyle: 'italic', marginTop: '4px' }}>No rows yet in `person` table. Submit a name above!</div>
+            <p style={{ fontStyle: 'italic', margin: '4px 0' }}>No rows in person table yet.</p>
           ) : (
-            <ul style={{ margin: '6px 0 0 20px', padding: 0 }}>
+            <ul style={{ margin: '6px 0' }}>
               {people.map((p, idx) => (
                 <li key={idx}><code>{p.name}</code></li>
               ))}
             </ul>
           )}
+
+          <form onSubmit={handleAddPerson} style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+            <input
+              type="text"
+              placeholder="Test reducer: enter person name"
+              value={personName}
+              onChange={(e) => setPersonName(e.target.value)}
+              style={{ padding: '6px', width: '260px' }}
+              disabled={!dbConnected}
+            />
+            <button type="submit" disabled={!dbConnected} style={{ padding: '6px 12px', fontWeight: 'bold' }}>
+              Call SpacetimeDB Add Reducer
+            </button>
+          </form>
         </div>
       </fieldset>
 
       <div style={{ marginBottom: '24px' }}>
-        <h4>Live Reducer Call Log (Realtime)</h4>
+        <h4>Live Reducer Call Log (Frontend Reactive Store)</h4>
         <DataTable
           columns={reducerLogColumns}
           data={state.reducerLogs}
-          emptyMessage="No reducers called yet in this session. Trigger any action across the tabs to view log."
+          emptyMessage="No local reducers called yet. Trigger any action across the crisis tabs to view log."
         />
       </div>
 
@@ -202,6 +152,7 @@ export const DebugPage: React.FC = () => {
                 padding: '4px 8px',
                 backgroundColor: selectedTable === key ? '#000' : '#ddd',
                 color: selectedTable === key ? '#fff' : '#000',
+                cursor: 'pointer',
               }}
             >
               {key}
@@ -225,4 +176,3 @@ export const DebugPage: React.FC = () => {
     </div>
   );
 };
-

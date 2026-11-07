@@ -5,30 +5,36 @@ import { RoleBadge } from './RoleBadge';
 import { useSpacetimeDB } from 'spacetimedb/react';
 
 export const TopBar: React.FC = () => {
-  const { currentUser, connectionStatus: localStatus, spacetimedbIdentity: mockIdentity } = useAuth();
-  let conn: any = null;
+  const { currentUser, spacetimedbIdentity } = useAuth();
+
+  let isDbConnected = false;
+  let liveIdentity = spacetimedbIdentity;
   try {
-    conn = useSpacetimeDB();
+    const conn = useSpacetimeDB();
+    if (conn) {
+      isDbConnected = conn.isActive;
+      if (conn.identity) {
+        liveIdentity = conn.identity.toHexString();
+      }
+    }
   } catch {
-    // In case hook is used outside provider in test
+    // Fallback if not inside provider
   }
 
-  const isConnected = conn?.isActive ?? (localStatus === 'connected');
-  const rawIdentity = conn?.identity ? conn.identity.toHexString() : mockIdentity;
-  const shortId = rawIdentity ? `${rawIdentity.slice(0, 8)}...${rawIdentity.slice(-6)}` : 'disconnected';
+  const shortId = liveIdentity ? `${liveIdentity.slice(0, 8)}...${liveIdentity.slice(-6)}` : 'offline';
 
   const navLinks = [
-    { to: '/login', label: 'Login' },
-    { to: '/members', label: 'Members' },
-    { to: '/incident', label: 'Incident' },
     { to: '/warroom', label: 'War Room' },
+    { to: '/incident', label: 'Incident' },
+    { to: '/members', label: 'Members' },
     { to: '/docs', label: 'Docs & Audit' },
     { to: '/scope', label: 'Scope' },
     { to: '/notify', label: 'Breach Notification' },
     { to: '/editor', label: 'Templates & Drafts' },
     { to: '/export', label: 'PDF Export' },
     { to: '/drill', label: 'Drill Night' },
-    { to: '/debug', label: 'Debug / DB JSON' },
+    { to: '/login', label: 'Auth / Switch Role' },
+    { to: '/debug', label: 'Debug & DB Test' },
   ];
 
   return (
@@ -39,9 +45,17 @@ export const TopBar: React.FC = () => {
           <small>Out-of-band Ransomware Response &amp; Multiplayer Drill System</small>
         </div>
         <div style={{ textAlign: 'right', fontSize: '0.9em', border: '1px solid #aaa', padding: '6px' }}>
-          <div><strong>Connection:</strong> <span style={{ color: isConnected ? 'green' : 'red' }}>● {isConnected ? 'connected' : 'disconnected'}</span> | <strong>SpacetimeDB Identity:</strong> <code>{shortId}</code></div>
-          <div><strong>User:</strong> {currentUser.name} | <strong>Phone:</strong> {currentUser.phone} | <RoleBadge role={currentUser.role} /></div>
-          <div><strong>Org:</strong> Acme Logistics Corp</div>
+          <div>
+            <strong>SpacetimeDB:</strong>{' '}
+            <span style={{ color: isDbConnected ? 'green' : 'orange', fontWeight: 'bold' }}>
+              ● {isDbConnected ? 'Connected (Maincloud)' : 'Connecting / Offline'}
+            </span>{' '}
+            | <strong>Identity:</strong> <code>{shortId}</code>
+          </div>
+          <div>
+            <strong>Active Responder:</strong> {currentUser.name} | <strong>Phone:</strong> {currentUser.phone} | <RoleBadge role={currentUser.role} />
+          </div>
+          <div><strong>Organization:</strong> Acme Logistics Corp</div>
         </div>
       </div>
 
@@ -66,4 +80,3 @@ export const TopBar: React.FC = () => {
     </header>
   );
 };
-
