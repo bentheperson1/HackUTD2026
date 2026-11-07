@@ -113,3 +113,4 @@ export const IncidentPage: React.FC = () => {
     </div>
   );
 };
+

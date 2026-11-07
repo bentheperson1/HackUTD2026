@@ -11,3 +11,4 @@ export const RoleBadge: React.FC<RoleBadgeProps> = ({ role }) => {
   const label = match ? match.label : role;
   return <span style={{ fontWeight: 'bold', padding: '2px 6px', border: '1px solid #ccc' }}>[{label}]</span>;
 };
+

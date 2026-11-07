@@ -119,3 +119,4 @@ export const NotifyPage: React.FC = () => {
     </div>
   );
 };
+

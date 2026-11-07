@@ -2,10 +2,20 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../lib/authContext';
 import { RoleBadge } from './RoleBadge';
+import { useSpacetimeDB } from 'spacetimedb/react';
 
 export const TopBar: React.FC = () => {
-  const { currentUser, connectionStatus, spacetimedbIdentity, switchUser } = useAuth();
-  const shortId = spacetimedbIdentity ? `${spacetimedbIdentity.slice(0, 8)}...${spacetimedbIdentity.slice(-6)}` : 'disconnected';
+  const { currentUser, connectionStatus: localStatus, spacetimedbIdentity: mockIdentity } = useAuth();
+  let conn: any = null;
+  try {
+    conn = useSpacetimeDB();
+  } catch {
+    // In case hook is used outside provider in test
+  }
+
+  const isConnected = conn?.isActive ?? (localStatus === 'connected');
+  const rawIdentity = conn?.identity ? conn.identity.toHexString() : mockIdentity;
+  const shortId = rawIdentity ? `${rawIdentity.slice(0, 8)}...${rawIdentity.slice(-6)}` : 'disconnected';
 
   const navLinks = [
     { to: '/login', label: 'Login' },
@@ -29,7 +39,7 @@ export const TopBar: React.FC = () => {
           <small>Out-of-band Ransomware Response &amp; Multiplayer Drill System</small>
         </div>
         <div style={{ textAlign: 'right', fontSize: '0.9em', border: '1px solid #aaa', padding: '6px' }}>
-          <div><strong>Connection:</strong> <span style={{ color: 'green' }}>● {connectionStatus}</span> | <strong>SpacetimeDB Identity:</strong> <code>{shortId}</code></div>
+          <div><strong>Connection:</strong> <span style={{ color: isConnected ? 'green' : 'red' }}>● {isConnected ? 'connected' : 'disconnected'}</span> | <strong>SpacetimeDB Identity:</strong> <code>{shortId}</code></div>
           <div><strong>User:</strong> {currentUser.name} | <strong>Phone:</strong> {currentUser.phone} | <RoleBadge role={currentUser.role} /></div>
           <div><strong>Org:</strong> Acme Logistics Corp</div>
         </div>
@@ -56,3 +66,4 @@ export const TopBar: React.FC = () => {
     </header>
   );
 };
+

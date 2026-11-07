@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Role, Member } from './types';
+import { Member } from './types';
 import { store } from './store';
 
 interface AuthContextType {
@@ -65,3 +65,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

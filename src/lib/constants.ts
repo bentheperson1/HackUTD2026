@@ -54,3 +54,4 @@ export const STATE_BREACH_RULES: Record<string, StateNotificationRule> = {
     notes: 'Notice must be provided in the most expedient time possible without unreasonable delay.',
   },
 };
+

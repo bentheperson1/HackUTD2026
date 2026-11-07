@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { store } from '../lib/store';
-import { ReportTemplate, ReportDraft } from '../lib/types';
+import { ReportTemplate } from '../lib/types';
 import { Field } from '../components/Field';
 
 export const EditorPage: React.FC = () => {
@@ -94,3 +94,4 @@ export const EditorPage: React.FC = () => {
     </div>
   );
 };
+

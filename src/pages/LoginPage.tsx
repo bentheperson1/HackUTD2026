@@ -5,7 +5,7 @@ import { Field } from '../components/Field';
 
 export const LoginPage: React.FC = () => {
   const { currentUser, switchUser, loginAsTestUser } = useAuth();
-  const [members, setMembers] = useState(store.getState().members);
+  const [members] = useState(store.getState().members);
   const [phoneNumber, setPhoneNumber] = useState('+1 (555) 302-8841');
   const [statusMessage, setStatusMessage] = useState('');
 
@@ -74,3 +74,4 @@ export const LoginPage: React.FC = () => {
     </div>
   );
 };
+

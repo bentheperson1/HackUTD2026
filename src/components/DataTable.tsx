@@ -37,3 +37,4 @@ export function DataTable<T>({ columns, data, emptyMessage = 'No data recorded y
     </table>
   );
 }
+

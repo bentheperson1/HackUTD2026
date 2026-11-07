@@ -2,10 +2,67 @@ import React, { useState, useEffect } from 'react';
 import { store, AppState } from '../lib/store';
 import { DataTable, Column } from '../components/DataTable';
 import { ReducerCallLog } from '../lib/types';
+import { useSpacetimeDB, useTable, useReducer } from 'spacetimedb/react';
+import { tables, reducers } from '../module_bindings';
 
 export const DebugPage: React.FC = () => {
   const [state, setState] = useState<AppState>(store.getState());
   const [selectedTable, setSelectedTable] = useState<keyof AppState>('members');
+  const [newPersonName, setNewPersonName] = useState('');
+  const [spacetimedbStatusMsg, setSpacetimedbStatusMsg] = useState('');
+
+  // SpacetimeDB Live Connection & Hooks
+  let conn: any = null;
+  try {
+    conn = useSpacetimeDB();
+  } catch {
+    // Graceful fallback
+  }
+
+  const isConnected = !!conn?.isActive;
+  let people: readonly { name: string }[] = [];
+  try {
+    const [personTable] = useTable(tables.person);
+    people = personTable || [];
+  } catch {
+    // If not subscribed yet
+  }
+
+  let addPersonReducer: any = null;
+  let sayHelloReducer: any = null;
+  try {
+    addPersonReducer = useReducer(reducers.add);
+    sayHelloReducer = useReducer(reducers.sayHello);
+  } catch {
+    // Fallback
+  }
+
+  const handleAddPerson = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPersonName.trim()) return;
+    try {
+      if (addPersonReducer) {
+        addPersonReducer({ name: newPersonName.trim() });
+        setSpacetimedbStatusMsg(`Called add({ name: "${newPersonName.trim()}" }) successfully!`);
+        setNewPersonName('');
+      } else {
+        setSpacetimedbStatusMsg('SpacetimeDB add reducer not available');
+      }
+    } catch (err: any) {
+      setSpacetimedbStatusMsg(`Error: ${err?.message || err}`);
+    }
+  };
+
+  const handleSayHello = () => {
+    try {
+      if (sayHelloReducer) {
+        sayHelloReducer();
+        setSpacetimedbStatusMsg('Triggered say_hello reducer! Check terminal/logs.');
+      }
+    } catch (err: any) {
+      setSpacetimedbStatusMsg(`Error: ${err?.message || err}`);
+    }
+  };
 
   useEffect(() => {
     return store.subscribe((nextState) => {
@@ -75,20 +132,54 @@ export const DebugPage: React.FC = () => {
         and arguments in real time.
       </p>
 
-      <fieldset style={{ marginBottom: '20px', padding: '12px' }}>
-        <legend><strong>SpacetimeDB Backend Integration Status</strong></legend>
-        <div>
-          <strong>Status:</strong> Draft Front-end Test Harness Active.
+      <fieldset style={{ marginBottom: '20px', padding: '16px', border: '2px solid #0066cc', backgroundColor: '#f0f7ff' }}>
+        <legend><strong style={{ color: '#0066cc' }}>⚡ SpacetimeDB Live Connection &amp; Sample Reducer Test</strong></legend>
+        <div style={{ marginBottom: '8px' }}>
+          <strong>Status:</strong>{' '}
+          <span style={{ color: isConnected ? 'green' : 'orange', fontWeight: 'bold' }}>
+            ● {isConnected ? 'Connected to SpacetimeDB Cloud (wss://maincloud.spacetimedb.com)' : 'Connecting / Checking SpacetimeDB...'}
+          </span>
         </div>
-        <div>
-          <strong>Backend Note:</strong> Teammate is building backend C#/TypeScript SpacetimeDB module. Once published,
-          client tables will bind directly to SpacetimeDB WebSocket subscriptions.
+        <div style={{ marginBottom: '8px' }}>
+          <strong>Database:</strong> <code>drillnight-dev</code> | <strong>Identity:</strong> <code>{conn?.identity ? conn.identity.toHexString() : 'Anonymous / Pending'}</code>
         </div>
-        <pre style={{ margin: '8px 0 0 0', backgroundColor: '#eef', padding: '6px' }}>
-{`// TODO: When backend module is published, replace store with:
-// import { DbConnection } from './module_bindings';
-// const conn = DbConnection.builder().withUri(VITE_SPACETIMEDB_URI)...build();`}
-        </pre>
+
+        <div style={{ marginTop: '12px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <form onSubmit={handleAddPerson} style={{ display: 'flex', gap: '8px' }}>
+            <input
+              type="text"
+              placeholder="Enter name (e.g. Alice)"
+              value={newPersonName}
+              onChange={(e) => setNewPersonName(e.target.value)}
+              style={{ padding: '6px' }}
+            />
+            <button type="submit" style={{ padding: '6px 12px', fontWeight: 'bold', backgroundColor: '#0066cc', color: '#fff', border: 'none', cursor: 'pointer' }}>
+              Call add(name) Reducer
+            </button>
+          </form>
+          <button onClick={handleSayHello} style={{ padding: '6px 12px', cursor: 'pointer' }}>
+            Call say_hello Reducer
+          </button>
+        </div>
+
+        {spacetimedbStatusMsg && (
+          <div style={{ marginTop: '8px', color: '#004499', fontWeight: 'bold' }}>
+            ℹ️ {spacetimedbStatusMsg}
+          </div>
+        )}
+
+        <div style={{ marginTop: '12px' }}>
+          <strong>Live <code>person</code> Table Subscription ({people.length} rows):</strong>
+          {people.length === 0 ? (
+            <div style={{ color: '#666', fontStyle: 'italic', marginTop: '4px' }}>No rows yet in `person` table. Submit a name above!</div>
+          ) : (
+            <ul style={{ margin: '6px 0 0 20px', padding: 0 }}>
+              {people.map((p, idx) => (
+                <li key={idx}><code>{p.name}</code></li>
+              ))}
+            </ul>
+          )}
+        </div>
       </fieldset>
 
       <div style={{ marginBottom: '24px' }}>
@@ -134,3 +225,4 @@ export const DebugPage: React.FC = () => {
     </div>
   );
 };
+
