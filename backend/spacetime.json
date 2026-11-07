@@ -1,0 +1,8 @@
+{
+  "dev": {
+    "run": "dotnet run"
+  },
+  "database": "hackutd2026-h9s81",
+  "server": "maincloud",
+  "module-path": "./spacetimedb"
+}
