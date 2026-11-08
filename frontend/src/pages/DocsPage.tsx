@@ -1,129 +1,130 @@
 import React, { useState } from 'react';
-import { useReducer, useTable } from 'spacetimedb/react';
-import { reducers, tables } from '../module_bindings';
-import type { TimelineEntry } from '../module_bindings/types';
 import { useAuth } from '../lib/authContext';
-import { IncidentPhase } from '../lib/types';
+import { store } from '../lib/store';
+import { AuditLogEntry, IncidentPhase } from '../lib/types';
 import { PHASES } from '../lib/constants';
-import { errorMessage, phaseName, toDate } from '../lib/live';
+import { useAppState } from '../lib/useAppState';
 import { DataTable, Column } from '../components/DataTable';
-import { Button } from '../components/Button';
-import { Card, SectionTitle } from '../components/Card';
 import { Field } from '../components/Field';
-import { Chip } from '../components/Chip';
-import { Notice } from '../components/Notice';
-import { PageHeader } from '../components/PageHeader';
-import { Lock } from 'lucide-react';
+import { Alert, Button, Card, FilterBar, FilterChip, PageHeader, titleCase } from '../components/ui';
 
 export const DocsPage: React.FC = () => {
-  const { activeIncident, incidentRole } = useAuth();
-  const [users] = useTable(tables.user);
-  const [allTimeline] = useTable(tables.timelineEntry);
-  const logAction = useReducer(reducers.logAction);
+  const { currentUser } = useAuth();
+  const auditLogs = useAppState((s) => s.auditLogs);
   const [phaseNotes, setPhaseNotes] = useState('');
-  const [selectedPhase, setSelectedPhase] = useState<IncidentPhase | ''>('');
+  const [selectedPhase, setSelectedPhase] = useState<IncidentPhase>('detection');
   const [statusMessage, setStatusMessage] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [actionFilter, setActionFilter] = useState<string>('all');
 
-  // The backend writes a timeline_entry for every action, so it doubles as the audit log
-  const auditLogs = allTimeline
-    .filter((t) => t.incidentId === activeIncident?.id)
-    .sort((a, b) => Number(b.createdAt.microsSinceUnixEpoch - a.createdAt.microsSinceUnixEpoch));
-
-  const phase = selectedPhase || (activeIncident ? phaseName(activeIncident.phase) : PHASES[0]);
-
-  const handleAddNote = async (e: React.FormEvent) => {
+  const handleAddPhaseDoc = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeIncident || !phaseNotes.trim()) return;
-    setError(null);
-    try {
-      await logAction({ incidentId: activeIncident.id, action: `[${phase.toUpperCase()}] ${phaseNotes}` });
+    if (!phaseNotes.trim()) return;
+    const res = store.recordAuditLog(
+      currentUser.name,
+      `PHASE_DOC_${selectedPhase.toUpperCase()}`,
+      `[${selectedPhase.toUpperCase()}] ${phaseNotes}`
+    );
+    if (res.success) {
       setPhaseNotes('');
-      setStatusMessage('Note added to the audit log.');
-    } catch (err) {
-      setError(errorMessage(err));
+      setStatusMessage('Saved.');
     }
   };
 
-  const auditColumns: Column<TimelineEntry>[] = [
+  // Group actions by their first word (PHASE_DOC_X -> PHASE, TASK_COMPLETED -> TASK)
+  const groupOf = (a: string) => a.split('_')[0];
+  const actionGroups = Object.entries(
+    auditLogs.reduce<Record<string, number>>((acc, l) => ({ ...acc, [groupOf(l.action)]: (acc[groupOf(l.action)] || 0) + 1 }), {})
+  ).sort((a, b) => b[1] - a[1]);
+  const q = search.trim().toLowerCase();
+  const visibleLogs = auditLogs.filter(
+    (l) =>
+      (actionFilter === 'all' || groupOf(l.action) === actionFilter) &&
+      (!q || `${l.actor} ${l.action} ${l.details}`.toLowerCase().includes(q))
+  );
+
+  const auditColumns: Column<AuditLogEntry>[] = [
     {
       header: 'Time',
-      render: (log) => (
-        <span className="whitespace-nowrap font-mono type-body-small text-on-surface-variant">
-          {toDate(log.createdAt).toLocaleString()}
-        </span>
-      ),
+      render: (log) => <span className="font-mono text-xs whitespace-nowrap text-fg-muted">{new Date(log.timestamp).toLocaleString()}</span>,
     },
     {
-      header: 'By',
-      render: (log) => (
-        <span className="whitespace-nowrap">
-          {users.find((u) => u.id.isEqual(log.author))?.displayName ?? 'System'}
-        </span>
-      ),
+      header: 'Who',
+      render: (log) => <span className="whitespace-nowrap text-fg">{log.actor}</span>,
     },
     {
       header: 'Action',
-      render: (log) => log.action,
+      render: (log) => <span className="text-xs whitespace-nowrap text-fg-muted">{titleCase(log.action.toLowerCase())}</span>,
+    },
+    {
+      header: 'Details',
+      render: (log) => <span className="text-fg-muted">{log.details}</span>,
     },
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <PageHeader
+        eyebrow="Record"
         title="Audit log"
-        description="Timestamped record of everything done during the incident, for insurers, counsel and regulators."
-        actions={
-          <Chip icon={<Lock />} title="There is no edit or delete reducer for timeline entries">
-            Append-only
-          </Chip>
-        }
+        description="A permanent record of what happened. Entries can't be changed or deleted."
       />
 
-      {statusMessage && <Notice tone="success">{statusMessage}</Notice>}
-      {error && <Notice tone="error">{error}</Notice>}
-      {!activeIncident && <Notice>You're not part of any incident yet.</Notice>}
-
-      {activeIncident && incidentRole && (
-        <Card className="p-5">
-          <SectionTitle>Add a note</SectionTitle>
-          <form onSubmit={handleAddNote} className="space-y-5">
-            <Field label="Phase" className="md:max-w-xs">
-              <select
-                value={phase}
-                onChange={(e) => setSelectedPhase(e.target.value as IncidentPhase)}
-                className="w-full capitalize"
-              >
-                {PHASES.map((p) => (
-                  <option key={p} value={p}>
-                    {p[0].toUpperCase() + p.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="What happened" help="What was found, who was contacted, what evidence was secured.">
-              <textarea
-                value={phaseNotes}
-                onChange={(e) => setPhaseNotes(e.target.value)}
-                placeholder="14:22 UTC: Ransom note asks for contact via Tox. Memory dump captured on DC-01."
-                rows={3}
-                className="w-full"
-                maxLength={480}
-              />
-            </Field>
-
-            <Button type="submit" disabled={!phaseNotes.trim()}>
-              Add to log
-            </Button>
-          </form>
-        </Card>
+      {statusMessage && (
+        <Alert tone="success" onDismiss={() => setStatusMessage('')}>
+          {statusMessage}
+        </Alert>
       )}
 
-      <section>
-        <SectionTitle trailing={`${auditLogs.length} entries`}>Entries</SectionTitle>
-        <DataTable columns={auditColumns} data={auditLogs} emptyMessage="No entries yet." />
-      </section>
+      <Card kind="form" title="Write down what happened">
+        <form onSubmit={handleAddPhaseDoc} className="space-y-4">
+          <Field label="Step" htmlFor="doc-phase" className="md:max-w-xs">
+            <select id="doc-phase" value={selectedPhase} onChange={(e) => setSelectedPhase(e.target.value as IncidentPhase)}>
+              {PHASES.map((p) => (
+                <option key={p} value={p}>
+                  {titleCase(p)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="What happened" htmlFor="doc-notes">
+            <textarea
+              id="doc-notes"
+              value={phaseNotes}
+              onChange={(e) => setPhaseNotes(e.target.value)}
+              placeholder="e.g. Found a ransom note on the front desk PC. Unplugged it."
+              rows={3}
+            />
+          </Field>
+          <Button type="submit" variant="primary" disabled={!phaseNotes.trim()}>
+            Save
+          </Button>
+        </form>
+      </Card>
+
+      <FilterBar
+        right={
+          <>
+            <label htmlFor="audit-search" className="sr-only">
+              Search entries
+            </label>
+            <input id="audit-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search entries" className="h-7 w-56 text-xs" />
+          </>
+        }
+      >
+        <FilterChip active={actionFilter === 'all'} onClick={() => setActionFilter('all')} count={auditLogs.length}>
+          All
+        </FilterChip>
+        {actionGroups.map(([group, n]) => (
+          <FilterChip key={group} active={actionFilter === group} onClick={() => setActionFilter(actionFilter === group ? 'all' : group)} count={n}>
+            {titleCase(group.toLowerCase())}
+          </FilterChip>
+        ))}
+      </FilterBar>
+
+      <Card kind="table" title="Entries" description="Newest first" padded={false}>
+        <DataTable bare columns={auditColumns} data={visibleLogs} rowKey={(l) => l.id} emptyMessage={auditLogs.length ? 'No entries match.' : 'No entries yet.'} />
+      </Card>
     </div>
   );
 };

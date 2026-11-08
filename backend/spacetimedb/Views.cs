@@ -11,17 +11,17 @@ public static partial class Module
 
         void AddFrom(string incidentId)
         {
-            foreach (var om in ctx.Db.OrgMember.Person.Filter(ctx.Sender))
-            {
-                bool external = IsExternal(om.Role);
-                foreach (var inc in ctx.Db.Incident.OrgId.Filter(om.OrgId))
-                    if ((chatType == 3 && !external) || (om.IsAdmin && chatType <= 2)) AddFrom(inc.Id);
-            }
+            foreach (var msg in ctx.Db.Message.IncidentId.Filter(incidentId))
+                if (msg.ChatType == chatType && seen.Add(msg.Id)) result.Add(msg);
         }
 
+        // External roles (insurer, counsel) don't see the company-wide general chat
         foreach (var om in ctx.Db.OrgMember.Person.Filter(ctx.Sender))
+        {
+            bool external = IsExternal(om.Role);
             foreach (var inc in ctx.Db.Incident.OrgId.Filter(om.OrgId))
-                if (chatType == 3 || (om.IsAdmin && chatType <= 2)) AddFrom(inc.Id);
+                if ((chatType == 3 && !external) || (om.IsAdmin && chatType <= 2)) AddFrom(inc.Id);
+        }
 
         if (chatType == 2)
         {
