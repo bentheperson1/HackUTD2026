@@ -2,7 +2,7 @@ import http from "node:http";
 
 const PORT = process.env.PORT || 8787;
 const KEY = process.env.GROQ_API_KEY;
-const MODEL = process.env.AI_MODEL || "llama-3.3-70b-versatile";
+const MODEL = process.env.AI_MODEL || "openai/gpt-oss-120b";
 const ORIGIN = process.env.ALLOW_ORIGIN || "http://localhost:5173";
 const PROXY_KEY = process.env.PROXY_KEY || ""; // optional shared secret, sent as x-demo-key
 
@@ -56,7 +56,8 @@ http
         },
         body: JSON.stringify({
           model: MODEL,
-          max_tokens: 500,
+          max_tokens: 2000,
+          reasoning_effort: "low",
           messages: [
             { role: "system", content: SYSTEM[kind] },
             { role: "user", content: text },
