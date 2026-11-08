@@ -27,6 +27,13 @@ public static partial class Module
         });
     }
 
+    static bool HasMemberRow(ReducerContext ctx, string incidentId, Identity person)
+    {
+        foreach (var m in ctx.Db.IncidentMember.IncidentId.Filter(incidentId))
+            if (m.Person == person) return true;
+        return false;
+    }
+
     [SpacetimeDB.Reducer]
     public static void AddOrgMember(ReducerContext ctx, ulong orgId, string phone, string role)
     {
@@ -48,6 +55,23 @@ public static partial class Module
             Role = role,
             IsAdmin = role == RoleName.Owner,
         });
+
+        foreach (var inc in ctx.Db.Incident.OrgId.Filter(orgId).ToList())
+        {
+            if (inc.IsDrill || inc.Status == StatusClosed) continue;
+            if (HasMemberRow(ctx, inc.Id, target.Id)) continue;
+
+            ctx.Db.IncidentMember.Insert(new IncidentMember
+            {
+                Id = 0,
+                IncidentId = inc.Id,
+                Person = target.Id,
+                Role = role,
+                AddedBy = ctx.Sender,
+                AddedAt = ctx.Timestamp,
+            });
+            LogTimeline(ctx, inc.Id, $"{target.DisplayName} joined as {role}");
+        }
     }
 
     [SpacetimeDB.Reducer]
