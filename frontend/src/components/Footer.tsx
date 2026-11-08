@@ -75,7 +75,7 @@ export const Footer: React.FC = () => (
       </div>
 
       <div className="mt-12 flex flex-col gap-2 border-t border-line pt-6 text-xs text-fg-subtle md:flex-row md:items-center md:justify-between">
-        <span>© {new Date().getFullYear()} Fifth Edge. All rights reserved.</span>
+        <span>© {new Date().getFullYear()} a bunch of college students.</span>
         <span>Not legal advice. Check with your lawyer.</span>
       </div>
     </div>

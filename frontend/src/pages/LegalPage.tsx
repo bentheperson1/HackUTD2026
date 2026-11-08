@@ -17,7 +17,7 @@ const SECTIONS = [
     id: 'terms',
     title: 'Terms',
     body: [
-      'Outpost is a prototype made by Fifth Edge and provided as is, without warranties. Do not rely on it as your only incident response tool.',
+      'Outpost is a prototype and is provided as is, without warranties. Do not rely on it as your only incident response tool.',
       'Templates, scope tracking and drill content are general guidance, not legal advice. Confirm notification duties and regulator contacts with qualified counsel.',
       'You are responsible for who you add to your roster and for the content they post.',
     ],
