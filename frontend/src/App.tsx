@@ -1,29 +1,3 @@
-<<<<<<< HEAD
-import React, { useCallback, useState } from "react";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-  Outlet,
-} from "react-router-dom";
-import { AuthProvider } from "./lib/authContext";
-import { TopBar } from "./components/TopBar";
-import { NavDrawer } from "./components/NavDrawer";
-import { LoginPage } from "./pages/LoginPage";
-import { AdminDashboard } from "./pages/AdminDashboard";
-import { MembersPage } from "./pages/MembersPage";
-import { IncidentPage } from "./pages/IncidentPage";
-import { WarRoomPage } from "./pages/WarRoomPage";
-import { DocsPage } from "./pages/DocsPage";
-import { ScopePage } from "./pages/ScopePage";
-import { NotifyPage } from "./pages/NotifyPage";
-import { EditorPage } from "./pages/EditorPage";
-import { ExportPage } from "./pages/ExportPage";
-import { DrillPage } from "./pages/DrillPage";
-import { DebugPage } from "./pages/DebugPage";
-import { InsurerPage } from "./pages/InsurerPage";
-=======
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/authContext';
@@ -43,7 +17,6 @@ import { EditorPage } from './pages/EditorPage';
 import { ExportPage } from './pages/ExportPage';
 import { DrillPage } from './pages/DrillPage';
 import { DebugPage } from './pages/DebugPage';
->>>>>>> 69f2296232b4922ae86ee0f3b322d9083c838ee8
 
 const AppShell: React.FC = () => {
   const location = useLocation();
@@ -92,11 +65,7 @@ export const App: React.FC = () => {
             <Route path="/editor" element={<EditorPage />} />
             <Route path="/export" element={<ExportPage />} />
             <Route path="/debug" element={<DebugPage />} />
-<<<<<<< HEAD
-            <Route path="/insurer" element={<InsurerPage />} />
-=======
             <Route path="*" element={<Navigate to="/incident" replace />} />
->>>>>>> 69f2296232b4922ae86ee0f3b322d9083c838ee8
           </Route>
         </Routes>
       </AuthProvider>
