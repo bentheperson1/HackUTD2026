@@ -10,6 +10,15 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+export const Activation = __t.object("Activation", {
+  id: __t.u64(),
+  incidentId: __t.string(),
+  activatedBy: __t.identity(),
+  activatedAt: __t.timestamp(),
+  notified: __t.bool(),
+});
+export type Activation = __Infer<typeof Activation>;
+
 export const DocTemplate = __t.object("DocTemplate", {
   id: __t.string(),
   name: __t.string(),
@@ -18,6 +27,96 @@ export const DocTemplate = __t.object("DocTemplate", {
   createdBy: __t.identity(),
 });
 export type DocTemplate = __Infer<typeof DocTemplate>;
+
+export const DrillAnswer = __t.object("DrillAnswer", {
+  id: __t.u64(),
+  sessionId: __t.u64(),
+  injectId: __t.u64(),
+  person: __t.identity(),
+  choice: __t.u64(),
+  correct: __t.bool(),
+  answeredMs: __t.u64(),
+});
+export type DrillAnswer = __Infer<typeof DrillAnswer>;
+
+export const DrillInject = __t.object("DrillInject", {
+  id: __t.u64(),
+  scenarioId: __t.string(),
+  atSecond: __t.u64(),
+  text: __t.string(),
+  forRole: __t.string(),
+  choices: __t.array(__t.string()),
+  correctChoice: __t.u64(),
+  points: __t.u64(),
+  explanation: __t.string(),
+});
+export type DrillInject = __Infer<typeof DrillInject>;
+
+export const DrillPlayer = __t.object("DrillPlayer", {
+  id: __t.u64(),
+  sessionId: __t.u64(),
+  person: __t.identity(),
+  nickname: __t.string(),
+  role: __t.string(),
+  score: __t.u64(),
+});
+export type DrillPlayer = __Infer<typeof DrillPlayer>;
+
+export const DrillQuestion = __t.object("DrillQuestion", {
+  id: __t.u64(),
+  sessionId: __t.u64(),
+  injectId: __t.u64(),
+  text: __t.string(),
+  forRole: __t.string(),
+  choices: __t.array(__t.string()),
+  firedAt: __t.timestamp(),
+  correctChoice: __t.option(__t.u64()),
+  explanation: __t.string(),
+});
+export type DrillQuestion = __Infer<typeof DrillQuestion>;
+
+export const DrillScenario = __t.object("DrillScenario", {
+  id: __t.string(),
+  name: __t.string(),
+  kind: __t.string(),
+  minutes: __t.u64(),
+});
+export type DrillScenario = __Infer<typeof DrillScenario>;
+
+export const DrillSession = __t.object("DrillSession", {
+  id: __t.u64(),
+  orgId: __t.u64(),
+  scenarioId: __t.string(),
+  incidentId: __t.string(),
+  status: __t.string(),
+  joinCode: __t.string(),
+  startedAt: __t.option(__t.timestamp()),
+  currentInject: __t.option(__t.u64()),
+});
+export type DrillSession = __Infer<typeof DrillSession>;
+
+export const DrillTick = __t.object("DrillTick", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+  sessionId: __t.u64(),
+});
+export type DrillTick = __Infer<typeof DrillTick>;
+
+export const GuestGrant = __t.object("GuestGrant", {
+  id: __t.u64(),
+  incidentId: __t.string(),
+  person: __t.identity(),
+  role: __t.string(),
+  expiresAt: __t.timestamp(),
+  grantedBy: __t.identity(),
+});
+export type GuestGrant = __Infer<typeof GuestGrant>;
+
+export const GuestGrantSweep = __t.object("GuestGrantSweep", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type GuestGrantSweep = __Infer<typeof GuestGrantSweep>;
 
 export const Incident = __t.object("Incident", {
   id: __t.string(),
@@ -30,6 +129,8 @@ export const Incident = __t.object("Incident", {
   currentStatus: __t.string(),
   openedBy: __t.identity(),
   openedAt: __t.timestamp(),
+  orgId: __t.u64(),
+  isDrill: __t.bool(),
 });
 export type Incident = __Infer<typeof Incident>;
 
@@ -64,6 +165,43 @@ export const Message = __t.object("Message", {
 });
 export type Message = __Infer<typeof Message>;
 
+export const NotificationObligation = __t.object("NotificationObligation", {
+  id: __t.u64(),
+  incidentId: __t.string(),
+  state: __t.string(),
+  dueAt: __t.option(__t.timestamp()),
+  reason: __t.string(),
+  status: __t.string(),
+});
+export type NotificationObligation = __Infer<typeof NotificationObligation>;
+
+export const NotificationRule = __t.object("NotificationRule", {
+  state: __t.string(),
+  coveredData: __t.array(__t.string()),
+  deadlineDays: __t.option(__t.u64()),
+  regulatorNotice: __t.string(),
+  sourceUrl: __t.string(),
+  lastChecked: __t.timestamp(),
+});
+export type NotificationRule = __Infer<typeof NotificationRule>;
+
+export const OrgMember = __t.object("OrgMember", {
+  id: __t.u64(),
+  orgId: __t.u64(),
+  person: __t.identity(),
+  role: __t.string(),
+  isAdmin: __t.bool(),
+});
+export type OrgMember = __Infer<typeof OrgMember>;
+
+export const Organization = __t.object("Organization", {
+  id: __t.u64(),
+  name: __t.string(),
+  industry: __t.string(),
+  createdAt: __t.timestamp(),
+});
+export type Organization = __Infer<typeof Organization>;
+
 export const ScopeItem = __t.object("ScopeItem", {
   id: __t.u64(),
   incidentId: __t.string(),
@@ -75,6 +213,18 @@ export const ScopeItem = __t.object("ScopeItem", {
   updatedAt: __t.timestamp(),
 });
 export type ScopeItem = __Infer<typeof ScopeItem>;
+
+export const TaskItem = __t.object("TaskItem", {
+  id: __t.u64(),
+  incidentId: __t.string(),
+  title: __t.string(),
+  forRole: __t.string(),
+  assignee: __t.option(__t.identity()),
+  status: __t.string(),
+  createdBy: __t.identity(),
+  updatedAt: __t.timestamp(),
+});
+export type TaskItem = __Infer<typeof TaskItem>;
 
 export const TimelineEntry = __t.object("TimelineEntry", {
   id: __t.u64(),

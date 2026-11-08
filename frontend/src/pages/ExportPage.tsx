@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useTable } from 'spacetimedb/react';
-import { tables } from '../module_bindings';
+import { useReducer, useTable } from 'spacetimedb/react';
+import { reducers, tables } from '../module_bindings';
 import { useAuth } from '../lib/authContext';
-import { jsonReplacer } from '../lib/live';
+import { errorMessage, jsonReplacer } from '../lib/live';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Notice } from '../components/Notice';
@@ -16,7 +16,9 @@ export const ExportPage: React.FC = () => {
   const [includeDrafts, setIncludeDrafts] = useState(true);
   const [includeRoster, setIncludeRoster] = useState(true);
   const [exportNotice, setExportNotice] = useState('');
-  const { activeIncident } = useAuth();
+  const { activeIncident, incidentRole } = useAuth();
+  const logExport = useReducer(reducers.logExport);
+  const [error, setError] = useState<string | null>(null);
   const [users] = useTable(tables.user);
   const [members] = useTable(tables.incidentMember);
   // message is private; these views only return what the signed-in user may see
@@ -26,9 +28,19 @@ export const ExportPage: React.FC = () => {
   const [scopeItems] = useTable(tables.scopeItem);
   const [timeline] = useTable(tables.timelineEntry);
   const [documents] = useTable(tables.incidentDocument);
+  const [tasks] = useTable(tables.task);
+  const [obligations] = useTable(tables.notificationObligation);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!activeIncident) return;
+    setError(null);
+    try {
+      // Records the export in the audit log first; the backend only lets staff export
+      await logExport({ incidentId: activeIncident.id, sections: sections.filter((s) => s.checked).map((s) => s.label) });
+    } catch (err) {
+      setError(errorMessage(err));
+      return;
+    }
     const id = activeIncident.id;
     const roster = members
       .filter((m) => m.incidentId === id)
@@ -44,8 +56,15 @@ export const ExportPage: React.FC = () => {
                 .filter((m) => m.incidentId === id)
                 .sort((a, b) => Number(a.sentAt.microsSinceUnixEpoch - b.sentAt.microsSinceUnixEpoch)),
             } : {}),
-        ...(includeScope ? { scope_records: scopeItems.filter((s) => s.incidentId === id) } : {}),
-        ...(includeAuditLogs ? { timeline: timeline.filter((t) => t.incidentId === id) } : {}),
+        ...(includeScope
+          ? {
+              scope_records: scopeItems.filter((s) => s.incidentId === id),
+              notification_obligations: obligations.filter((o) => o.incidentId === id),
+            }
+          : {}),
+        ...(includeAuditLogs
+          ? { timeline: timeline.filter((t) => t.incidentId === id), tasks: tasks.filter((t) => t.incidentId === id) }
+          : {}),
         ...(includeDrafts ? { documents: documents.filter((d) => d.incidentId === id) } : {}),
       },
     };
@@ -78,6 +97,10 @@ export const ExportPage: React.FC = () => {
       />
 
       {exportNotice && <Notice tone="success">{exportNotice}</Notice>}
+      {error && <Notice tone="error">{error}</Notice>}
+      {activeIncident && !['Owner', 'ItLead', 'Legal', 'Comms'].includes(incidentRole ?? '') && (
+        <Notice>Only company staff can export. Guests can view but not download the package.</Notice>
+      )}
 
       <Card variant="outlined" className="overflow-hidden">
         <div className="px-4 pb-1 pt-4 type-title-small text-on-surface-variant">Include</div>

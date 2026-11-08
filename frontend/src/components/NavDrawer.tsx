@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { ShieldAlert, X } from 'lucide-react';
 import { NAV_SECTIONS, UTILITY_DESTINATIONS, NavDestination } from '../lib/navigation';
+import { useTable } from 'spacetimedb/react';
+import { tables } from '../module_bindings';
 import { useAuth } from '../lib/authContext';
 import { IconButton } from './Button';
 
@@ -40,8 +42,10 @@ const NavItem: React.FC<{ item: NavDestination; badge?: number; onNavigate: () =
 };
 
 export const NavDrawer: React.FC<NavDrawerProps> = ({ open, onClose }) => {
-  const { activeIncident } = useAuth();
-  const orgName = activeIncident?.name ?? 'No active incident';
+  const { activeOrg, activeIncident } = useAuth();
+  const [tasks] = useTable(tables.task);
+  const orgName = activeOrg?.name ?? 'No company yet';
+  const openTasks = tasks.filter((t) => t.incidentId === activeIncident?.id && t.status !== 'done').length;
 
   useEffect(() => {
     if (!open) return;
@@ -50,8 +54,7 @@ export const NavDrawer: React.FC<NavDrawerProps> = ({ open, onClose }) => {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  // No task table in the backend yet, so no badge counts
-  const badges: Record<string, number> = {};
+  const badges: Record<string, number> = { '/warroom': openTasks };
 
   return (
     <>

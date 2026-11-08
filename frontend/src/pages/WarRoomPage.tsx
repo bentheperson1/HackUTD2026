@@ -3,14 +3,24 @@ import type { Identity } from 'spacetimedb';
 import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
 import { reducers, tables } from '../module_bindings';
 import { useAuth } from '../lib/authContext';
-import { toDate } from '../lib/live';
+import { Role } from '../lib/types';
+import { errorMessage, isIncidentOpen, STAFF_ROLES, toBackendRole, toDate, toUiRole } from '../lib/live';
 import { Button } from '../components/Button';
 import { Card, SectionTitle } from '../components/Card';
+import { Field } from '../components/Field';
 import { Notice } from '../components/Notice';
 import { PageHeader } from '../components/PageHeader';
+import { RoleBadge, roleLabel } from '../components/RoleBadge';
 import { Send, Lock } from 'lucide-react';
 
-// TODO: broadcasts, slow mode and action items need backend tables/reducers before they can come back
+// TODO: broadcasts and slow mode need backend support before they can come back
+
+// Task.status values accepted by UpdateTask
+const TASK_STATUSES = [
+  { value: 'todo', label: 'To do' },
+  { value: 'doing', label: 'In progress' },
+  { value: 'done', label: 'Done' },
+];
 
 // chatType values match Message.ChatType in the backend
 const CHANNELS = [
@@ -23,21 +33,24 @@ const byTime = <T,>(get: (row: T) => bigint) => (a: T, b: T) => Number(get(a) - 
 
 export const WarRoomPage: React.FC = () => {
   const { identity } = useSpacetimeDB();
-  const { activeIncident, me } = useAuth();
+  const { activeIncident, isAdmin, incidentRole } = useAuth();
   // The message table is private; each channel is read through its own server-side view
   const [adminMessages] = useTable(tables.adminMessages);
   const [incidentMessages] = useTable(tables.incidentMessages);
   const [generalMessages] = useTable(tables.generalMessages);
-  const [allTimeline] = useTable(tables.timelineEntry);
+  const [allTasks] = useTable(tables.task);
   const [users] = useTable(tables.user);
   const sendMessage = useReducer(reducers.sendMessage);
+  const createTask = useReducer(reducers.createTask);
+  const updateTask = useReducer(reducers.updateTask);
 
   const [activeChatType, setActiveChatType] = useState(2);
   const [inputMessage, setInputMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskRole, setTaskRole] = useState<Role>('it_lead');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const isAdmin = !!me?.isAdmin;
   const channels = CHANNELS.filter((c) => !c.adminOnly || isAdmin);
   const incidentId = activeIncident?.id;
   const messagesByChatType: Record<number, typeof incidentMessages> = {
@@ -50,10 +63,24 @@ export const WarRoomPage: React.FC = () => {
       .filter((m) => m.incidentId === incidentId)
       .sort(byTime((m) => m.sentAt.microsSinceUnixEpoch));
   const messages = channelMessages(activeChatType);
-  const timeline = allTimeline
-    .filter((t) => t.incidentId === incidentId)
-    .sort(byTime((t) => t.createdAt.microsSinceUnixEpoch))
-    .reverse();
+  const tasks = allTasks.filter((t) => t.incidentId === incidentId).sort((a, b) => Number(a.id - b.id));
+  const doneCount = tasks.filter((t) => t.status === 'done').length;
+  // Staff can work tasks; guests (Insurer/Counsel) can only read them
+  const isStaff = !!incidentRole && STAFF_ROLES.map(toBackendRole).includes(incidentRole);
+  const isOpen = !!activeIncident && isIncidentOpen(activeIncident.status);
+  // UpdateTask only lets the owner or the task's own role change it
+  const canUpdate = (forRole: string) => isOpen && (incidentRole === 'Owner' || incidentRole === forRole);
+
+  const run = async (fn: () => Promise<unknown>) => {
+    setError(null);
+    try {
+      await fn();
+      return true;
+    } catch (err) {
+      setError(errorMessage(err));
+      return false;
+    }
+  };
 
   const nameOf = (who: Identity) => users.find((u) => u.id.isEqual(who))?.displayName ?? 'Unknown';
 
@@ -69,13 +96,15 @@ export const WarRoomPage: React.FC = () => {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!incidentId || !inputMessage.trim()) return;
-    setError(null);
-    try {
-      await sendMessage({ incidentId, text: inputMessage, chatType: activeChatType });
-      setInputMessage('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
+    const ok = await run(() => sendMessage({ incidentId, text: inputMessage, chatType: activeChatType }));
+    if (ok) setInputMessage('');
+  };
+
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!incidentId || !taskTitle.trim()) return;
+    const ok = await run(() => createTask({ incidentId, title: taskTitle, forRole: toBackendRole(taskRole) }));
+    if (ok) setTaskTitle('');
   };
 
   if (!activeIncident) {
@@ -174,26 +203,80 @@ export const WarRoomPage: React.FC = () => {
           </form>
         </Card>
 
-        {/* Timeline */}
-        <section className="lg:col-span-5">
-          <SectionTitle trailing={`${timeline.length} events`}>Timeline</SectionTitle>
-          <Card variant="outlined" className="max-h-[520px] overflow-y-auto">
-            {timeline.length === 0 ? (
-              <p className="m-0 p-4 type-body-medium text-on-surface-variant">Nothing logged yet.</p>
-            ) : (
-              <ul className="m-0 list-none divide-y divide-outline-variant p-0">
-                {timeline.map((t) => (
-                  <li key={String(t.id)} className="px-4 py-3">
-                    <div className="type-body-large text-on-surface">{t.action}</div>
-                    <div className="mt-1 type-body-small text-on-surface-variant">
-                      {nameOf(t.author)} · {toDate(t.createdAt).toLocaleString()}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </section>
+        {/* Tasks */}
+        <div className="space-y-6 lg:col-span-5">
+          <section>
+            <SectionTitle trailing={`${doneCount} of ${tasks.length} done`}>Action items</SectionTitle>
+            <Card variant="outlined" className="max-h-[360px] overflow-y-auto">
+              {tasks.length === 0 ? (
+                <p className="m-0 p-4 type-body-medium text-on-surface-variant">No action items yet.</p>
+              ) : (
+                <ul className="m-0 list-none divide-y divide-outline-variant p-0">
+                  {tasks.map((t) => (
+                    <li key={String(t.id)} className="flex items-start gap-3 px-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <div
+                          className={`type-body-large ${
+                            t.status === 'done' ? 'text-on-surface-variant line-through' : 'text-on-surface'
+                          }`}
+                        >
+                          {t.title}
+                        </div>
+                        <div className="mt-1.5 flex items-center gap-2 type-body-small text-on-surface-variant">
+                          <RoleBadge role={toUiRole(t.forRole)} />
+                          <span>{t.assignee ? nameOf(t.assignee) : 'Unassigned'}</span>
+                        </div>
+                      </div>
+                      <select
+                        aria-label={`Status of ${t.title}`}
+                        value={t.status}
+                        disabled={!canUpdate(t.forRole)}
+                        onChange={(e) => run(() => updateTask({ taskId: t.id, status: e.target.value }))}
+                        className="h-9 shrink-0 py-0"
+                      >
+                        {TASK_STATUSES.map((st) => (
+                          <option key={st.value} value={st.value}>
+                            {st.label}
+                          </option>
+                        ))}
+                      </select>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </section>
+
+          {isStaff && isOpen && (
+            <section>
+              <SectionTitle>New action item</SectionTitle>
+              <form onSubmit={handleCreateTask} className="space-y-4">
+                <Field label="Title">
+                  <input
+                    type="text"
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                    placeholder="Revoke cloud sync API tokens"
+                    className="w-full"
+                    maxLength={200}
+                  />
+                </Field>
+                <Field label="For role">
+                  <select value={taskRole} onChange={(e) => setTaskRole(e.target.value as Role)} className="w-full">
+                    {STAFF_ROLES.map((r) => (
+                      <option key={r} value={r}>
+                        {roleLabel(r)}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Button type="submit" variant="tonal" disabled={!taskTitle.trim()}>
+                  Add action item
+                </Button>
+              </form>
+            </section>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -77,7 +77,7 @@ export const TopBar: React.FC<{ onMenu: () => void }> = ({ onMenu }) => {
         </span>
         <span className="hidden min-w-0 flex-col leading-tight md:flex">
           <span className="truncate type-label-large">{currentUser.name}</span>
-          <span className="type-body-small text-on-surface-variant">{roleLabel(currentUser.role)}</span>
+          <span className="type-body-small text-on-surface-variant">{currentUser.role ? roleLabel(currentUser.role) : "No role yet"}</span>
         </span>
       </Link>
     </header>
