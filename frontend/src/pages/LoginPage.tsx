@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Building2, KeyRound } from 'lucide-react';
+import { ArrowRight, Building2 } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 import { live } from '../lib/live';
 import { useAppState } from '../lib/useAppState';
@@ -24,8 +24,7 @@ export const LoginPage: React.FC = () => {
 
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [step, setStep] = useState<'phone' | 'code'>('phone');
+  const [submitted, setSubmitted] = useState(false);
   const [company, setCompany] = useState('');
   const [industry, setIndustry] = useState('');
 
@@ -45,8 +44,8 @@ export const LoginPage: React.FC = () => {
   // Live: once the server shows us on a roster, go in
   const stage = account?.stage;
   useEffect(() => {
-    if (mode === 'live' && isSignedIn && stage === 'ready' && step === 'code') navigate('/admin');
-  }, [mode, isSignedIn, stage, step, navigate]);
+    if (mode === 'live' && isSignedIn && stage === 'ready' && submitted) navigate('/admin');
+  }, [mode, isSignedIn, stage, submitted, navigate]);
 
   // Quick sign-in list: registered users (live) or the demo roster
   const quick =
@@ -115,11 +114,13 @@ export const LoginPage: React.FC = () => {
               </Button>
               <p className="text-xs text-fg-subtle">Joining an existing company? Your owner adds you on the Team page with this phone number. This screen moves on by itself.</p>
             </form>
-          ) : step === 'phone' ? (
+          ) : (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (phone.trim() && (name.trim() || mode !== 'live')) setStep('code');
+                if (!phone.trim() || (mode === 'live' && !name.trim())) return;
+                setSubmitted(true);
+                attempt(() => signIn(phone, name || currentUser.name), mode !== 'live');
               }}
               className="space-y-4"
             >
@@ -131,41 +132,14 @@ export const LoginPage: React.FC = () => {
               <Field label="Personal phone" htmlFor="phone">
                 <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" className="font-mono" autoComplete="tel" />
               </Field>
-              <Button type="submit" variant="primary" size="lg" block disabled={!phone.trim() || (mode === 'live' && !name.trim())}>
-                Send code
+              <Button type="submit" variant="primary" size="lg" block disabled={busy || !phone.trim() || (mode === 'live' && !name.trim())}>
+                Continue
               </Button>
-            </form>
-          ) : (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                // TODO (real version): verify the code with an SMS provider before register_phone
-                attempt(() => signIn(phone, name || currentUser.name), mode !== 'live');
-              }}
-              className="space-y-4"
-            >
-              <Alert tone="success">Code sent. Demo: any 6 digits work.</Alert>
-              <Field label="6-digit code" htmlFor="otp">
-                <input
-                  id="otp"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={6}
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="000000"
-                  className="h-12 text-center font-mono text-lg tracking-[0.5em]"
-                  autoFocus
-                />
-              </Field>
-              <Button type="submit" variant="primary" size="lg" block disabled={busy}>
-                <KeyRound className="h-4 w-4" />
-                Verify and continue
-              </Button>
-              <button type="button" onClick={() => setStep('phone')} className="w-full text-center text-xs text-fg-subtle hover:text-fg">
-                Use a different number
-              </button>
+              <p className="text-xs text-fg-subtle">
+                {mode === 'live'
+                  ? "Prototype: there's no text-message check yet, so this signs you in with the number you enter."
+                  : 'Demo: enter a number from the demo roster below, or just pick a person.'}
+              </p>
             </form>
           )}
 

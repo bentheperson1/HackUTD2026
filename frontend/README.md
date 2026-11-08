@@ -12,7 +12,7 @@ The top bar shows **Live · SpacetimeDB** when connected, or **Demo data** (loca
 
 ## First run on a fresh database
 
-1. Sign in with your name + personal phone (any 6-digit code works for now) → `register_phone`.
+1. Sign in with your name + personal phone → `register_phone`. There is no text-message verification yet; adding it needs a backend change (an SMS service such as Twilio).
 2. Create your company → `create_organization`. You become its Owner.
 3. Teammates sign in once with their phones, then the Owner adds them on **Team** → `add_org_member`.
 4. Insurer / outside counsel: activate an incident first, then add them on **Team** with a guest role → `grant_guest` (1-30 days).
