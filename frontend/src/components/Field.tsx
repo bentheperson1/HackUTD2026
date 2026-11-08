@@ -4,18 +4,17 @@ interface FieldProps {
   label: string;
   error?: string;
   help?: string;
+  className?: string;
   children: React.ReactNode;
 }
 
-export const Field: React.FC<FieldProps> = ({ label, error, help, children }) => {
+export const Field: React.FC<FieldProps> = ({ label, error, help, className = '', children }) => {
   return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-bold text-slate-300">
-        {label}
-      </label>
+    <label className={`flex flex-col gap-1.5 ${className}`}>
+      <span className="type-label-large text-on-surface-variant">{label}</span>
       {children}
-      {help && <p className="text-[11px] text-slate-400 m-0">{help}</p>}
-      {error && <p className="text-xs text-rose-400 font-semibold m-0">{error}</p>}
-    </div>
+      {help && !error && <span className="px-4 type-body-small text-on-surface-variant">{help}</span>}
+      {error && <span className="px-4 type-body-small text-error">{error}</span>}
+    </label>
   );
 };

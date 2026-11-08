@@ -4,13 +4,18 @@ import { useAuth } from '../lib/authContext';
 import { store } from '../lib/store';
 import { ScopeItem, ScopeStatus } from '../lib/types';
 import { DataTable, Column } from '../components/DataTable';
-import { Database, Plus, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Button } from '../components/Button';
+import { Card, SectionTitle } from '../components/Card';
+import { Field } from '../components/Field';
+import { Notice } from '../components/Notice';
+import { PageHeader } from '../components/PageHeader';
+import { ArrowRight } from 'lucide-react';
 
 const SCOPE_STATUSES: { value: ScopeStatus; label: string }[] = [
-  { value: 'unknown', label: 'Under Forensic Investigation' },
-  { value: 'locked', label: 'Encrypted / Locked (.lock)' },
-  { value: 'exfiltrated', label: 'Exfiltrated / Dark Web Proof' },
-  { value: 'restored', label: 'Restored & Sanitized' },
+  { value: 'unknown', label: 'Under investigation' },
+  { value: 'locked', label: 'Encrypted' },
+  { value: 'exfiltrated', label: 'Exfiltrated' },
+  { value: 'restored', label: 'Restored' },
 ];
 
 export const ScopePage: React.FC = () => {
@@ -34,7 +39,7 @@ export const ScopePage: React.FC = () => {
     e.preventDefault();
     setError(null);
     if (!category.trim()) {
-      setError('Data Asset / Category is required');
+      setError('Enter the system or kind of data affected.');
       return;
     }
 
@@ -62,21 +67,17 @@ export const ScopePage: React.FC = () => {
 
   const columns: Column<ScopeItem>[] = [
     {
-      header: 'Data Category / System Asset',
-      render: (item) => (
-        <div>
-          <strong className="text-white text-sm block">{item.category}</strong>
-          <span className="text-[11px] text-slate-400">ID: {item.id}</span>
-        </div>
-      ),
+      header: 'System or data',
+      render: (item) => item.category,
     },
     {
-      header: 'Compromise Status',
+      header: 'Status',
       render: (item) => (
         <select
+          aria-label={`Status for ${item.category}`}
           value={item.status}
           onChange={(e) => handleUpdateStatus(item, e.target.value as ScopeStatus)}
-          className="text-xs font-bold"
+          className={`h-9 py-0 ${item.status === 'exfiltrated' ? 'border-error text-error' : ''}`}
         >
           {SCOPE_STATUSES.map((s) => (
             <option key={s.value} value={s.value}>
@@ -87,155 +88,102 @@ export const ScopePage: React.FC = () => {
       ),
     },
     {
-      header: 'Affected States',
+      header: 'States',
       render: (item) => (
-        <div className="flex gap-1 flex-wrap">
-          {item.affected_states.map((st) => (
-            <span key={st} className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-bold font-mono">
-              {st}
-            </span>
-          ))}
-        </div>
+        <span className="font-mono text-on-surface-variant">{item.affected_states.join(', ') || '—'}</span>
       ),
     },
     {
-      header: 'Triage Notes',
-      render: (item) => <span className="text-xs text-slate-300">{item.notes || '—'}</span>,
+      header: 'Notes',
+      render: (item) => <span className="text-on-surface-variant">{item.notes || '—'}</span>,
     },
     {
       header: 'Updated',
-      render: (item) => <span className="text-[11px] text-slate-400 font-mono">{new Date(item.updated_at).toLocaleTimeString()}</span>,
+      render: (item) => (
+        <span className="whitespace-nowrap text-on-surface-variant">
+          {new Date(item.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+        </span>
+      ),
     },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <h2 className="text-xl font-black text-white flex items-center gap-2 m-0">
-            <Database className="w-5 h-5 text-hazard-yellow" />
-            <span>Scope of Compromise &amp; Impacted Data</span>
-          </h2>
-          <p className="text-xs text-slate-400 mt-1 mb-0">
-            Catalog affected databases, repositories, and customer records. Powers the statutory breach-notification countdown engine.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Affected data"
+        description="Every system or data set that may be compromised, and which states its records come from. This drives the notification deadlines."
+      />
 
-      {error && (
-        <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span>Error: {error}</span>
-        </div>
-      )}
+      {error && <Notice tone="error">{error}</Notice>}
 
       {successInfo && (
-        <div className="p-4 rounded-xl bg-emerald-950/40 border-2 border-emerald-500/80 text-emerald-200 text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xl">
-          <div className="flex items-center gap-2.5">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-            <div>
-              <strong className="text-white text-sm block">
-                ✓ Cataloged "{successInfo.category}" into Scope!
-              </strong>
-              <span>
-                Triggered notification laws for {successInfo.states.join(', ')}.
-              </span>
-            </div>
-          </div>
-
-          <button
-            onClick={() => navigate('/notify')}
-            className="min-h-[40px] px-5 py-2 bg-hazard-yellow hover:bg-hazard-bright text-black font-extrabold text-xs uppercase tracking-wider rounded-lg shadow-lg flex items-center gap-1.5 transition-all shrink-0"
-          >
-            <span>View Breach Deadlines Tab</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
+        <Notice
+          tone="success"
+          title={`Added ${successInfo.category}`}
+          action={
+            <Button variant="text" onClick={() => navigate('/notify')} className="!text-on-tertiary-container">
+              View deadlines <ArrowRight className="h-4 w-4" />
+            </Button>
+          }
+        >
+          {successInfo.states.length > 0
+            ? `Notification rules now apply for ${successInfo.states.join(', ')}.`
+            : 'No states were listed, so no notification rules apply yet.'}
+        </Notice>
       )}
 
-      {/* Catalog Table */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-bold text-slate-200 m-0">Impacted Asset Directory</h3>
-        <DataTable columns={columns} data={scopeItems} emptyMessage="No affected systems or data cataloged yet." />
-      </div>
+      <section>
+        <SectionTitle trailing={`${scopeItems.length} items`}>Inventory</SectionTitle>
+        <DataTable columns={columns} data={scopeItems} emptyMessage="Nothing logged yet." />
+      </section>
 
-      {/* Add Form */}
-      <div className="bg-card border border-border rounded-xl p-5 shadow-xl">
-        <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <Plus className="w-4 h-4 text-hazard-yellow" />
-          <span>Add Suspected Compromise Scope</span>
-        </h4>
-
-        <form onSubmit={handleAddScopeItem} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">
-                Data Category / System Asset
-              </label>
+      <Card className="p-5">
+        <SectionTitle>Log affected data</SectionTitle>
+        <form onSubmit={handleAddScopeItem} className="space-y-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Field label="System or data">
               <input
                 type="text"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="e.g. Employee W-2s, Customer Billing Database"
-                className="w-full text-xs"
+                placeholder="Customer billing database"
+                className="w-full"
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">
-                Compromise Status
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as ScopeStatus)}
-                className="w-full text-xs font-semibold"
-              >
+            <Field label="Status">
+              <select value={status} onChange={(e) => setStatus(e.target.value as ScopeStatus)} className="w-full">
                 {SCOPE_STATUSES.map((s) => (
                   <option key={s.value} value={s.value}>
                     {s.label}
                   </option>
                 ))}
               </select>
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">
-                Potentially Affected US States (comma-separated)
-              </label>
+            <Field label="Affected states" help="Comma-separated, e.g. TX, CA, NY">
               <input
                 type="text"
                 value={affectedStates}
                 onChange={(e) => setAffectedStates(e.target.value)}
-                placeholder="e.g. TX, CA, NY"
-                className="w-full text-xs"
+                className="w-full font-mono"
               />
-              <span className="text-[11px] text-slate-400 mt-1 block">
-                Trigger state attorney general notification timelines.
-              </span>
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">
-                Forensic Observations / Record Count
-              </label>
+            <Field label="Notes" help="Record counts, encryption, anything forensics found">
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g. Approx 14,000 records, backup drive unencrypted"
-                className="w-full text-xs"
+                placeholder="About 14,000 records, backup drive unencrypted"
+                className="w-full"
               />
-            </div>
+            </Field>
           </div>
 
-          <button
-            type="submit"
-            className="min-h-[44px] px-6 bg-hazard-yellow hover:bg-hazard-bright text-black font-extrabold text-xs uppercase tracking-wider rounded-lg shadow-lg shadow-hazard-yellow/20 transition-all flex items-center gap-2"
-          >
-            <span>Add to Scope Catalog</span>
-          </button>
+          <Button type="submit">Add to inventory</Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 };

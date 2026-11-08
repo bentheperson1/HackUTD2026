@@ -3,23 +3,19 @@ import { useAuth } from '../lib/authContext';
 import { store } from '../lib/store';
 import { Message, Task, Role, ChatChannel } from '../lib/types';
 import { ROLES } from '../lib/constants';
-import {
-  MessageSquare,
-  Send,
-  CheckSquare,
-  PlusCircle,
-  AlertCircle,
-  Clock,
-  Radio,
-  User,
-  Megaphone,
-  Sliders,
-  Shield,
-  Lock,
-  Users,
-  XCircle,
-  BellRing,
-} from 'lucide-react';
+import { Button } from '../components/Button';
+import { Card, SectionTitle } from '../components/Card';
+import { Field } from '../components/Field';
+import { Notice } from '../components/Notice';
+import { PageHeader } from '../components/PageHeader';
+import { RoleBadge } from '../components/RoleBadge';
+import { Send, Megaphone, Lock } from 'lucide-react';
+
+const CHANNELS: { id: ChatChannel; label: string; adminOnly?: boolean }[] = [
+  { id: 'admin', label: 'Leadership', adminOnly: true },
+  { id: 'warroom', label: 'War room' },
+  { id: 'general', label: 'Company Q&A' },
+];
 
 export const WarRoomPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -67,7 +63,7 @@ export const WarRoomPage: React.FC = () => {
   }, [cooldownRemaining]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages, activeChannel]);
 
   // Channel access calculation
@@ -79,13 +75,20 @@ export const WarRoomPage: React.FC = () => {
     }
   }, [currentUser, activeChannel, canAccessAdmin]);
 
+  useEffect(() => {
+    if (!isBroadcastModalOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setIsBroadcastModalOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isBroadcastModalOpen]);
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!inputMessage.trim()) return;
 
     if (!isAdmin && cooldownRemaining > 0) {
-      setError(`Slow mode active. Please wait ${cooldownRemaining}s before sending another message.`);
+      setError(`Slow mode is on. You can post again in ${cooldownRemaining}s.`);
       return;
     }
 
@@ -142,257 +145,152 @@ export const WarRoomPage: React.FC = () => {
 
   // Filter messages for active channel
   const channelMessages = messages.filter((m) => (m.channel || 'warroom') === activeChannel);
+  const isCoolingDown = !isAdmin && cooldownRemaining > 0;
+  const openTasks = tasks.filter((t) => !t.done);
+  const doneTasks = tasks.filter((t) => t.done);
 
   return (
     <div className="space-y-6">
-      {/* 1. All-Hands Emergency Broadcast Banner (Cuts Through All Noise) */}
       {activeBroadcast && (
-        <div className="p-4 rounded-xl bg-gradient-to-r from-amber-600/30 via-hazard-yellow/20 to-amber-600/30 border-2 border-hazard-bright text-white shadow-2xl flex items-start justify-between gap-4 animate-pulse">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-hazard-bright text-black rounded-lg shrink-0 mt-0.5">
-              <BellRing className="w-5 h-5" />
+        <div className="flex flex-col gap-3 rounded-2xl bg-primary-container p-4 text-on-primary-container sm:flex-row sm:items-start">
+          <Megaphone className="mt-0.5 h-6 w-6 shrink-0" strokeWidth={1.75} />
+          <div className="min-w-0 flex-1">
+            <div className="type-label-medium opacity-80">
+              Broadcast from {activeBroadcast.author} at {new Date(activeBroadcast.timestamp).toLocaleTimeString()}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="bg-hazard-yellow text-black px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
-                  📢 EMERGENCY ALL-HANDS BROADCAST
-                </span>
-                <span className="text-xs text-slate-300 font-mono">
-                  Authorized by {activeBroadcast.author} at {new Date(activeBroadcast.timestamp).toLocaleTimeString()}
-                </span>
-              </div>
-              <p className="text-sm md:text-base font-extrabold text-white mt-1 mb-0 leading-relaxed">
-                {activeBroadcast.message}
-              </p>
-            </div>
+            <p className="m-0 mt-1 type-title-medium">{activeBroadcast.message}</p>
           </div>
-
           {isAdmin && (
-            <button
-              onClick={handleClearBroadcast}
-              className="px-2.5 py-1 text-xs text-slate-300 hover:text-white bg-[#0B0D11]/70 hover:bg-[#0B0D11] border border-border rounded-lg shrink-0 flex items-center gap-1"
-              title="Clear Broadcast for everyone"
-            >
-              <XCircle className="w-3.5 h-3.5" />
-              <span>Dismiss</span>
-            </button>
+            <Button variant="text" onClick={handleClearBroadcast} className="!text-on-primary-container">
+              Dismiss for everyone
+            </Button>
           )}
         </div>
       )}
 
-      {/* 2. Header & Admin Command Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <h2 className="text-xl font-black text-white flex items-center gap-2 m-0">
-            <Radio className="w-5 h-5 text-hazard-yellow" />
-            <span>Crisis Command Communications</span>
-          </h2>
-          <p className="text-xs text-slate-400 mt-1 mb-0">
-            Multi-tier out-of-band communication hub separated from compromised company infrastructure.
-          </p>
-        </div>
+      <PageHeader
+        title="War room"
+        description="Team chat that runs outside company email and Slack, which are treated as compromised."
+        actions={
+          isAdmin && (
+            <>
+              <label className="flex items-center gap-2 type-label-large text-on-surface-variant">
+                Slow mode
+                <select
+                  value={slowModeSeconds}
+                  onChange={(e) => handleSetSlowMode(Number(e.target.value))}
+                  className="h-10 py-0"
+                >
+                  <option value={0}>Off</option>
+                  <option value={15}>15s</option>
+                  <option value={30}>30s</option>
+                  <option value={60}>60s</option>
+                </select>
+              </label>
+              <Button variant="tonal" icon={<Megaphone />} onClick={() => setIsBroadcastModalOpen(true)}>
+                Broadcast
+              </Button>
+            </>
+          )
+        }
+      />
 
-        {/* Admin Controls Strip */}
-        {isAdmin && (
-          <div className="flex flex-wrap items-center gap-2 bg-[#12161F] p-2 rounded-xl border border-border">
-            <span className="text-[11px] font-bold text-hazard-bright uppercase px-2 flex items-center gap-1">
-              <Shield className="w-3.5 h-3.5 text-hazard-yellow" />
-              <span>Admin Powers:</span>
-            </span>
+      {error && <Notice tone="error">{error}</Notice>}
 
-            {/* Broadcast Trigger Button */}
-            <button
-              onClick={() => setIsBroadcastModalOpen(true)}
-              className="px-3 py-1.5 bg-hazard-yellow hover:bg-hazard-bright text-black font-extrabold text-xs uppercase tracking-wider rounded-lg flex items-center gap-1 shadow-sm transition-all"
-            >
-              <Megaphone className="w-3.5 h-3.5" />
-              <span>Make Broadcast</span>
-            </button>
-
-            {/* Slow Mode Selector */}
-            <div className="flex items-center gap-1.5 pl-2 border-l border-[#262C38]">
-              <Sliders className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-xs text-slate-300">Slow Mode:</span>
-              <select
-                value={slowModeSeconds}
-                onChange={(e) => handleSetSlowMode(Number(e.target.value))}
-                className="text-xs py-1 px-2 font-bold"
-              >
-                <option value={0}>Off (Instant)</option>
-                <option value={15}>15 Seconds</option>
-                <option value={30}>30 Seconds</option>
-                <option value={60}>60 Seconds</option>
-              </select>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {error && (
-        <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* Broadcast Creation Modal */}
       {isBroadcastModalOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <div className="bg-card border-2 border-hazard-yellow rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-black text-white flex items-center gap-2 m-0">
-                <Megaphone className="w-5 h-5 text-hazard-yellow" />
-                <span>Issue All-Hands Emergency Broadcast</span>
-              </h3>
-              <button
-                onClick={() => setIsBroadcastModalOpen(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-xs text-slate-300 m-0">
-              This message cuts through all channels and locks a flashing warning banner on every staff member's screen.
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/50 p-4"
+          onClick={() => setIsBroadcastModalOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="broadcast-title"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-[28px] bg-surface-container-high p-6"
+          >
+            <h2 id="broadcast-title" className="m-0 type-headline-small">
+              Send a broadcast
+            </h2>
+            <p className="mb-4 mt-2 type-body-medium text-on-surface-variant">
+              Pins a message above every channel for everyone on the response team until you dismiss it.
             </p>
 
-            <form onSubmit={handleSendBroadcast} className="space-y-4">
+            <form onSubmit={handleSendBroadcast}>
               <textarea
                 value={broadcastInput}
                 onChange={(e) => setBroadcastInput(e.target.value)}
-                placeholder="e.g. MANDATORY: Do NOT power off any computers. Pull blue ethernet cables immediately."
+                placeholder="Do not power off any computers. Unplug network cables now."
                 rows={3}
-                className="w-full text-sm font-semibold"
+                className="w-full"
                 autoFocus
               />
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsBroadcastModalOpen(false)}
-                  className="px-4 py-2 text-xs rounded-lg border border-border text-slate-300"
-                >
+              <div className="mt-6 flex justify-end gap-2">
+                <Button variant="text" onClick={() => setIsBroadcastModalOpen(false)}>
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-hazard-yellow hover:bg-hazard-bright text-black font-extrabold text-xs uppercase tracking-wider rounded-lg shadow-lg flex items-center gap-1.5"
-                >
-                  <Megaphone className="w-3.5 h-3.5" />
-                  <span>Transmit Broadcast</span>
-                </button>
+                </Button>
+                <Button variant="text" type="submit" disabled={!broadcastInput.trim()}>
+                  Send
+                </Button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* 3. Three-Tier Room Selector Tabs */}
-      <div className="flex items-center gap-2 border-b border-border pb-1">
-        {canAccessAdmin && (
-          <button
-            onClick={() => setActiveChannel('admin')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-              activeChannel === 'admin'
-                ? 'bg-rose-950/60 border border-rose-600 text-rose-300 font-black shadow-md'
-                : 'bg-card text-slate-400 hover:text-white border border-border'
-            }`}
-          >
-            <Lock className="w-3.5 h-3.5 text-rose-400" />
-            <span>Executive Admin Room</span>
-            <span className="text-[10px] bg-rose-900/40 px-1.5 py-0.2 rounded font-mono">
-              {messages.filter((m) => m.channel === 'admin').length}
-            </span>
-          </button>
-        )}
-
-        <button
-          onClick={() => setActiveChannel('warroom')}
-          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-            activeChannel === 'warroom'
-              ? 'bg-hazard-yellow text-black font-black shadow-md shadow-hazard-yellow/20'
-              : 'bg-card text-slate-400 hover:text-white border border-border'
-          }`}
-        >
-          <Shield className="w-3.5 h-3.5" />
-          <span>Incident War Room</span>
-          <span className="text-[10px] bg-black/20 px-1.5 py-0.2 rounded font-mono">
-            {messages.filter((m) => (m.channel || 'warroom') === 'warroom').length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveChannel('general')}
-          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-            activeChannel === 'general'
-              ? 'bg-slate-700 text-white font-black shadow-md'
-              : 'bg-card text-slate-400 hover:text-white border border-border'
-          }`}
-        >
-          <Users className="w-3.5 h-3.5" />
-          <span>General Company Q&amp;A</span>
-          <span className="text-[10px] bg-[#1E2431] px-1.5 py-0.2 rounded font-mono">
-            {messages.filter((m) => m.channel === 'general').length}
-          </span>
-        </button>
-
-        <div className="ml-auto text-xs text-slate-400 hidden sm:flex items-center gap-2">
-          {slowModeSeconds > 0 && (
-            <span className="text-amber-400 font-mono text-[11px] bg-amber-950/30 px-2 py-0.5 rounded border border-amber-800/40">
-              Slow Mode: {slowModeSeconds}s
-            </span>
-          )}
-          <span>
-            Room Access: <strong className="text-slate-200 capitalize">{activeChannel} Channel</strong>
-          </span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column (7 cols): Channel Chat Feed & Input */}
-        <div className="lg:col-span-7 flex flex-col bg-card border border-border rounded-xl shadow-xl overflow-hidden">
-          <div className="p-3.5 bg-[#12161F] border-b border-border flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-bold text-white">
-              <MessageSquare className="w-4 h-4 text-hazard-yellow" />
-              <span className="capitalize">{activeChannel} Feed</span>
-            </div>
-            <span className="text-xs text-slate-400 font-mono">{channelMessages.length} messages</span>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 [&>*]:min-w-0">
+        {/* Chat */}
+        <Card className="flex flex-col overflow-hidden lg:col-span-7">
+          <div role="tablist" className="flex border-b border-outline-variant px-2">
+            {CHANNELS.filter((c) => !c.adminOnly || canAccessAdmin).map((c) => {
+              const selected = c.id === activeChannel;
+              const count = messages.filter((m) => (m.channel || 'warroom') === c.id).length;
+              return (
+                <button
+                  key={c.id}
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => setActiveChannel(c.id)}
+                  className={`state-layer relative flex h-12 items-center gap-1.5 whitespace-nowrap px-4 type-title-small ${
+                    selected ? 'text-primary' : 'text-on-surface-variant'
+                  }`}
+                >
+                  {c.adminOnly && <Lock className="h-3.5 w-3.5" />}
+                  {c.label}
+                  <span className="type-label-small opacity-70">{count}</span>
+                  {selected && <span className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-full bg-primary" />}
+                </button>
+              );
+            })}
+            {slowModeSeconds > 0 && (
+              <span className="ml-auto hidden items-center px-2 type-body-small text-on-surface-variant sm:flex">
+                Slow mode {slowModeSeconds}s
+              </span>
+            )}
           </div>
 
-          {/* Messages Feed */}
-          <div className="h-[430px] overflow-y-auto p-4 space-y-3 bg-[#0B0D11]/70">
+          <div className="h-[440px] space-y-4 overflow-y-auto px-4 py-4">
             {channelMessages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs space-y-2">
-                <MessageSquare className="w-8 h-8 opacity-40" />
-                <span>No messages in this room yet. Send the first dispatch below.</span>
+              <div className="flex h-full items-center justify-center type-body-medium text-on-surface-variant">
+                No messages here yet.
               </div>
             ) : (
               channelMessages.map((m) => {
                 const isMe = m.sender_name === currentUser.name;
                 return (
-                  <div
-                    key={m.id}
-                    className={`p-3 rounded-xl border transition-all ${
-                      isMe
-                        ? 'bg-[#181F2C] border-hazard-yellow/40 ml-4'
-                        : 'bg-[#131720] border-[#222937] mr-4'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-1.5 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white flex items-center gap-1">
-                          <User className="w-3 h-3 text-slate-400" />
-                          {m.sender_name}
-                        </span>
-                        <span className="text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded bg-[#1F2736] text-hazard-bright border border-[#2E3A50]">
-                          {m.sender_role}
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {new Date(m.timestamp).toLocaleTimeString()}
-                      </span>
+                  <div key={m.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                    <div className="mb-1 flex items-center gap-2 px-1 type-body-small text-on-surface-variant">
+                      {!isMe && <span className="type-label-medium text-on-surface">{m.sender_name}</span>}
+                      {!isMe && <RoleBadge role={m.sender_role} />}
+                      <span>{new Date(m.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
                     </div>
-                    <p className="text-sm text-slate-200 m-0 break-words leading-relaxed">
+                    <p
+                      className={`m-0 max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 type-body-large ${
+                        isMe
+                          ? 'rounded-br-md bg-primary-container text-on-primary-container'
+                          : 'rounded-bl-md bg-surface-container-highest text-on-surface'
+                      }`}
+                    >
                       {m.content}
                     </p>
                   </div>
@@ -402,176 +300,112 @@ export const WarRoomPage: React.FC = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Chat Input Bar */}
-          <div className="p-3 bg-[#12161F] border-t border-border">
-            <form onSubmit={handleSendMessage} className="space-y-2">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  disabled={!isAdmin && cooldownRemaining > 0}
-                  placeholder={
-                    !isAdmin && cooldownRemaining > 0
-                      ? `Slow mode active (${cooldownRemaining}s cooldown)...`
-                      : `Message #${activeChannel} channel...`
-                  }
-                  className="flex-1 bg-[#0B0D11] border border-[#2E384D] focus:border-hazard-yellow rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  disabled={!isAdmin && cooldownRemaining > 0}
-                  className="min-h-[44px] px-5 bg-hazard-yellow hover:bg-hazard-bright text-black font-extrabold text-xs uppercase tracking-wider rounded-lg flex items-center gap-1.5 shadow-md shadow-hazard-yellow/20 transition-all shrink-0 disabled:opacity-50"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Send</span>
-                </button>
-              </div>
+          <form onSubmit={handleSendMessage} className="flex items-center gap-2 border-t border-outline-variant p-3">
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              disabled={isCoolingDown}
+              aria-label="Message"
+              placeholder={isCoolingDown ? `Slow mode, wait ${cooldownRemaining}s` : 'Write a message'}
+              className="h-12 flex-1 rounded-full border-transparent bg-surface-container-highest px-5"
+            />
+            <Button type="submit" disabled={isCoolingDown || !inputMessage.trim()} icon={<Send />} className="h-12">
+              Send
+            </Button>
+          </form>
+        </Card>
 
-              {!isAdmin && cooldownRemaining > 0 && (
-                <div className="text-[11px] text-amber-400 font-mono">
-                  ⏳ Slow mode rate limit: {cooldownRemaining} seconds remaining before your next post.
-                </div>
-              )}
-            </form>
-          </div>
-        </div>
-
-        {/* Right Column (5 cols): Incident Tasks & Dispatch */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="bg-card border border-border rounded-xl p-4 shadow-xl">
-            <div className="flex items-center justify-between mb-3 border-b border-border pb-2.5">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2 m-0">
-                <CheckSquare className="w-4 h-4 text-hazard-yellow" />
-                <span>Action Items by Role</span>
-              </h3>
-              <span className="text-xs text-slate-400">
-                {tasks.filter((t) => t.done).length} of {tasks.length} Completed
-              </span>
-            </div>
-
-            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+        {/* Tasks */}
+        <div className="space-y-6 lg:col-span-5">
+          <section>
+            <SectionTitle trailing={`${doneTasks.length} of ${tasks.length} done`}>Action items</SectionTitle>
+            <Card variant="outlined" className="max-h-[300px] overflow-y-auto">
               {tasks.length === 0 ? (
-                <p className="text-xs text-slate-500 italic p-2">No tasks created yet.</p>
+                <p className="m-0 p-4 type-body-medium text-on-surface-variant">No action items yet.</p>
               ) : (
-                tasks.map((t) => (
-                  <div
-                    key={t.id}
-                    onClick={() => handleToggleTask(t.id)}
-                    className={`p-3 rounded-lg border flex items-start gap-3 cursor-pointer transition-all ${
-                      t.done
-                        ? 'bg-[#0B0D11]/60 border-[#1C222E] opacity-60'
-                        : 'bg-[#12161F] border-[#262C38] hover:border-hazard-yellow/60'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={t.done}
-                      onChange={() => {}}
-                      className="mt-0.5 h-4 w-4 rounded bg-[#0B0D11] border-[#2D3648] text-hazard-yellow focus:ring-hazard-yellow cursor-pointer"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className={`text-xs font-bold ${
-                          t.done ? 'line-through text-slate-500' : 'text-slate-100'
-                        }`}
-                      >
-                        {t.title}
-                      </div>
-                      {t.description && (
-                        <div className="text-[11px] text-slate-400 mt-0.5">
-                          {t.description}
+                <ul className="m-0 list-none divide-y divide-outline-variant p-0">
+                  {[...openTasks, ...doneTasks].map((t) => (
+                    <li key={t.id}>
+                      <label className="state-layer flex cursor-pointer items-start gap-3 px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={t.done}
+                          onChange={() => handleToggleTask(t.id)}
+                          className="mt-0.5 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div
+                            className={`type-body-large ${t.done ? 'text-on-surface-variant line-through' : 'text-on-surface'}`}
+                          >
+                            {t.title}
+                          </div>
+                          {t.description && !t.done && (
+                            <div className="mt-0.5 type-body-medium text-on-surface-variant">{t.description}</div>
+                          )}
+                          <div className="mt-1.5 flex items-center gap-2 type-body-small text-on-surface-variant">
+                            <RoleBadge role={t.role} />
+                            <span>{t.assignee || 'Unassigned'}</span>
+                          </div>
                         </div>
-                      )}
-                      <div className="flex items-center gap-2 mt-1.5 text-[10px]">
-                        <span className="bg-[#1C222E] text-hazard-bright px-1.5 py-0.5 rounded border border-[#2D3646] uppercase font-semibold">
-                          {t.role}
-                        </span>
-                        <span className="text-slate-500">
-                          Assignee: {t.assignee || 'Unassigned'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))
+                      </label>
+                    </li>
+                  ))}
+                </ul>
               )}
-            </div>
-          </div>
+            </Card>
+          </section>
 
-          {/* Create Task Form */}
-          <div className="bg-card border border-border rounded-xl p-4 shadow-xl">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-hazard-bright mb-3 flex items-center gap-1.5">
-              <PlusCircle className="w-4 h-4 text-hazard-yellow" />
-              <span>Assign New Action Item</span>
-            </h4>
-
-            <form onSubmit={handleCreateTask} className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Action Title
-                </label>
+          <section>
+            <SectionTitle>New action item</SectionTitle>
+            <form onSubmit={handleCreateTask} className="space-y-4">
+              <Field label="Title">
                 <input
                   type="text"
                   value={taskTitle}
                   onChange={(e) => setTaskTitle(e.target.value)}
-                  placeholder="e.g. Sever cloud API synchronization tokens"
-                  className="w-full text-xs"
+                  placeholder="Revoke cloud sync API tokens"
+                  className="w-full"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Guidance / Instructions
-                </label>
+              <Field label="Instructions">
                 <textarea
                   value={taskDesc}
                   onChange={(e) => setTaskDesc(e.target.value)}
-                  placeholder="Provide technical instructions or legal preservation guidelines"
+                  placeholder="Optional"
                   rows={2}
-                  className="w-full text-xs"
+                  className="w-full"
                 />
-              </div>
+              </Field>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Responsible Role
-                  </label>
-                  <select
-                    value={taskRole}
-                    onChange={(e) => setTaskRole(e.target.value as Role)}
-                    className="w-full text-xs"
-                  >
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Role">
+                  <select value={taskRole} onChange={(e) => setTaskRole(e.target.value as Role)} className="w-full">
                     {ROLES.map((r) => (
                       <option key={r.value} value={r.value}>
                         {r.label}
                       </option>
                     ))}
                   </select>
-                </div>
+                </Field>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Assignee Person
-                  </label>
+                <Field label="Assignee">
                   <input
                     type="text"
                     value={taskAssignee}
                     onChange={(e) => setTaskAssignee(e.target.value)}
-                    placeholder="e.g. Taylor IT Lead"
-                    className="w-full text-xs"
+                    placeholder="Name"
+                    className="w-full"
                   />
-                </div>
+                </Field>
               </div>
 
-              <button
-                type="submit"
-                className="w-full min-h-[42px] bg-[#1C222E] hover:bg-[#252E3E] border border-hazard-yellow/40 hover:border-hazard-yellow text-hazard-bright font-bold text-xs uppercase tracking-wider rounded-lg transition-all"
-              >
-                + Commit Action Item to War Room
-              </button>
+              <Button type="submit" variant="tonal">
+                Add action item
+              </Button>
             </form>
-          </div>
+          </section>
         </div>
       </div>
     </div>

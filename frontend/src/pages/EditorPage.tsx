@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { store } from '../lib/store';
 import { ReportTemplate } from '../lib/types';
-import { FileEdit, Save, CheckCircle2 } from 'lucide-react';
+import { Button } from '../components/Button';
+import { Card } from '../components/Card';
+import { Field } from '../components/Field';
+import { Notice } from '../components/Notice';
+import { PageHeader } from '../components/PageHeader';
+import { Check, Save } from 'lucide-react';
 
 export const EditorPage: React.FC = () => {
   const [templates] = useState<ReportTemplate[]>(store.getState().reportTemplates);
@@ -27,84 +32,67 @@ export const EditorPage: React.FC = () => {
     e.preventDefault();
     const res = store.saveDraft(selectedTemplateId, draftTitle, draftContent);
     if (res.success) {
-      setStatusMessage('Report draft saved successfully at ' + new Date().toLocaleTimeString());
+      setStatusMessage('Draft saved at ' + new Date().toLocaleTimeString());
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <h2 className="text-xl font-black text-white flex items-center gap-2 m-0">
-            <FileEdit className="w-5 h-5 text-hazard-yellow" />
-            <span>Insurance &amp; Counsel Documentation Editor</span>
-          </h2>
-          <p className="text-xs text-slate-400 mt-1 mb-0">
-            Standardized templates for cyber underwriters, outside counsel privileged memos, and state regulators.
-          </p>
-        </div>
+      <PageHeader
+        title="Insurance & legal drafts"
+        description="Start from a template for your insurer, outside counsel or a state regulator, then edit and save."
+      />
+
+      {statusMessage && <Notice tone="success">{statusMessage}</Notice>}
+
+      {/* Filter chips for template choice */}
+      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Template">
+        {templates.map((tpl) => {
+          const selected = selectedTemplateId === tpl.id;
+          return (
+            <button
+              key={tpl.id}
+              role="radio"
+              aria-checked={selected}
+              onClick={() => setSelectedTemplateId(tpl.id)}
+              className={`state-layer inline-flex h-8 items-center gap-2 rounded-lg px-3 type-label-large ${
+                selected
+                  ? 'bg-secondary-container pl-2 text-on-secondary-container'
+                  : 'border border-outline-variant text-on-surface-variant'
+              }`}
+            >
+              {selected && <Check className="h-[18px] w-[18px]" />}
+              {tpl.name}
+            </button>
+          );
+        })}
       </div>
 
-      {statusMessage && (
-        <div className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-800/40 text-emerald-400 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>{statusMessage}</span>
-        </div>
-      )}
-
-      {/* Template Selector Buttons */}
-      <div className="flex gap-2 flex-wrap">
-        {templates.map((tpl) => (
-          <button
-            key={tpl.id}
-            onClick={() => setSelectedTemplateId(tpl.id)}
-            className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
-              selectedTemplateId === tpl.id
-                ? 'bg-hazard-yellow text-black shadow-lg shadow-hazard-yellow/20 font-black'
-                : 'bg-card text-slate-300 hover:text-white border border-border'
-            }`}
-          >
-            {tpl.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Draft Workspace */}
-      <div className="bg-card border border-border rounded-xl p-5 shadow-xl">
-        <form onSubmit={handleSave} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-300 mb-1">
-              Document Title
-            </label>
+      <Card className="p-5">
+        <form onSubmit={handleSave} className="space-y-5">
+          <Field label="Title">
             <input
               type="text"
               value={draftTitle}
               onChange={(e) => setDraftTitle(e.target.value)}
-              className="w-full text-sm font-bold text-white"
+              className="w-full type-title-medium"
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-300 mb-1">
-              Draft Body Content
-            </label>
+          <Field label="Body">
             <textarea
               value={draftContent}
               onChange={(e) => setDraftContent(e.target.value)}
-              rows={16}
-              className="w-full font-mono text-xs leading-relaxed text-slate-200"
+              rows={18}
+              className="w-full font-mono leading-relaxed"
             />
-          </div>
+          </Field>
 
-          <button
-            type="submit"
-            className="min-h-[44px] px-6 bg-hazard-yellow hover:bg-hazard-bright text-black font-extrabold text-xs uppercase tracking-wider rounded-lg shadow-lg shadow-hazard-yellow/20 transition-all flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            <span>Save Working Draft</span>
-          </button>
+          <Button type="submit" icon={<Save />}>
+            Save draft
+          </Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 };

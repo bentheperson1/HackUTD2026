@@ -4,7 +4,12 @@ import { store } from '../lib/store';
 import { Member, Role } from '../lib/types';
 import { ROLES } from '../lib/constants';
 import { DataTable, Column } from '../components/DataTable';
-import { Users, UserPlus, Trash2, AlertCircle } from 'lucide-react';
+import { Button, IconButton } from '../components/Button';
+import { Card, SectionTitle } from '../components/Card';
+import { Field } from '../components/Field';
+import { Notice } from '../components/Notice';
+import { PageHeader } from '../components/PageHeader';
+import { Trash2 } from 'lucide-react';
 
 export const MembersPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -21,6 +26,8 @@ export const MembersPage: React.FC = () => {
     });
   }, []);
 
+  const isGuestRole = newRole === 'insurer' || newRole === 'outside_counsel';
+
   const handleAddMember = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -29,10 +36,7 @@ export const MembersPage: React.FC = () => {
       return;
     }
 
-    const expiresAt =
-      newRole === 'insurer' || newRole === 'outside_counsel'
-        ? new Date(Date.now() + parseInt(guestDays, 10) * 86400000).toISOString()
-        : null;
+    const expiresAt = isGuestRole ? new Date(Date.now() + parseInt(guestDays, 10) * 86400000).toISOString() : null;
 
     const res = store.addMember(currentUser.name, newName, newPhone, newRole, expiresAt);
     if (!res.success) {
@@ -51,7 +55,7 @@ export const MembersPage: React.FC = () => {
   };
 
   const handleRemove = (memberId: string) => {
-    if (confirm('Are you sure you want to remove this crisis response member?')) {
+    if (confirm('Remove this person from the response roster?')) {
       const res = store.removeMember(currentUser.name, memberId);
       if (!res.success) {
         setError(res.error || 'Failed to remove member');
@@ -61,16 +65,17 @@ export const MembersPage: React.FC = () => {
 
   const columns: Column<Member>[] = [
     {
-      header: 'Responder Name',
-      render: (m) => <strong className="text-white text-sm">{m.name}</strong>,
+      header: 'Name',
+      render: (m) => m.name,
     },
     {
-      header: 'Crisis Role',
+      header: 'Role',
       render: (m) => (
         <select
+          aria-label={`Role for ${m.name}`}
           value={m.role}
           onChange={(e) => handleRoleChange(m.id, e.target.value as Role)}
-          className="text-xs font-bold"
+          className="h-9 py-0"
         >
           {ROLES.map((r) => (
             <option key={r.value} value={r.value}>
@@ -81,143 +86,101 @@ export const MembersPage: React.FC = () => {
       ),
     },
     {
-      header: 'Out-of-Band Phone',
-      render: (m) => <span className="font-mono text-xs text-slate-300">{m.phone}</span>,
+      header: 'Phone',
+      render: (m) => <span className="whitespace-nowrap font-mono text-on-surface-variant">{m.phone}</span>,
     },
     {
-      header: 'SpacetimeDB Identity',
+      header: 'Identity',
       render: (m) => (
-        <code className="text-[11px] text-slate-400 bg-[#0B0D11] px-2 py-0.5 rounded border border-[#1E2431]" title={m.identity}>
-          {m.identity.slice(0, 10)}...{m.identity.slice(-6)}
+        <code className="font-mono type-body-small text-on-surface-variant" title={m.identity}>
+          {m.identity.slice(0, 8)}…{m.identity.slice(-4)}
         </code>
       ),
     },
     {
-      header: 'Guest Expiry',
+      header: 'Access until',
       render: (m) => (
-        <span className="text-xs text-slate-400">
-          {m.expires_at ? new Date(m.expires_at).toLocaleDateString() : 'Permanent'}
+        <span className="whitespace-nowrap text-on-surface-variant">
+          {m.expires_at ? new Date(m.expires_at).toLocaleDateString() : 'No expiry'}
         </span>
       ),
     },
     {
-      header: 'Actions',
+      header: '',
+      align: 'right',
       render: (m) => (
-        <button
-          onClick={() => handleRemove(m.id)}
-          className="text-rose-400 hover:text-rose-300 p-1 rounded hover:bg-rose-950/30 transition-all"
-          title="Remove Member"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <IconButton label={`Remove ${m.name}`} onClick={() => handleRemove(m.id)} className="hover:text-error">
+          <Trash2 />
+        </IconButton>
       ),
     },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <h2 className="text-xl font-black text-white flex items-center gap-2 m-0">
-            <Users className="w-5 h-5 text-hazard-yellow" />
-            <span>Crisis Command Team &amp; Roster</span>
-          </h2>
-          <p className="text-xs text-slate-400 mt-1 mb-0">
-            Pre-cleared emergency personnel and time-limited outside advisors (forensic counsel, cyber underwriters).
-          </p>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Team roster"
+        description="Who can sign in during an incident. Outside advisors like counsel and insurers get access that expires."
+      />
 
-      {error && (
-        <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span>Error: {error}</span>
-        </div>
-      )}
+      {error && <Notice tone="error">{error}</Notice>}
 
-      {/* Directory Table */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-bold text-slate-200 m-0">Authorized Responders</h3>
+      <section>
+        <SectionTitle trailing={`${members.length} people`}>Responders</SectionTitle>
         <DataTable columns={columns} data={members} />
-      </div>
+      </section>
 
-      {/* Add Member Form */}
-      <div className="bg-card border border-border rounded-xl p-5 shadow-xl">
-        <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-          <UserPlus className="w-4 h-4 text-hazard-yellow" />
-          <span>Add Emergency Responder or Advisor</span>
-        </h4>
-
-        <form onSubmit={handleAddMember} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">
-                Full Name
-              </label>
+      <Card className="p-5">
+        <SectionTitle>Add a person</SectionTitle>
+        <form onSubmit={handleAddMember} className="space-y-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Field label="Full name">
               <input
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g. Jordan Ellis"
-                className="w-full text-xs"
+                placeholder="Jordan Ellis"
+                className="w-full"
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">
-                Personal Phone (SMS Auth)
-              </label>
+            <Field label="Personal phone">
               <input
-                type="text"
+                type="tel"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
                 placeholder="+1 (555) 000-0000"
-                className="w-full text-xs"
+                className="w-full"
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1">
-                Designated Crisis Role
-              </label>
-              <select
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value as Role)}
-                className="w-full text-xs font-semibold"
-              >
+            <Field label="Role">
+              <select value={newRole} onChange={(e) => setNewRole(e.target.value as Role)} className="w-full">
                 {ROLES.map((r) => (
                   <option key={r.value} value={r.value}>
                     {r.label}
                   </option>
                 ))}
               </select>
-            </div>
+            </Field>
 
-            {(newRole === 'insurer' || newRole === 'outside_counsel') && (
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Guest Expiration (Days)
-                </label>
+            {isGuestRole && (
+              <Field label="Access length (days)">
                 <input
                   type="number"
                   value={guestDays}
                   onChange={(e) => setGuestDays(e.target.value)}
                   min="1"
                   max="90"
-                  className="w-full text-xs"
+                  className="w-full"
                 />
-              </div>
+              </Field>
             )}
           </div>
 
-          <button
-            type="submit"
-            className="min-h-[44px] px-6 bg-hazard-yellow hover:bg-hazard-bright text-black font-extrabold text-xs uppercase tracking-wider rounded-lg shadow-lg shadow-hazard-yellow/20 transition-all flex items-center gap-2"
-          >
-            <span>Add to Crisis Roster</span>
-          </button>
+          <Button type="submit">Add to roster</Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 };

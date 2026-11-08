@@ -3,6 +3,7 @@ import React from 'react';
 export interface Column<T> {
   header: string;
   render: (item: T, index: number) => React.ReactNode;
+  align?: 'left' | 'right';
 }
 
 interface DataTableProps<T> {
@@ -11,37 +12,40 @@ interface DataTableProps<T> {
   emptyMessage?: string;
 }
 
-export function DataTable<T>({ columns, data, emptyMessage = 'No records logged yet.' }: DataTableProps<T>) {
+export function DataTable<T>({ columns, data, emptyMessage = 'Nothing recorded yet.' }: DataTableProps<T>) {
   if (data.length === 0) {
     return (
-      <div className="p-6 text-center rounded-xl border border-[#232936] bg-[#12161F] text-slate-400 text-xs italic">
+      <div className="rounded-xl border border-dashed border-outline-variant px-6 py-10 text-center type-body-medium text-on-surface-variant">
         {emptyMessage}
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-[#262C38] bg-[#12161F] shadow-lg">
-      <table className="w-full text-left border-collapse">
+    <div className="overflow-x-auto rounded-xl border border-outline-variant">
+      <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="bg-[#181E2A] border-b border-[#262C38]">
+          <tr className="border-b border-outline-variant bg-surface-container-low">
             {columns.map((col, idx) => (
               <th
                 key={idx}
-                className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-300 border-r border-[#262C38] last:border-r-0"
+                className={`whitespace-nowrap px-4 py-3 type-label-large text-on-surface-variant ${col.align === 'right' ? 'text-right' : ''}`}
               >
                 {col.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#1E2431]">
+        <tbody>
           {data.map((item, rowIdx) => (
-            <tr key={rowIdx} className="hover:bg-[#171D28] transition-colors">
+            <tr
+              key={rowIdx}
+              className="border-b border-outline-variant transition-colors last:border-b-0 hover:bg-on-surface/[0.04]"
+            >
               {columns.map((col, colIdx) => (
                 <td
                   key={colIdx}
-                  className="px-4 py-3 text-xs text-slate-200 border-r border-[#1E2431] last:border-r-0 align-top"
+                  className={`px-4 py-3 align-middle type-body-medium text-on-surface ${col.align === 'right' ? 'text-right' : ''}`}
                 >
                   {col.render(item, rowIdx)}
                 </td>
