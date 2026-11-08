@@ -86,7 +86,7 @@ public static partial class Module
     }
 
     [SpacetimeDB.Reducer(ReducerKind.ClientDisconnected)]
-    public static void ClientDIiconnected(ReducerContext ctx)
+    public static void ClientDisconnected(ReducerContext ctx)
     {
         if (ctx.Db.User.Id.Find(ctx.Sender) is User u)
         {
@@ -214,7 +214,7 @@ public static partial class Module
     }
 
     [SpacetimeDB.Reducer]
-    public static void SendNessage(ReducerContext ctx, string incidentId, string text)
+    public static void SendMessage(ReducerContext ctx, string incidentId, string text)
     {
         RequireMember(ctx, incidentId);
 
