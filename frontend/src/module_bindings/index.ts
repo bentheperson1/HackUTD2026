@@ -42,7 +42,9 @@ import CloseEventReducer from "./close_event_reducer";
 import CloseIncidentReducer from "./close_incident_reducer";
 import CreateDrillReducer from "./create_drill_reducer";
 import CreateOrganizationReducer from "./create_organization_reducer";
+import CreateReportDocumentReducer from "./create_report_document_reducer";
 import CreateTaskReducer from "./create_task_reducer";
+import DeleteReportDocumentReducer from "./delete_report_document_reducer";
 import EndDrillReducer from "./end_drill_reducer";
 import GrantGuestReducer from "./grant_guest_reducer";
 import JoinDrillReducer from "./join_drill_reducer";
@@ -70,6 +72,7 @@ import StartDrillReducer from "./start_drill_reducer";
 import SyncRosterReducer from "./sync_roster_reducer";
 import UpdateAlertStatusReducer from "./update_alert_status_reducer";
 import UpdateIncidentReducer from "./update_incident_reducer";
+import UpdateReportDocumentReducer from "./update_report_document_reducer";
 import UpdateTaskReducer from "./update_task_reducer";
 import UpsertScopeItemReducer from "./upsert_scope_item_reducer";
 
@@ -101,6 +104,7 @@ import NotificationObligationRow from "./notification_obligation_table";
 import NotificationRuleRow from "./notification_rule_table";
 import OrgMemberRow from "./org_member_table";
 import OrganizationRow from "./organization_table";
+import ReportDocumentRow from "./report_document_table";
 import ScopeItemRow from "./scope_item_table";
 import TaskRow from "./task_table";
 import TimelineEntryRow from "./timeline_entry_table";
@@ -319,6 +323,20 @@ const tablesSchema = __schema({
       { name: 'organization_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, OrganizationRow),
+  reportDocument: __table({
+    name: 'report_document',
+    indexes: [
+      { accessor: 'Id', name: 'report_document_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'OrgId', name: 'report_document_org_id_idx_btree', algorithm: 'btree', columns: [
+        'orgId',
+      ] },
+    ],
+    constraints: [
+      { name: 'report_document_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ReportDocumentRow),
   scopeItem: __table({
     name: 'scope_item',
     indexes: [
@@ -465,7 +483,9 @@ const reducersSchema = __reducers(
   __reducerSchema("close_incident", CloseIncidentReducer),
   __reducerSchema("create_drill", CreateDrillReducer),
   __reducerSchema("create_organization", CreateOrganizationReducer),
+  __reducerSchema("create_report_document", CreateReportDocumentReducer),
   __reducerSchema("create_task", CreateTaskReducer),
+  __reducerSchema("delete_report_document", DeleteReportDocumentReducer),
   __reducerSchema("end_drill", EndDrillReducer),
   __reducerSchema("grant_guest", GrantGuestReducer),
   __reducerSchema("join_drill", JoinDrillReducer),
@@ -493,6 +513,7 @@ const reducersSchema = __reducers(
   __reducerSchema("sync_roster", SyncRosterReducer),
   __reducerSchema("update_alert_status", UpdateAlertStatusReducer),
   __reducerSchema("update_incident", UpdateIncidentReducer),
+  __reducerSchema("update_report_document", UpdateReportDocumentReducer),
   __reducerSchema("update_task", UpdateTaskReducer),
   __reducerSchema("upsert_scope_item", UpsertScopeItemReducer),
 );
@@ -533,6 +554,8 @@ type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "ta
     readonly "OrgMember": Omit<typeof tablesSchema.schemaType.tables["orgMember"], "accessorName"> & { readonly accessorName: "OrgMember" };
     /** @deprecated Use `organization` instead. This alias will be removed in the next major version. */
     readonly "Organization": Omit<typeof tablesSchema.schemaType.tables["organization"], "accessorName"> & { readonly accessorName: "Organization" };
+    /** @deprecated Use `reportDocument` instead. This alias will be removed in the next major version. */
+    readonly "ReportDocument": Omit<typeof tablesSchema.schemaType.tables["reportDocument"], "accessorName"> & { readonly accessorName: "ReportDocument" };
     /** @deprecated Use `scopeItem` instead. This alias will be removed in the next major version. */
     readonly "ScopeItem": Omit<typeof tablesSchema.schemaType.tables["scopeItem"], "accessorName"> & { readonly accessorName: "ScopeItem" };
     /** @deprecated Use `task` instead. This alias will be removed in the next major version. */
@@ -596,6 +619,7 @@ const tableAccessorAliases = {
   "NotificationRule": "notificationRule",
   "OrgMember": "orgMember",
   "Organization": "organization",
+  "ReportDocument": "reportDocument",
   "ScopeItem": "scopeItem",
   "Task": "task",
   "TimelineEntry": "timelineEntry",
@@ -661,6 +685,8 @@ export type DbView = __DbViewBase & {
   readonly "OrgMember": __DbViewBase["orgMember"];
   /** @deprecated Use `organization` instead. This alias will be removed in the next major version. */
   readonly "Organization": __DbViewBase["organization"];
+  /** @deprecated Use `reportDocument` instead. This alias will be removed in the next major version. */
+  readonly "ReportDocument": __DbViewBase["reportDocument"];
   /** @deprecated Use `scopeItem` instead. This alias will be removed in the next major version. */
   readonly "ScopeItem": __DbViewBase["scopeItem"];
   /** @deprecated Use `task` instead. This alias will be removed in the next major version. */
@@ -725,6 +751,8 @@ export type Tables = __TablesBase & {
   readonly "OrgMember": __TablesBase["orgMember"];
   /** @deprecated Use `organization` instead. This alias will be removed in the next major version. */
   readonly "Organization": __TablesBase["organization"];
+  /** @deprecated Use `reportDocument` instead. This alias will be removed in the next major version. */
+  readonly "ReportDocument": __TablesBase["reportDocument"];
   /** @deprecated Use `scopeItem` instead. This alias will be removed in the next major version. */
   readonly "ScopeItem": __TablesBase["scopeItem"];
   /** @deprecated Use `task` instead. This alias will be removed in the next major version. */

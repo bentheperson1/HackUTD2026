@@ -119,29 +119,22 @@ export const ChatPage: React.FC = () => {
         title="Chat"
         description="Message your team and assign tasks. Chat is available whether or not an incident is active."
         actions={
-          isAdmin && (
-            <>
-              {!isLive && (
-              <label className="flex items-center gap-2 text-xs text-fg-muted">
-                Slow mode
-                <select
-                  value={slowModeSeconds}
-                  onChange={(e) => store.setSlowMode(Number(e.target.value))}
-                  className="h-8 w-32 py-0 text-xs"
-                  aria-label="Slow mode"
-                >
-                  <option value={0}>Off</option>
-                  <option value={15}>15 seconds</option>
-                  <option value={30}>30 seconds</option>
-                  <option value={60}>60 seconds</option>
-                </select>
-              </label>
-              )}
-              <Button size="sm" onClick={() => setIsBroadcastModalOpen(true)}>
-                <Megaphone className="h-4 w-4" />
-                Broadcast
-              </Button>
-            </>
+          isAdmin &&
+          !isLive && (
+            <label className="flex items-center gap-2 text-xs text-fg-muted">
+              Slow mode
+              <select
+                value={slowModeSeconds}
+                onChange={(e) => store.setSlowMode(Number(e.target.value))}
+                className="h-8 w-32 py-0 text-xs"
+                aria-label="Slow mode"
+              >
+                <option value={0}>Off</option>
+                <option value={15}>15 seconds</option>
+                <option value={30}>30 seconds</option>
+                <option value={60}>60 seconds</option>
+              </select>
+            </label>
           )
         }
       />
@@ -180,7 +173,19 @@ export const ChatPage: React.FC = () => {
             { value: 'general', label: 'Staff questions', count: count('general') },
           ]}
         />
-        {slowModeSeconds > 0 && <span className="text-xs text-fg-subtle">Slow mode: {slowModeSeconds}s between messages</span>}
+        <div className="flex items-center gap-3">
+          {slowModeSeconds > 0 && <span className="text-xs text-fg-subtle">Slow mode: {slowModeSeconds}s between messages</span>}
+          {isAdmin && (
+            <Button
+              variant="danger"
+              onClick={() => setIsBroadcastModalOpen(true)}
+              title="Send an alert to everyone, pinned at the top of Chat"
+            >
+              <Megaphone className="h-4 w-4" />
+              Broadcast to everyone
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-12">

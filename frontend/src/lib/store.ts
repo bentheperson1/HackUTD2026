@@ -612,23 +612,33 @@ export const store = {
     });
   },
 
-  // Reducer: saveDraft
-  saveDraft(templateId: string, title: string, content: string) {
-    return this.callReducer('save_draft', { templateId, title, content }, (draft) => {
-      const existing = draft.reportDrafts.find((d) => d.template_id === templateId);
-      if (existing) {
-        existing.title = title;
-        existing.content = content;
-        existing.updated_at = new Date().toISOString();
-      } else {
-        draft.reportDrafts.push({
-          id: 'draft-' + Date.now(),
-          template_id: templateId,
-          title,
-          content,
-          updated_at: new Date().toISOString(),
-        });
-      }
+  // Reducers: report documents (create / update / delete)
+  // In demo mode `result` is the new id; live, the row arrives through the subscription.
+  createDraft(templateId: string, title: string, content: string) {
+    return this.callReducer('create_draft', { templateId, title, content }, (draft) => {
+      if (!title.trim()) throw new Error('Title can\'t be empty.');
+      const now = new Date().toISOString();
+      const id = 'draft-' + Date.now();
+      draft.reportDrafts.unshift({ id, template_id: templateId, title: title.trim(), content, created_at: now, updated_at: now });
+      return id;
+    });
+  },
+
+  updateDraft(id: string, title: string, content: string) {
+    return this.callReducer('update_draft', { id, title, content }, (draft) => {
+      if (!title.trim()) throw new Error('Title can\'t be empty.');
+      const existing = draft.reportDrafts.find((d) => d.id === id);
+      if (!existing) throw new Error('That document no longer exists.');
+      existing.title = title.trim();
+      existing.content = content;
+      existing.updated_at = new Date().toISOString();
+    });
+  },
+
+  deleteDraft(id: string) {
+    return this.callReducer('delete_draft', { id }, (draft) => {
+      if (!draft.reportDrafts.some((d) => d.id === id)) throw new Error('That document no longer exists.');
+      draft.reportDrafts = draft.reportDrafts.filter((d) => d.id !== id);
     });
   },
 

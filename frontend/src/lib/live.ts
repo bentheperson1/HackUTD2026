@@ -203,6 +203,7 @@ class LiveBridge {
         tables.task,
         tables.docTemplate,
         tables.incidentDocument,
+        tables.reportDocument,
         tables.drillScenario,
         tables.drillSession,
         tables.drillPlayer,
@@ -216,7 +217,7 @@ class LiveBridge {
     const db = conn.db;
     const watch = [
       db.user, db.organization, db.orgMember, db.incident, db.incidentMember, db.guestGrant, db.activation,
-      db.timelineEntry, db.scopeItem, db.task, db.docTemplate, db.incidentDocument, db.drillScenario,
+      db.timelineEntry, db.scopeItem, db.task, db.docTemplate, db.incidentDocument, db.reportDocument, db.drillScenario,
       db.drillSession, db.drillPlayer, db.drillQuestion, db.drillAnswer, db.adminMessages, db.incidentMessages,
       db.generalMessages,
     ];
@@ -411,14 +412,22 @@ class LiveBridge {
       target: d.id.includes('insur') ? 'insurer' : d.id.includes('counsel') ? 'lawyer' : d.id.includes('regulat') ? 'regulator' : 'staff',
       content: d.body,
     }));
-    const reportDrafts: ReportDraft[] = [...db.incidentDocument.iter()]
-      .filter((d) => d.incidentId === incId)
+    // Report documents: company members see all of the company's; guests see the ones on incidents they were let into
+    const myOrgRow = myMemberships.find((m) => m.orgId === orgId);
+    const amDocAdmin = !!myOrgRow && (myOrgRow.isAdmin || myOrgRow.role === 'Owner');
+    const grantedIncidents = new Set(myGrants.map((g) => g.incidentId));
+    const reportDrafts: ReportDraft[] = [...db.reportDocument.iter()]
+      .filter((d) => d.orgId === orgId && (myOrgRow || grantedIncidents.has(d.incidentId)))
+      .sort((a, b) => (micros(a.updatedAt) < micros(b.updatedAt) ? 1 : -1))
       .map((d) => ({
-        id: d.id,
+        id: String(d.id),
         template_id: d.templateId,
-        title: templates.find((t) => t.id === d.templateId)?.name ?? d.templateId,
+        title: d.title,
         content: d.body,
+        created_at: tsToIso(d.createdAt)!,
         updated_at: tsToIso(d.updatedAt)!,
+        author: nameOf(d.createdBy),
+        can_delete: amDocAdmin || hex(d.createdBy) === me,
       }));
 
     // Drill Night: the company's newest drill session
@@ -517,6 +526,7 @@ class LiveBridge {
       task: n(db.task),
       doc_template: n(db.docTemplate),
       incident_document: n(db.incidentDocument),
+      report_document: n(db.reportDocument),
       drill_session: n(db.drillSession),
       drill_player: n(db.drillPlayer),
       drill_question: n(db.drillQuestion),
@@ -644,8 +654,22 @@ export function toLiveCall(name: string, a: Record<string, unknown>): LiveRoute 
         },
       };
     }
-    case 'save_draft':
-      return { reducer: 'saveDocument', args: { incidentId: needOpenIncident(), templateId: a.templateId, body: a.content } };
+    case 'create_draft':
+      return {
+        reducer: 'createReportDocument',
+        args: {
+          orgId: needOrg(),
+          // Tie it to the open incident when there is one; documents work without an incident too
+          incidentId: live.slices?.incident?.status === 'active' ? (live.incidentId ?? '') : '',
+          templateId: String(a.templateId ?? ''),
+          title: String(a.title ?? ''),
+          body: String(a.content ?? ''),
+        },
+      };
+    case 'update_draft':
+      return { reducer: 'updateReportDocument', args: { id: BigInt(String(a.id)), title: String(a.title ?? ''), body: String(a.content ?? '') } };
+    case 'delete_draft':
+      return { reducer: 'deleteReportDocument', args: { id: BigInt(String(a.id)) } };
     case 'save_template':
       return { reducer: 'saveTemplate', args: { id: a.id, name: a.name, description: a.description ?? '', body: a.body } };
     case 'log_export':

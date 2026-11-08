@@ -259,6 +259,20 @@ export const Policy = __t.object("Policy", {
 });
 export type Policy = __Infer<typeof Policy>;
 
+export const ReportDocument = __t.object("ReportDocument", {
+  id: __t.u64(),
+  orgId: __t.u64(),
+  incidentId: __t.string(),
+  templateId: __t.string(),
+  title: __t.string(),
+  body: __t.string(),
+  createdBy: __t.identity(),
+  createdAt: __t.timestamp(),
+  updatedBy: __t.identity(),
+  updatedAt: __t.timestamp(),
+});
+export type ReportDocument = __Infer<typeof ReportDocument>;
+
 export const ScopeItem = __t.object("ScopeItem", {
   id: __t.u64(),
   incidentId: __t.string(),

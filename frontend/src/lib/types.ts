@@ -90,10 +90,15 @@ export interface ReportTemplate {
 
 export interface ReportDraft {
   id: string;
+  /** Template it was started from, or '' for a blank document. */
   template_id: string;
   title: string;
   content: string;
   updated_at: string;
+  created_at?: string;
+  author?: string;
+  /** False when the server would refuse a delete (not the creator or an admin). Missing means allowed. */
+  can_delete?: boolean;
 }
 
 /* ---------------- Drill Night ----------------
