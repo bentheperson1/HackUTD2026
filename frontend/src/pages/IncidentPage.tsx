@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Siren, CircleCheck } from 'lucide-react';
 import { ActivateModal } from '../components/ActivateModal';
+import { RoleChecklist } from '../components/RoleChecklist';
 import { useAuth } from '../lib/authContext';
 import { store } from '../lib/store';
 import { IncidentPhase } from '../lib/types';
@@ -9,11 +10,11 @@ import { useAppState, useNow } from '../lib/useAppState';
 import { Alert, Badge, Button, Card, Modal, PageHeader, formatClock, titleCase, cx } from '../components/ui';
 
 const PHASE_HELP: Record<IncidentPhase, string> = {
-  detection: 'Confirm what happened and how far it reaches.',
-  containment: 'Stop the spread. Isolate affected machines.',
-  eradication: 'Remove the attacker and the malware.',
-  recovery: 'Restore systems from clean backups and monitor.',
-  post_incident: 'Write up what happened and what to change.',
+  detection: 'Find out what happened.',
+  containment: 'Stop it spreading.',
+  eradication: 'Remove the attacker.',
+  recovery: 'Get systems back.',
+  post_incident: 'Write down lessons.',
 };
 
 export const IncidentPage: React.FC = () => {
@@ -44,7 +45,7 @@ export const IncidentPage: React.FC = () => {
       <PageHeader
         eyebrow="Respond"
         title="Incident"
-        description="Activating opens the war room, alerts everyone on the roster, and starts the permanent timeline."
+        description="Start here when something goes wrong."
       />
 
       {error && (
@@ -91,7 +92,9 @@ export const IncidentPage: React.FC = () => {
         </div>
       </Card>
 
-      <Card kind="timeline" title="Response phases" description="NIST SP 800-61 stages · every change is logged">
+      {isActive && <RoleChecklist />}
+
+      <Card kind="timeline" title="Where we are" description="Tap the stage you're in">
         <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {PHASES.map((p, idx) => {
             const isCurrent = incident.phase === p;
@@ -121,7 +124,7 @@ export const IncidentPage: React.FC = () => {
             );
           })}
         </ol>
-        {!isActive && <p className="mt-4 text-xs text-fg-subtle">Phases unlock once an incident is active.</p>}
+        {!isActive && <p className="mt-4 text-xs text-fg-subtle">Start an incident to use these.</p>}
       </Card>
 
       {confirm === 'activate' && (
@@ -131,7 +134,7 @@ export const IncidentPage: React.FC = () => {
       {confirm === 'close' && (
         <Modal
           title="Close this incident?"
-          description="The timeline stays permanent. You can still export the full record afterwards."
+          description="The record is kept. You can still export it later."
           onClose={() => setConfirm(null)}
         >
           <div className="flex justify-end gap-2">

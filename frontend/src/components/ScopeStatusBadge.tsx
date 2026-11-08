@@ -3,9 +3,9 @@ import { ScopeStatus } from '../lib/types';
 import { Badge, Tone } from './ui';
 
 export const SCOPE_STATUS_META: Record<ScopeStatus, { label: string; long: string; tone: Tone }> = {
-  exfiltrated: { label: 'Exfiltrated', long: 'Exfiltrated (copied out)', tone: 'breach' },
+  exfiltrated: { label: 'Stolen', long: 'Stolen (copied out)', tone: 'breach' },
   locked: { label: 'Locked', long: 'Locked (encrypted)', tone: 'neutral' },
-  unknown: { label: 'Unknown', long: 'Unknown (under investigation)', tone: 'neutral' },
+  unknown: { label: 'Not sure yet', long: 'Not sure yet', tone: 'neutral' },
   restored: { label: 'Restored', long: 'Restored', tone: 'accent' },
 };
 

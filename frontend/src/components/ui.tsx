@@ -1,8 +1,10 @@
 import React from 'react';
 import { AlertCircle, CheckCircle2, Info, TriangleAlert } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { FLOW_LENGTH, placeFor } from './places';
 
 /* ------------------------------------------------------------------ */
-/*  Fifth Edge UI primitives.                                         */
+/*  Outpost UI primitives.                                            */
 /*  Visual language: an incident briefing / control-room board.        */
 /*  - No floating boxes: sections sit on the page, split by rules      */
 /*  - Numbered section heads in condensed Archivo                      */
@@ -35,16 +37,28 @@ export const PageHeader: React.FC<{
   description?: React.ReactNode;
   eyebrow?: string;
   actions?: React.ReactNode;
-}> = ({ title, description, eyebrow, actions }) => (
-  <div className="flex flex-col gap-5 pb-2 md:flex-row md:items-end md:justify-between">
-    <div className="min-w-0">
-      {eyebrow && <Label className="text-accent">{eyebrow}</Label>}
-      <h1 className="font-display mt-1 text-[44px] leading-[0.95] font-bold tracking-[-0.01em] text-fg uppercase">{title}</h1>
-      {description && <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-fg-muted">{description}</p>}
+}> = ({ title, description, eyebrow, actions }) => {
+  // Same icon and step number as the nav, so people can tell where they are at a glance
+  const place = placeFor(useLocation().pathname);
+  const Icon = place?.icon;
+  return (
+    <div className="flex flex-col gap-5 pb-2 md:flex-row md:items-end md:justify-between">
+      <div className="flex min-w-0 items-start gap-4">
+        {Icon && (
+          <span className="mt-1 hidden h-14 w-14 shrink-0 items-center justify-center border border-line-strong bg-surface sm:flex" aria-hidden="true">
+            <Icon className="h-7 w-7 text-fg" />
+          </span>
+        )}
+        <div className="min-w-0">
+          <Label className="text-accent">{place?.step ? `Step ${place.step} of ${FLOW_LENGTH}` : place?.group ?? eyebrow}</Label>
+          <h1 className="font-display mt-1 text-[44px] leading-[0.95] font-bold tracking-[-0.01em] text-fg uppercase">{title}</h1>
+          {description && <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-fg-muted">{description}</p>}
+        </div>
+      </div>
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
-    {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
-  </div>
-);
+  );
+};
 
 /* Section (replaces boxed cards) ------------------------------------ */
 

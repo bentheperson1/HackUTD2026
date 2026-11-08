@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Lock } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 import { store } from '../lib/store';
 import { AuditLogEntry, IncidentPhase } from '../lib/types';
@@ -7,7 +6,7 @@ import { PHASES } from '../lib/constants';
 import { useAppState } from '../lib/useAppState';
 import { DataTable, Column } from '../components/DataTable';
 import { Field } from '../components/Field';
-import { Alert, Badge, Button, Card, FilterBar, FilterChip, PageHeader, titleCase } from '../components/ui';
+import { Alert, Button, Card, FilterBar, FilterChip, PageHeader, titleCase } from '../components/ui';
 
 export const DocsPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -28,7 +27,7 @@ export const DocsPage: React.FC = () => {
     );
     if (res.success) {
       setPhaseNotes('');
-      setStatusMessage('Added to the audit log with a timestamp.');
+      setStatusMessage('Saved.');
     }
   };
 
@@ -55,11 +54,7 @@ export const DocsPage: React.FC = () => {
     },
     {
       header: 'Action',
-      render: (log) => (
-        <Badge mono className="text-[11px]">
-          {log.action}
-        </Badge>
-      ),
+      render: (log) => <span className="text-xs whitespace-nowrap text-fg-muted">{titleCase(log.action.toLowerCase())}</span>,
     },
     {
       header: 'Details',
@@ -72,13 +67,7 @@ export const DocsPage: React.FC = () => {
       <PageHeader
         eyebrow="Record"
         title="Audit log"
-        description="The permanent record for insurers and lawyers. Entries can be added but never edited or deleted."
-        actions={
-          <Badge tone="accent">
-            <Lock className="h-3 w-3" />
-            Append-only
-          </Badge>
-        }
+        description="A permanent record of what happened. Entries can't be changed or deleted."
       />
 
       {statusMessage && (
@@ -87,9 +76,9 @@ export const DocsPage: React.FC = () => {
         </Alert>
       )}
 
-      <Card kind="form" title="Add an observation">
+      <Card kind="form" title="Write down what happened">
         <form onSubmit={handleAddPhaseDoc} className="space-y-4">
-          <Field label="Phase" htmlFor="doc-phase" className="md:max-w-xs">
+          <Field label="Step" htmlFor="doc-phase" className="md:max-w-xs">
             <select id="doc-phase" value={selectedPhase} onChange={(e) => setSelectedPhase(e.target.value as IncidentPhase)}>
               {PHASES.map((p) => (
                 <option key={p} value={p}>
@@ -98,17 +87,17 @@ export const DocsPage: React.FC = () => {
               ))}
             </select>
           </Field>
-          <Field label="What happened" htmlFor="doc-notes" help="What was found, who was contacted, what evidence was secured.">
+          <Field label="What happened" htmlFor="doc-notes">
             <textarea
               id="doc-notes"
               value={phaseNotes}
               onChange={(e) => setPhaseNotes(e.target.value)}
-              placeholder="e.g. 14:22 Ransom note found on DC-01. Memory image captured. Outbound firewall rules cut."
+              placeholder="e.g. Found a ransom note on the front desk PC. Unplugged it."
               rows={3}
             />
           </Field>
           <Button type="submit" variant="primary" disabled={!phaseNotes.trim()}>
-            Add to audit log
+            Save
           </Button>
         </form>
       </Card>
@@ -133,7 +122,7 @@ export const DocsPage: React.FC = () => {
         ))}
       </FilterBar>
 
-      <Card kind="table" title="Entries" description="audit_log · newest first" padded={false}>
+      <Card kind="table" title="Entries" description="Newest first" padded={false}>
         <DataTable bare columns={auditColumns} data={visibleLogs} rowKey={(l) => l.id} emptyMessage={auditLogs.length ? 'No entries match.' : 'No entries yet.'} />
       </Card>
     </div>

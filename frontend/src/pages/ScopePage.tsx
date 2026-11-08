@@ -5,8 +5,7 @@ import { ScopeItem, ScopeStatus } from '../lib/types';
 import { useAppState } from '../lib/useAppState';
 import { DataTable, Column } from '../components/DataTable';
 import { Field } from '../components/Field';
-import { SCOPE_STATUS_META, SCOPE_SEGMENT_CLASS } from '../components/ScopeStatusBadge';
-import { StackedBar } from '../components/charts';
+import { SCOPE_STATUS_META } from '../components/ScopeStatusBadge';
 import { Alert, Badge, Button, Card, FilterBar, FilterChip, PageHeader, Stat, StatRow } from '../components/ui';
 
 const STATUS_ORDER: ScopeStatus[] = ['unknown', 'locked', 'exfiltrated', 'restored'];
@@ -119,8 +118,8 @@ export const ScopePage: React.FC = () => {
     <div className="space-y-10">
       <PageHeader
         eyebrow="Respond"
-        title="Scope"
-        description="What data was hit, what happened to it, and where affected people live."
+        title="Affected data"
+        description="What data was hit and where the affected people live."
       />
 
       {error && (
@@ -135,27 +134,16 @@ export const ScopePage: React.FC = () => {
           title={`Added "${successInfo.category}"`}
           onDismiss={() => setSuccessInfo(null)}
         >
-          Affected states: {successInfo.states.join(', ') || 'none'}.
+          States: {successInfo.states.join(', ') || 'none'}
         </Alert>
       )}
 
       <StatRow>
-        <Stat label="Data types affected" value={scopeItems.length} />
-        <Stat label="Exfiltrated" value={exfiltrated} tone={exfiltrated > 0 ? 'breach' : 'neutral'} />
+        <Stat label="Data types" value={scopeItems.length} />
+        <Stat label="Stolen" value={exfiltrated} tone={exfiltrated > 0 ? 'breach' : 'neutral'} />
         <Stat label="Restored" value={scopeItems.filter((s) => s.status === 'restored').length} tone="accent" />
-        <Stat label="States involved" value={allStates.length ? allStates.join(' · ') : 'None'} mono />
+        <Stat label="States" value={allStates.length ? allStates.join(' · ') : 'None'} mono />
       </StatRow>
-
-      <Card kind="chart" title="Status breakdown" description="Share of affected data types by status">
-        <StackedBar
-          ariaLabel="Affected data by status"
-          segments={STATUS_ORDER.map((st) => ({
-            label: SCOPE_STATUS_META[st].label,
-            value: scopeItems.filter((i) => i.status === st).length,
-            className: SCOPE_SEGMENT_CLASS[st],
-          }))}
-        />
-      </Card>
 
       <FilterBar>
         <FilterChip active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} count={scopeItems.length}>
@@ -173,14 +161,14 @@ export const ScopePage: React.FC = () => {
         ))}
       </FilterBar>
 
-      <Card kind="table" title="Affected data" description="scope_items" padded={false}>
-        <DataTable bare columns={columns} data={visibleItems} rowKey={(i) => i.id} emptyMessage={statusFilter === 'all' ? 'No affected data recorded yet. Add the first item below.' : 'Nothing with this status.'} />
+      <Card kind="table" title="List" padded={false}>
+        <DataTable bare columns={columns} data={visibleItems} rowKey={(i) => i.id} emptyMessage={statusFilter === 'all' ? 'Nothing added yet.' : 'Nothing with this status.'} />
       </Card>
 
       <Card kind="form" title="Add affected data">
         <form onSubmit={handleAddScopeItem} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="What data?" htmlFor="scope-category" help="Short type, e.g. payment, health, ssn. These match state notification rules.">
+            <Field label="What data?" htmlFor="scope-category" help="Pick from the list or type your own.">
               <input id="scope-category" type="text" list="scope-types" maxLength={40} value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. payment" />
               <datalist id="scope-types">
                 {['payment', 'health', 'ssn', 'customer contact info', 'employee records', 'login credentials'].map((t) => (
@@ -197,15 +185,15 @@ export const ScopePage: React.FC = () => {
                 ))}
               </select>
             </Field>
-            <Field label="States where affected people live" htmlFor="scope-states" help="Two-letter codes, separated by commas.">
+            <Field label="States where affected people live" htmlFor="scope-states" help="Example: TX, CA">
               <input id="scope-states" type="text" value={affectedStates} onChange={(e) => setAffectedStates(e.target.value)} placeholder="TX, CA, NY" />
             </Field>
-            <Field label="Records affected (optional)" htmlFor="scope-records" help="Best estimate. You can update it later.">
+            <Field label="How many records? (optional)" htmlFor="scope-records" help="A guess is fine.">
               <input id="scope-records" type="text" inputMode="numeric" value={records} onChange={(e) => setRecords(e.target.value)} placeholder="e.g. 14000" />
             </Field>
           </div>
           <Button type="submit" variant="primary">
-            Add to scope
+            Add
           </Button>
         </form>
       </Card>

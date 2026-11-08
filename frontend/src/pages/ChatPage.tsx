@@ -7,7 +7,7 @@ import { ROLES } from '../lib/constants';
 import { useAppState } from '../lib/useAppState';
 import { RoleBadge } from '../components/RoleBadge';
 import { Field } from '../components/Field';
-import { Alert, Button, Card, EmptyState, Kbd, Modal, PageHeader, Segmented, cx } from '../components/ui';
+import { Alert, Button, Card, EmptyState, Modal, PageHeader, Segmented, cx } from '../components/ui';
 
 const initials = (name: string) =>
   name
@@ -17,7 +17,7 @@ const initials = (name: string) =>
     .join('')
     .toUpperCase();
 
-export const WarRoomPage: React.FC = () => {
+export const ChatPage: React.FC = () => {
   const { currentUser, mode } = useAuth();
   const isLive = mode === 'live';
   const messages = useAppState((s) => s.messages);
@@ -116,8 +116,8 @@ export const WarRoomPage: React.FC = () => {
     <div className="space-y-10">
       <PageHeader
         eyebrow="Respond"
-        title="War room"
-        description="Out-of-band chat and tasks. Nothing here touches company email or Slack."
+        title="Chat"
+        description="Talk to your team and track tasks. Use it any time."
         actions={
           isAdmin && (
             <>
@@ -151,7 +151,7 @@ export const WarRoomPage: React.FC = () => {
           <Megaphone className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="min-w-0 flex-1">
             <div className="text-xs opacity-85">
-              All-hands broadcast from {activeBroadcast.author} · {new Date(activeBroadcast.timestamp).toLocaleTimeString()}
+              From {activeBroadcast.author} · {new Date(activeBroadcast.timestamp).toLocaleTimeString()}
             </div>
             <p className="font-display mt-0.5 text-[20px] leading-snug font-bold uppercase">{activeBroadcast.message}</p>
           </div>
@@ -175,9 +175,9 @@ export const WarRoomPage: React.FC = () => {
           value={activeChannel}
           onChange={setActiveChannel}
           options={[
-            { value: 'warroom', label: 'Incident war room', count: count('warroom') },
+            { value: 'warroom', label: 'Response team', count: count('warroom') },
             { value: 'admin', label: <span className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" />Executive</span>, count: count('admin'), hidden: !isAdmin },
-            { value: 'general', label: 'Company Q&A', count: count('general') },
+            { value: 'general', label: 'Staff questions', count: count('general') },
           ]}
         />
         {slowModeSeconds > 0 && <span className="text-xs text-fg-subtle">Slow mode: {slowModeSeconds}s between messages</span>}
@@ -185,13 +185,13 @@ export const WarRoomPage: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-12">
         {/* Chat */}
-        <Card kind="chat" title={activeChannel === 'warroom' ? 'Incident war room' : activeChannel === 'admin' ? 'Executive' : 'Company Q&A'} description={`${channelMessages.length} messages`} padded={false} className="flex flex-col lg:col-span-7">
+        <Card kind="chat" title={activeChannel === 'warroom' ? 'Response team' : activeChannel === 'admin' ? 'Executive' : 'Staff questions'} padded={false} className="flex flex-col lg:col-span-7">
           <div ref={listRef} className="h-0 min-h-[460px] flex-1 space-y-1 overflow-y-auto p-3">
             {channelMessages.length === 0 ? (
               <EmptyState
                 icon={<MessagesSquare className="h-6 w-6" />}
                 title="No messages yet"
-                description="Post what you're seeing. Everyone in this room sees it instantly."
+                description="Post what you're seeing."
               />
             ) : (
               channelMessages.map((m) => {
@@ -251,9 +251,6 @@ export const WarRoomPage: React.FC = () => {
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-            <div className="mt-2 flex items-center gap-1.5 px-0.5 text-[11px] text-fg-subtle">
-              <Kbd>↵</Kbd> to send · posts only to this room
-            </div>
           </form>
         </Card>
 
@@ -261,7 +258,7 @@ export const WarRoomPage: React.FC = () => {
         <div className="space-y-6 lg:col-span-5">
           <Card
             kind="list"
-            title="Tasks by role"
+            title="Tasks"
             actions={
               <Segmented<'all' | 'mine' | 'open'>
                 ariaLabel="Which tasks"
@@ -302,7 +299,7 @@ export const WarRoomPage: React.FC = () => {
           <Card kind="form" title="New task">
             <form onSubmit={handleCreateTask} className="space-y-3">
               <Field label="Task" htmlFor="task-title">
-                <input id="task-title" type="text" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="e.g. Revoke cloud sync tokens" />
+                <input id="task-title" type="text" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="e.g. Unplug the office router" />
               </Field>
               {!isLive && (
                 <Field label="Instructions (optional)" htmlFor="task-desc">
@@ -335,8 +332,8 @@ export const WarRoomPage: React.FC = () => {
 
       {isBroadcastModalOpen && (
         <Modal
-          title="Send an all-hands broadcast"
-          description="Pins a banner to the top of everyone's war room until you clear it."
+          title="Send a message to everyone"
+          description="Shows at the top of everyone's screen until you clear it."
           onClose={() => setIsBroadcastModalOpen(false)}
         >
           <form onSubmit={handleSendBroadcast} className="space-y-4">

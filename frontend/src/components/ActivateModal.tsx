@@ -32,7 +32,7 @@ export const ActivateModal: React.FC<{ actor: string; rosterSize: number; onClos
   return (
     <Modal
       title="Activate an incident?"
-      description={`This opens the war room for all ${rosterSize} people on the roster, assigns starter tasks by role, and starts the permanent timeline.`}
+      description={`This alerts all ${rosterSize} people on your team and opens the incident chat.`}
       onClose={onClose}
     >
       <form onSubmit={submit} className="space-y-4">
