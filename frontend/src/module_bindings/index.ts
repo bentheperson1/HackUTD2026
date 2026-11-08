@@ -35,12 +35,10 @@ import {
 
 // Import all reducer arg schemas
 import ActivateIncidentReducer from "./activate_incident_reducer";
-import AddMemberReducer from "./add_member_reducer";
 import AddOrgMemberReducer from "./add_org_member_reducer";
 import AnswerInjectReducer from "./answer_inject_reducer";
 import CloseIncidentReducer from "./close_incident_reducer";
 import CreateDrillReducer from "./create_drill_reducer";
-import CreateIncidentReducer from "./create_incident_reducer";
 import CreateOrganizationReducer from "./create_organization_reducer";
 import CreateTaskReducer from "./create_task_reducer";
 import EndDrillReducer from "./end_drill_reducer";
@@ -59,6 +57,7 @@ import SetObligationStatusReducer from "./set_obligation_status_reducer";
 import SetOrgRoleReducer from "./set_org_role_reducer";
 import SetPhaseReducer from "./set_phase_reducer";
 import StartDrillReducer from "./start_drill_reducer";
+import SyncRosterReducer from "./sync_roster_reducer";
 import UpdateIncidentReducer from "./update_incident_reducer";
 import UpdateTaskReducer from "./update_task_reducer";
 import UpsertScopeItemReducer from "./upsert_scope_item_reducer";
@@ -361,12 +360,8 @@ const tablesSchema = __schema({
   adminMessages: __table({
     name: 'admin_messages',
     indexes: [
-      { accessor: 'Id', name: 'doc_template_id_idx_btree', algorithm: 'btree', columns: [
-        'id',
-      ] },
     ],
     constraints: [
-      { name: 'doc_template_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, AdminMessagesRow),
   generalMessages: __table({
@@ -388,12 +383,10 @@ const tablesSchema = __schema({
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
   __reducerSchema("activate_incident", ActivateIncidentReducer),
-  __reducerSchema("add_member", AddMemberReducer),
   __reducerSchema("add_org_member", AddOrgMemberReducer),
   __reducerSchema("answer_inject", AnswerInjectReducer),
   __reducerSchema("close_incident", CloseIncidentReducer),
   __reducerSchema("create_drill", CreateDrillReducer),
-  __reducerSchema("create_incident", CreateIncidentReducer),
   __reducerSchema("create_organization", CreateOrganizationReducer),
   __reducerSchema("create_task", CreateTaskReducer),
   __reducerSchema("end_drill", EndDrillReducer),
@@ -412,6 +405,7 @@ const reducersSchema = __reducers(
   __reducerSchema("set_org_role", SetOrgRoleReducer),
   __reducerSchema("set_phase", SetPhaseReducer),
   __reducerSchema("start_drill", StartDrillReducer),
+  __reducerSchema("sync_roster", SyncRosterReducer),
   __reducerSchema("update_incident", UpdateIncidentReducer),
   __reducerSchema("update_task", UpdateTaskReducer),
   __reducerSchema("upsert_scope_item", UpsertScopeItemReducer),
