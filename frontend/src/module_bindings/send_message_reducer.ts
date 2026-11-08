@@ -12,6 +12,6 @@ import {
 
 export default {
   incidentId: __t.string(),
-  text: __t.string(),
   chatType: __t.i32(),
+  text: __t.string(),
 };

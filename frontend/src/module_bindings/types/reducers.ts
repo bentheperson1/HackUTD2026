@@ -7,12 +7,10 @@ import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
 import ActivateIncidentReducer from "../activate_incident_reducer";
-import AddMemberReducer from "../add_member_reducer";
 import AddOrgMemberReducer from "../add_org_member_reducer";
 import AnswerInjectReducer from "../answer_inject_reducer";
 import CloseIncidentReducer from "../close_incident_reducer";
 import CreateDrillReducer from "../create_drill_reducer";
-import CreateIncidentReducer from "../create_incident_reducer";
 import CreateOrganizationReducer from "../create_organization_reducer";
 import CreateTaskReducer from "../create_task_reducer";
 import EndDrillReducer from "../end_drill_reducer";
@@ -31,17 +29,16 @@ import SetObligationStatusReducer from "../set_obligation_status_reducer";
 import SetOrgRoleReducer from "../set_org_role_reducer";
 import SetPhaseReducer from "../set_phase_reducer";
 import StartDrillReducer from "../start_drill_reducer";
+import SyncRosterReducer from "../sync_roster_reducer";
 import UpdateIncidentReducer from "../update_incident_reducer";
 import UpdateTaskReducer from "../update_task_reducer";
 import UpsertScopeItemReducer from "../upsert_scope_item_reducer";
 
 export type ActivateIncidentParams = __Infer<typeof ActivateIncidentReducer>;
-export type AddMemberParams = __Infer<typeof AddMemberReducer>;
 export type AddOrgMemberParams = __Infer<typeof AddOrgMemberReducer>;
 export type AnswerInjectParams = __Infer<typeof AnswerInjectReducer>;
 export type CloseIncidentParams = __Infer<typeof CloseIncidentReducer>;
 export type CreateDrillParams = __Infer<typeof CreateDrillReducer>;
-export type CreateIncidentParams = __Infer<typeof CreateIncidentReducer>;
 export type CreateOrganizationParams = __Infer<typeof CreateOrganizationReducer>;
 export type CreateTaskParams = __Infer<typeof CreateTaskReducer>;
 export type EndDrillParams = __Infer<typeof EndDrillReducer>;
@@ -60,6 +57,7 @@ export type SetObligationStatusParams = __Infer<typeof SetObligationStatusReduce
 export type SetOrgRoleParams = __Infer<typeof SetOrgRoleReducer>;
 export type SetPhaseParams = __Infer<typeof SetPhaseReducer>;
 export type StartDrillParams = __Infer<typeof StartDrillReducer>;
+export type SyncRosterParams = __Infer<typeof SyncRosterReducer>;
 export type UpdateIncidentParams = __Infer<typeof UpdateIncidentReducer>;
 export type UpdateTaskParams = __Infer<typeof UpdateTaskReducer>;
 export type UpsertScopeItemParams = __Infer<typeof UpsertScopeItemReducer>;
