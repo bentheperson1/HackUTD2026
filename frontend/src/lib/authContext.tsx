@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Member } from './types';
 import { store } from './store';
-import { live, LiveAccount, LiveStatus } from './live';
+import { ACTIVE_ORG_KEY, live, LiveAccount, LiveStatus } from './live';
 import { TOKEN_KEY } from './config';
 
 interface AuthContextType {
@@ -86,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem('fifth_edge_checklist'); // ticks belong to the person who made them
+      localStorage.removeItem(ACTIVE_ORG_KEY);
     } catch {
       /* storage unavailable */
     }

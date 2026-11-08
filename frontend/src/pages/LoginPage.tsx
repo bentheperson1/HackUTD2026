@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Building2 } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
@@ -8,12 +8,12 @@ import { usePersisted } from '../lib/usePersisted';
 import { Wordmark } from '../components/Masthead';
 import { ROLE_SHORT } from '../components/RoleBadge';
 import { Field } from '../components/Field';
-import { Alert, Button, cx } from '../components/ui';
+import { Alert, Button, StatusDot, cx } from '../components/ui';
 
 /**
  * Sign-in, in the order the backend needs it:
  *   1. register_phone (personal phone + display name)
- *   2. create_organization (you become owner) OR get added by your owner
+ *   2. get added by your manager (most people) OR create_organization (you become owner)
  * Demo mode (no server): pick anyone from the demo roster.
  * The one-tap "registered people" list is a testing shortcut, hidden unless switched on below.
  */
@@ -46,11 +46,14 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  // Live: once the server shows us on a roster, go in
+  // Live: once the server shows us on a roster, go in. Also covers waiting to be added after a reload.
   const stage = account?.stage;
+  const wasWaiting = useRef(false);
+  if (stage === 'no-org') wasWaiting.current = true;
   useEffect(() => {
-    if (mode === 'live' && isSignedIn && stage === 'ready' && submitted) navigate('/incident');
+    if (mode === 'live' && isSignedIn && stage === 'ready' && (submitted || wasWaiting.current)) navigate('/incident');
   }, [mode, isSignedIn, stage, submitted, navigate]);
+  const [creating, setCreating] = useState(false);
 
   // Quick sign-in list: registered users (live) or the demo roster
   const quick =
@@ -81,10 +84,12 @@ export const LoginPage: React.FC = () => {
           <Wordmark className="lg:hidden" />
 
           <div className="space-y-1.5">
-            <h2 className="font-display text-[32px] leading-none font-bold uppercase">{needsCompany ? 'Your company' : 'Sign in'}</h2>
+            <h2 className="font-display text-[32px] leading-none font-bold uppercase">{needsCompany ? (creating ? 'New company' : 'Almost in') : 'Sign in'}</h2>
             <p className="text-sm text-fg-muted">
               {needsCompany
-                ? 'Create your company, or ask your owner to add your phone number.'
+                ? creating
+                  ? "You'll be the owner and can add your team."
+                  : 'Ask your manager to add you to the team using this phone number.'
                 : 'Use your personal phone number.'}
             </p>
             <p className="pt-1 text-xs text-fg-subtle">
@@ -98,25 +103,45 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {needsCompany ? (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (company.trim()) attempt(() => createCompany(company, industry), true);
-              }}
-              className="space-y-4"
-            >
-              <Field label="Company name" htmlFor="company">
-                <input id="company" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Acme Logistics" maxLength={100} />
-              </Field>
-              <Field label="Industry (optional)" htmlFor="industry">
-                <input id="industry" value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="Healthcare, retail, logistics…" maxLength={60} />
-              </Field>
-              <Button type="submit" variant="primary" size="lg" block disabled={busy || !company.trim()}>
-                <Building2 className="h-4 w-4" />
-                Create company
-              </Button>
-              <p className="text-xs text-fg-subtle">Joining a company? Once your manager adds you, this screen moves on by itself.</p>
-            </form>
+            !creating ? (
+              <div className="space-y-5">
+                <div className="border-l-4 border-accent bg-surface px-4 py-4">
+                  <div className="text-[11px] font-bold tracking-[0.12em] text-fg-subtle uppercase">Your number</div>
+                  <div className="mt-1 font-mono text-[24px] text-fg">{account && 'phone' in account ? account.phone : ''}</div>
+                  <div className="mt-3 flex items-center gap-2 text-[13px] text-fg-muted">
+                    <StatusDot tone="accent" pulse /> Waiting to be added. This screen moves on by itself.
+                  </div>
+                </div>
+                <p className="text-[13px] text-fg-subtle">
+                  Starting Outpost for your business?{' '}
+                  <button type="button" onClick={() => setCreating(true)} className="font-semibold text-fg underline underline-offset-4 hover:text-accent-hover">
+                    Create a new company
+                  </button>
+                </p>
+              </div>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (company.trim()) attempt(() => createCompany(company, industry), true);
+                }}
+                className="space-y-4"
+              >
+                <Field label="Company name" htmlFor="company">
+                  <input id="company" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Acme Logistics" maxLength={100} autoFocus />
+                </Field>
+                <Field label="Industry (optional)" htmlFor="industry">
+                  <input id="industry" value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="Healthcare, retail, logistics…" maxLength={60} />
+                </Field>
+                <Button type="submit" variant="primary" size="lg" block disabled={busy || !company.trim()}>
+                  <Building2 className="h-4 w-4" />
+                  Create company
+                </Button>
+                <button type="button" onClick={() => setCreating(false)} className="text-[13px] font-medium text-fg-muted hover:text-fg">
+                  Back: my company already uses Outpost
+                </button>
+              </form>
+            )
           ) : (
             step === 'phone' ? (
               <form

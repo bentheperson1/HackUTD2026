@@ -106,6 +106,15 @@ export const drillPoints = (points: number, ms: number) => {
 
 /* ------------------------------ bridge ------------------------------ */
 
+export const ACTIVE_ORG_KEY = 'outpost_active_org';
+const readChosenOrg = () => {
+  try {
+    return localStorage.getItem(ACTIVE_ORG_KEY);
+  } catch {
+    return null;
+  }
+};
+
 class LiveBridge {
   conn: DbConnection | null = null;
   identityHex = '';
@@ -115,6 +124,12 @@ class LiveBridge {
   account: LiveAccount = { stage: 'no-phone' };
   /** Context the reducer calls need */
   orgId: bigint | null = null;
+  /** Every company I'm on the roster of, for the company switcher */
+  myOrgs: { id: string; name: string }[] = [];
+  /** The company picked in the switcher (remembered in this browser) */
+  private chosenOrg: string | null = readChosenOrg();
+  /** Companies seen so far, so a company that adds me later can open automatically */
+  private knownOrgs: Set<string> | null = null;
   incidentId: string | null = null;
   /** member id (as used in AppState) -> server Identity */
   private identities = new Map<string, Identity>();
@@ -130,6 +145,17 @@ class LiveBridge {
 
   private emit() {
     this.listeners.forEach((l) => l());
+  }
+
+  /** Switch to another company I belong to. */
+  setActiveOrg(id: string) {
+    this.chosenOrg = id;
+    try {
+      localStorage.setItem(ACTIVE_ORG_KEY, id);
+    } catch {
+      /* storage unavailable */
+    }
+    this.rebuild();
   }
 
   get isLive() {
@@ -229,11 +255,30 @@ class LiveBridge {
     const nameOf = (i: Identity) => users.get(hex(i))?.displayName ?? 'Unknown';
     const myUser = users.get(me);
 
-    // Which company: the first one I'm on the roster of (or a guest in)
+    // Which company: the one picked in the switcher, else the first I'm on the roster of (or a guest in)
     const myMemberships = [...db.orgMember.iter()].filter((m) => hex(m.person) === me);
     const myGrants = [...db.guestGrant.iter()].filter((g) => hex(g.person) === me);
     const allIncidents = [...db.incident.iter()];
-    let orgId: bigint | null = myMemberships[0]?.orgId ?? null;
+    const orgNames = new Map([...db.organization.iter()].map((o) => [String(o.id), o.name]));
+    this.myOrgs = myMemberships.map((m) => ({ id: String(m.orgId), name: orgNames.get(String(m.orgId)) ?? 'Company' }));
+
+    // Someone added me to a new company (e.g. I made my own first): open the new one
+    const ids = this.myOrgs.map((o) => o.id);
+    if (this.knownOrgs && this.knownOrgs.size > 0) {
+      const added = ids.find((id) => !this.knownOrgs!.has(id));
+      if (added) {
+        this.chosenOrg = added;
+        try {
+          localStorage.setItem(ACTIVE_ORG_KEY, added);
+        } catch {
+          /* storage unavailable */
+        }
+      }
+    }
+    this.knownOrgs = new Set(ids);
+
+    const chosen = myMemberships.find((m) => String(m.orgId) === this.chosenOrg);
+    let orgId: bigint | null = (chosen ?? myMemberships[0])?.orgId ?? null;
     if (orgId === null && myGrants[0]) orgId = allIncidents.find((i) => i.id === myGrants[0].incidentId)?.orgId ?? null;
     this.orgId = orgId;
     const org = orgId !== null ? [...db.organization.iter()].find((o) => o.id === orgId) : undefined;
