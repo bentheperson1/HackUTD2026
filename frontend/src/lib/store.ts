@@ -295,6 +295,9 @@ export const store = {
     notifyAll();
   },
   reportError(message: string) {
+    // Server messages that need a next step for non-technical people
+    if (message.includes('Nobody has registered with that phone number'))
+      message = "That person hasn't signed in yet. Ask them to open Outpost and sign in with that phone number, then add them again.";
     lastError = { id: Date.now(), message };
     notifyAll();
   },
