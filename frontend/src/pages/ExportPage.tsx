@@ -1,125 +1,87 @@
 import React, { useState } from 'react';
-import { useReducer, useTable } from 'spacetimedb/react';
-import { reducers, tables } from '../module_bindings';
-import { useAuth } from '../lib/authContext';
-import { errorMessage, jsonReplacer } from '../lib/live';
-import { Button } from '../components/Button';
-import { Card } from '../components/Card';
-import { Notice } from '../components/Notice';
-import { PageHeader } from '../components/PageHeader';
 import { Download } from 'lucide-react';
+import { useAuth } from '../lib/authContext';
+import { store } from '../lib/store';
+import { useAppState } from '../lib/useAppState';
+import { Alert, Button, Card, PageHeader } from '../components/ui';
 
 export const ExportPage: React.FC = () => {
+  const state = useAppState((s) => s);
   const [includeTimeline, setIncludeTimeline] = useState(true);
+  const { currentUser } = useAuth();
   const [includeScope, setIncludeScope] = useState(true);
   const [includeAuditLogs, setIncludeAuditLogs] = useState(true);
   const [includeDrafts, setIncludeDrafts] = useState(true);
   const [includeRoster, setIncludeRoster] = useState(true);
   const [exportNotice, setExportNotice] = useState('');
-  const { activeIncident, incidentRole } = useAuth();
-  const logExport = useReducer(reducers.logExport);
-  const [error, setError] = useState<string | null>(null);
-  const [users] = useTable(tables.user);
-  const [members] = useTable(tables.incidentMember);
-  // message is private; these views only return what the signed-in user may see
-  const [adminMessages] = useTable(tables.adminMessages);
-  const [incidentMessages] = useTable(tables.incidentMessages);
-  const [generalMessages] = useTable(tables.generalMessages);
-  const [scopeItems] = useTable(tables.scopeItem);
-  const [timeline] = useTable(tables.timelineEntry);
-  const [documents] = useTable(tables.incidentDocument);
-  const [tasks] = useTable(tables.task);
-  const [obligations] = useTable(tables.notificationObligation);
 
-  const handleExport = async () => {
-    if (!activeIncident) return;
-    setError(null);
-    try {
-      // Records the export in the audit log first; the backend only lets staff export
-      await logExport({ incidentId: activeIncident.id, sections: sections.filter((s) => s.checked).map((s) => s.label) });
-    } catch (err) {
-      setError(errorMessage(err));
-      return;
-    }
-    const id = activeIncident.id;
-    const roster = members
-      .filter((m) => m.incidentId === id)
-      .map((m) => ({ ...m, user: users.find((u) => u.id.isEqual(m.person)) }));
+  const handleExport = () => {
+    const s = store.getState();
     const packet = {
-      title: 'Drill Night Crisis Command Center - Formal Incident Package',
+      title: 'Outpost incident package',
       generated_at: new Date().toISOString(),
-      incident: activeIncident,
+      organization: s.org.name,
+      incident: s.incident,
       contents: {
-        ...(includeRoster ? { roster } : {}),
-        ...(includeTimeline ? {
-              warroom_messages: [...adminMessages, ...incidentMessages, ...generalMessages]
-                .filter((m) => m.incidentId === id)
-                .sort((a, b) => Number(a.sentAt.microsSinceUnixEpoch - b.sentAt.microsSinceUnixEpoch)),
-            } : {}),
-        ...(includeScope
-          ? {
-              scope_records: scopeItems.filter((s) => s.incidentId === id),
-              notification_obligations: obligations.filter((o) => o.incidentId === id),
-            }
-          : {}),
-        ...(includeAuditLogs
-          ? { timeline: timeline.filter((t) => t.incidentId === id), tasks: tasks.filter((t) => t.incidentId === id) }
-          : {}),
-        ...(includeDrafts ? { documents: documents.filter((d) => d.incidentId === id) } : {}),
+        ...(includeRoster ? { roster: s.members } : {}),
+        ...(includeTimeline ? { warroom_messages: s.messages } : {}),
+        ...(includeScope ? { scope_records: s.scopeItems } : {}),
+        ...(includeAuditLogs ? { immutable_audit_logs: s.auditLogs } : {}),
+        ...(includeDrafts ? { report_drafts: s.reportDrafts } : {}),
       },
     };
-
-    const blob = new Blob([JSON.stringify(packet, jsonReplacer, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(packet, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `incident-dossier-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-
-    setExportNotice(`Downloaded ${a.download}`);
+    // Record the export in the permanent timeline (log_export on the server)
+    store.logExport(currentUser.name, options.filter((o) => o.checked).map((o) => o.label));
+    setExportNotice('Downloaded.');
   };
 
-  const sections = [
-    { label: 'Team roster', detail: 'Everyone with access and their roles', checked: includeRoster, set: setIncludeRoster },
-    { label: 'War room messages', detail: 'All messages, in order', checked: includeTimeline, set: setIncludeTimeline },
-    { label: 'Affected data', detail: 'Inventory and status of each item', checked: includeScope, set: setIncludeScope },
-    { label: 'Timeline', detail: 'Every recorded action with actor and time', checked: includeAuditLogs, set: setIncludeAuditLogs },
-    { label: 'Incident documents', detail: 'Insurance and legal drafts', checked: includeDrafts, set: setIncludeDrafts },
+  const options = [
+    { label: 'Team', detail: `${state.members.length} people`, checked: includeRoster, set: setIncludeRoster },
+    { label: 'Messages', detail: `${state.messages.length} messages`, checked: includeTimeline, set: setIncludeTimeline },
+    { label: 'Affected data', detail: `${state.scopeItems.length} data types`, checked: includeScope, set: setIncludeScope },
+    { label: 'Audit log', detail: `${state.auditLogs.length} entries`, checked: includeAuditLogs, set: setIncludeAuditLogs },
+    { label: 'Reports', detail: `${state.reportDrafts.length} drafts`, checked: includeDrafts, set: setIncludeDrafts },
   ];
-  const nothingSelected = sections.every((s) => !s.checked);
+  const selectedCount = options.filter((o) => o.checked).length;
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <PageHeader
-        title="Export package"
-        description="Bundle the incident record into a single JSON file to hand to counsel or your insurer."
-      />
+    <div className="space-y-10">
+      <PageHeader eyebrow="Record" title="Export" description="Download the incident record for your insurer or lawyer." />
 
-      {exportNotice && <Notice tone="success">{exportNotice}</Notice>}
-      {error && <Notice tone="error">{error}</Notice>}
-      {activeIncident && !['Owner', 'ItLead', 'Legal', 'Comms'].includes(incidentRole ?? '') && (
-        <Notice>Only company staff can export. Guests can view but not download the package.</Notice>
+      {exportNotice && (
+        <Alert tone="success" onDismiss={() => setExportNotice('')}>
+          {exportNotice}
+        </Alert>
       )}
 
-      <Card variant="outlined" className="overflow-hidden">
-        <div className="px-4 pb-1 pt-4 type-title-small text-on-surface-variant">Include</div>
-        <ul className="m-0 list-none p-0">
-          {sections.map((s) => (
-            <li key={s.label}>
-              <label className="state-layer flex cursor-pointer items-center gap-4 px-4 py-3">
-                <input type="checkbox" checked={s.checked} onChange={(e) => s.set(e.target.checked)} />
+      <Card kind="list" title="What to include" className="max-w-2xl" padded={false}>
+        <ul className="divide-y divide-line">
+          {options.map((o) => (
+            <li key={o.label}>
+              <label className="flex cursor-pointer items-start gap-3 px-5 py-3.5 hover:bg-surface-2/50">
+                <input type="checkbox" checked={o.checked} onChange={(e) => o.set(e.target.checked)} className="mt-0.5" />
                 <div>
-                  <div className="type-body-large">{s.label}</div>
-                  <div className="type-body-small text-on-surface-variant">{s.detail}</div>
+                  <div className="text-sm text-fg">{o.label}</div>
+                  <div className="text-xs text-fg-subtle">{o.detail}</div>
                 </div>
               </label>
             </li>
           ))}
         </ul>
-        <div className="flex justify-end border-t border-outline-variant p-4">
-          <Button icon={<Download />} onClick={handleExport} disabled={nothingSelected || !activeIncident}>
-            Download JSON
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
+          <span className="text-xs text-fg-subtle">
+            {selectedCount} of {options.length} selected
+          </span>
+          <Button variant="primary" onClick={handleExport} disabled={selectedCount === 0}>
+            <Download className="h-4 w-4" />
+            Download
           </Button>
         </div>
       </Card>

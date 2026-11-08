@@ -1,15 +1,26 @@
 import React from 'react';
 import { Role } from '../lib/types';
-import { ROLES } from '../lib/constants';
+import { Badge, Tone } from './ui';
 
-interface RoleBadgeProps {
-  role: Role;
-}
+export const ROLE_SHORT: Record<Role, string> = {
+  owner: 'Owner',
+  it_lead: 'IT lead',
+  legal: 'Legal',
+  comms: 'Comms',
+  insurer: 'Insurer',
+  outside_counsel: 'Counsel',
+};
 
-export const roleLabel = (role: Role) => ROLES.find((r) => r.value === role)?.label ?? role;
+// Guests (insurer, outside counsel) use cyan: they are the "active legal / insurance connections".
+const ROLE_TONE: Record<Role, Tone> = {
+  owner: 'neutral',
+  it_lead: 'neutral',
+  legal: 'neutral',
+  comms: 'neutral',
+  insurer: 'accent',
+  outside_counsel: 'accent',
+};
 
-export const RoleBadge: React.FC<RoleBadgeProps> = ({ role }) => (
-  <span className="inline-flex h-5 items-center whitespace-nowrap rounded bg-surface-container-highest px-1.5 type-label-small text-on-surface-variant">
-    {roleLabel(role)}
-  </span>
+export const RoleBadge: React.FC<{ role: Role }> = ({ role }) => (
+  <Badge tone={ROLE_TONE[role] ?? 'neutral'}>{ROLE_SHORT[role] ?? role}</Badge>
 );

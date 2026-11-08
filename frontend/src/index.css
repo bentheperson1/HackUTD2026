@@ -1,137 +1,53 @@
 @import "tailwindcss";
 
 /*
- * Material 3 dark color scheme, generated from an amber seed (#F59E0B).
- * Roles follow the M3 naming so components can say what a color is for
- * (primary, surface-container-high, on-error-container) instead of picking hex values.
- */
+  Outpost design tokens (from the Fifth Edge logo: charcoal, white, brick red)
+  - bg / surface   Logo charcoal      #161516 / #1E1D1E  (neutral, no blue tint)
+  - accent         Edge White         #F2F0F0  (primary actions, selection, links)
+  - brand          Fifth Red          #A83232  (logo mark, active navigation)
+  - breach         Alarm Red          #DC2626  (live incident, critical state; brighter than brand on purpose)
+  - drill          Drill Amber        #F59E0B  (practice mode only, so a drill never looks like a real incident)
+*/
 @theme {
-  --font-sans: 'Roboto Flex', 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'Roboto Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --color-bg: #161516;
+  --color-surface: #1E1D1E;
+  --color-surface-2: #252425;
+  --color-surface-3: #2D2B2D;
+  --color-line: #2F2D2F;
+  --color-line-strong: #3E3B3E;
 
-  --color-primary: #ffb95c;
-  --color-on-primary: #462a00;
-  --color-primary-container: #643f00;
-  --color-on-primary-container: #ffddb5;
+  --color-fg: #F2F0F0;
+  --color-fg-muted: #B0ACAD;
+  --color-fg-subtle: #8F8A8C;
 
-  --color-secondary: #ddc2a1;
-  --color-on-secondary: #3e2d16;
-  --color-secondary-container: #56442a;
-  --color-on-secondary-container: #fbdebc;
+  --color-accent: #F2F0F0;
+  --color-accent-hover: #FFFFFF;
+  --color-accent-soft: rgb(242 240 240 / 0.08);
 
-  --color-tertiary: #b6cea0;
-  --color-on-tertiary: #243518;
-  --color-tertiary-container: #3a4c2c;
-  --color-on-tertiary-container: #d2eabb;
+  --color-brand: #A83232;
+  --color-brand-hover: #BE3B3B;
+  --color-brand-text: #E07070;
 
-  --color-error: #ffb4ab;
-  --color-on-error: #690005;
-  --color-error-container: #93000a;
-  --color-on-error-container: #ffdad6;
+  --color-drill: #F59E0B;
+  --color-drill-hover: #F7AE30;
+  --color-drill-soft: rgb(245 158 11 / 0.12);
 
-  --color-surface: #17130e;
-  --color-surface-container-lowest: #110d09;
-  --color-surface-container-low: #1f1b16;
-  --color-surface-container: #231f1a;
-  --color-surface-container-high: #2e2924;
-  --color-surface-container-highest: #39342f;
-  --color-on-surface: #ebe1d9;
-  --color-on-surface-variant: #d5c4b5;
-  --color-outline: #9d8e81;
-  --color-outline-variant: #50453a;
+  --color-breach: #DC2626;
+  --color-breach-hover: #E53E3E;
+  --color-breach-text: #F87171; /* lighter red for small text on dark, keeps contrast readable */
+  --color-breach-soft: rgb(220 38 38 / 0.12);
 
-  --color-inverse-surface: #ebe1d9;
-  --color-inverse-on-surface: #352f2a;
-  --color-scrim: #000000;
-}
+  --font-sans: 'Public Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Archivo Variable', 'Archivo', 'Arial Narrow', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-/* M3 type scale */
-@utility type-headline-medium {
-  font-size: 1.75rem;
-  line-height: 2.25rem;
-  font-weight: 400;
-}
-@utility type-headline-small {
-  font-size: 1.5rem;
-  line-height: 2rem;
-  font-weight: 400;
-}
-@utility type-title-large {
-  font-size: 1.375rem;
-  line-height: 1.75rem;
-  font-weight: 400;
-}
-@utility type-title-medium {
-  font-size: 1rem;
-  line-height: 1.5rem;
-  font-weight: 500;
-  letter-spacing: 0.009em;
-}
-@utility type-title-small {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-weight: 500;
-  letter-spacing: 0.007em;
-}
-@utility type-body-large {
-  font-size: 1rem;
-  line-height: 1.5rem;
-  font-weight: 400;
-}
-@utility type-body-medium {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-weight: 400;
-}
-@utility type-body-small {
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-weight: 400;
-}
-@utility type-label-large {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  font-weight: 500;
-  letter-spacing: 0.007em;
-}
-@utility type-label-medium {
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-}
-@utility type-label-small {
-  font-size: 0.6875rem;
-  line-height: 1rem;
-  font-weight: 500;
-  letter-spacing: 0.045em;
-}
-
-/*
- * State layer: a currentColor overlay that M3 uses for hover / focus / press
- * instead of swapping background colors per component.
- */
-@utility state-layer {
-  position: relative;
-  isolation: isolate;
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background-color: currentColor;
-    opacity: 0;
-    transition: opacity 150ms ease;
-    z-index: -1;
-    pointer-events: none;
-  }
-  &:hover:not(:disabled)::before {
-    opacity: 0.08;
-  }
-  &:focus-visible::before,
-  &:active:not(:disabled)::before {
-    opacity: 0.12;
-  }
+  /* Square corners everywhere. Only dots and progress bars stay round (rounded-full). */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 2px;
+  --radius: 2px;
 }
 
 @layer base {
@@ -139,21 +55,40 @@
     color-scheme: dark;
   }
 
+  html,
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+  }
+
   body {
     margin: 0;
-    background-color: var(--color-surface);
-    color: var(--color-on-surface);
     font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  :focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+  /* Numbered sections, like a printed briefing: each .sec-num shows 01, 02, 03 ... per page */
+  .page-root {
+    counter-reset: sec;
+  }
+  .sec-num::before {
+    counter-increment: sec;
+    content: counter(sec, decimal-leading-zero);
   }
 
-  /* Outlined text field */
+  .font-display {
+    font-family: var(--font-display);
+    font-stretch: 72%;
+  }
+
+  h1, h2, h3, h4, p {
+    margin: 0;
+  }
+
+  /* Form controls: one consistent, flat style everywhere */
   input[type='text'],
   input[type='number'],
   input[type='password'],
@@ -162,67 +97,128 @@
   input[type='tel'],
   textarea,
   select {
-    background-color: transparent;
-    border: 1px solid var(--color-outline);
-    border-radius: 4px;
-    color: var(--color-on-surface);
-    padding: 0.75rem 1rem;
-    font: inherit;
+    width: 100%;
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-line);
+    color: var(--color-fg);
+    border-radius: 0;
+    padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
-    line-height: 1.25rem;
-    transition: border-color 150ms ease, box-shadow 150ms ease;
+    line-height: 1.4;
+    outline: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
   }
 
-  input:hover:not(:disabled):not(:focus),
-  textarea:hover:not(:disabled):not(:focus),
-  select:hover:not(:disabled):not(:focus) {
-    border-color: var(--color-on-surface);
+  input[type='text'],
+  input[type='number'],
+  input[type='password'],
+  input[type='email'],
+  input[type='search'],
+  input[type='tel'],
+  select {
+    height: 2.5rem;
+  }
+
+  select {
+    appearance: none;
+    padding-right: 2rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A919D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    cursor: pointer;
+  }
+
+  input:hover,
+  textarea:hover,
+  select:hover {
+    border-color: var(--color-line-strong);
   }
 
   input:focus,
   textarea:focus,
   select:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: inset 0 0 0 1px var(--color-primary);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-soft);
   }
 
   input:disabled,
   textarea:disabled,
   select:disabled {
-    opacity: 0.38;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 
   input::placeholder,
   textarea::placeholder {
-    color: var(--color-on-surface-variant);
-    opacity: 0.7;
-  }
-
-  select {
-    appearance: none;
-    padding-right: 2.5rem;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%23d5c4b5'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.625rem center;
-    cursor: pointer;
+    color: var(--color-fg-subtle);
   }
 
   select option {
-    background-color: var(--color-surface-container-high);
-    color: var(--color-on-surface);
+    background-color: var(--color-surface);
+    color: var(--color-fg);
   }
 
   input[type='checkbox'] {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--color-primary);
+    appearance: none;
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+    margin: 0;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 0;
+    background: var(--color-bg);
+    display: inline-grid;
+    place-content: center;
     cursor: pointer;
+    transition: background-color 120ms ease, border-color 120ms ease;
   }
 
+  input[type='checkbox']::before {
+    content: '';
+    width: 0.55rem;
+    height: 0.55rem;
+    transform: scale(0);
+    transition: transform 100ms ease;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    background: var(--color-bg);
+  }
+
+  input[type='checkbox']:checked {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  input[type='checkbox']:checked::before {
+    transform: scale(1);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none;
+  }
+
+  ::selection {
+    background: var(--color-accent-soft);
+  }
+
+  /* Quiet scrollbars */
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-outline-variant) transparent;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }
