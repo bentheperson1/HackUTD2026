@@ -37,9 +37,13 @@ public static partial class Module
     public partial struct IncidentMember
     {
         [SpacetimeDB.PrimaryKey]
-        public uint Id;
+        [SpacetimeDB.AutoInc]
+        public ulong Id;
 
+        [SpacetimeDB.Index.BTree]
         public string IncidentId;
+
+        public Identity Person;
         public string Role;
         public Identity AddedBy;
         public Timestamp AddedAt;
@@ -49,9 +53,12 @@ public static partial class Module
     public partial struct Message
     {
         [SpacetimeDB.PrimaryKey]
-        public uint Id;
+        [SpacetimeDB.AutoInc]
+        public ulong Id;
 
+        [SpacetimeDB.Index.BTree]
         public string IncidentId;
+
         public Identity Sender;
         public string Text;
         public Timestamp SentAt;
@@ -62,9 +69,12 @@ public static partial class Module
     public partial struct TimelineEntry
     {
         [SpacetimeDB.PrimaryKey]
-        public uint Id;
+        [SpacetimeDB.AutoInc]
+        public ulong Id;
 
+        [SpacetimeDB.Index.BTree]
         public string IncidentId;
+
         public Identity Author;
         public string Action;
         public Timestamp CreatedAt;
@@ -74,13 +84,16 @@ public static partial class Module
     public partial struct ScopeItem
     {
         [SpacetimeDB.PrimaryKey]
-        public uint Id;
+        [SpacetimeDB.AutoInc]
+        public ulong Id;
 
+        [SpacetimeDB.Index.BTree]
         public string IncidentId;
+
         public string DataType;
-        public uint RecordCount;
+        public ulong RecordCount;
         public int Status;
-        public List<String> States;
+        public List<string> States;
         public Identity UpdatedBy;
         public Timestamp UpdatedAt;
     }
@@ -103,7 +116,9 @@ public static partial class Module
         [SpacetimeDB.PrimaryKey]
         public string Id;
 
+        [SpacetimeDB.Index.BTree]
         public string IncidentId;
+
         public string TemplateId;
         public string Body;
         public Identity UpdatedBy;
