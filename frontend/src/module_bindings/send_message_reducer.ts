@@ -13,5 +13,8 @@ import {
 export default {
   incidentId: __t.string(),
   text: __t.string(),
+<<<<<<< Updated upstream
   chatType: __t.i32(),
+=======
+>>>>>>> Stashed changes
 };

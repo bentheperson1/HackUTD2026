@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< Updated upstream
 import { useReducer, useTable } from 'spacetimedb/react';
 import { reducers, tables } from '../module_bindings';
 import { useAuth } from '../lib/authContext';
 import { errorMessage, isIncidentOpen, toDate } from '../lib/live';
+=======
+import { useTable } from 'spacetimedb/react';
+import { tables } from '../module_bindings';
+import { useAuth } from '../lib/authContext';
+>>>>>>> Stashed changes
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Field } from '../components/Field';
@@ -14,12 +20,21 @@ import { Check, Save } from 'lucide-react';
 const CAN_EDIT_DOCS = ['Owner', 'ItLead', 'Legal', 'Comms', 'Counsel'];
 
 export const EditorPage: React.FC = () => {
+<<<<<<< Updated upstream
   const { activeIncident, incidentRole } = useAuth();
   const [templates] = useTable(tables.docTemplate);
   const [documents] = useTable(tables.incidentDocument);
   const saveDocument = useReducer(reducers.saveDocument);
   const [pickedTemplateId, setSelectedTemplateId] = useState<string>('');
   const selectedTemplateId = pickedTemplateId || templates[0]?.id || '';
+=======
+  const { activeIncident } = useAuth();
+  const [templates] = useTable(tables.docTemplate);
+  const [documents] = useTable(tables.incidentDocument);
+  const [pickedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const selectedTemplateId = pickedTemplateId || templates[0]?.id || '';
+  const [draftTitle, setDraftTitle] = useState('');
+>>>>>>> Stashed changes
   const [draftContent, setDraftContent] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +47,7 @@ export const EditorPage: React.FC = () => {
   // Load the saved document for this incident, or the template text if nothing is saved yet.
   // Only reruns when switching template/incident, so a teammate's save doesn't wipe what you're typing.
   useEffect(() => {
+<<<<<<< Updated upstream
     setDraftContent(savedDoc?.body ?? currentTpl?.body ?? '');
     setStatusMessage('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -47,6 +63,25 @@ export const EditorPage: React.FC = () => {
     } catch (err) {
       setError(errorMessage(err));
     }
+=======
+    const currentTpl = templates.find((t) => t.id === selectedTemplateId);
+    const existingDraft = documents.find(
+      (d) => d.incidentId === activeIncident?.id && d.templateId === selectedTemplateId
+    );
+
+    if (currentTpl) setDraftTitle(`${currentTpl.name} - Draft`);
+    if (existingDraft) {
+      setDraftContent(existingDraft.body);
+    } else if (currentTpl) {
+      setDraftContent(currentTpl.body);
+    }
+  }, [selectedTemplateId, templates, documents, activeIncident?.id]);
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    // TODO: needs a SaveDocument reducer in the backend (incident_document table exists, no way to write it yet)
+    setStatusMessage("Saving isn't wired up yet. The backend has no reducer for incident documents.");
+>>>>>>> Stashed changes
   };
 
   return (
@@ -56,9 +91,13 @@ export const EditorPage: React.FC = () => {
         description="Start from a template for your insurer, outside counsel or a state regulator, then edit and save."
       />
 
+<<<<<<< Updated upstream
       {statusMessage && <Notice tone="success">{statusMessage}</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
       {!activeIncident && <Notice>Drafts are saved per incident. You're not part of any incident yet.</Notice>}
+=======
+      {statusMessage && <Notice>{statusMessage}</Notice>}
+>>>>>>> Stashed changes
       {templates.length === 0 && <Notice>No document templates in the database yet.</Notice>}
 
       {/* Filter chips for template choice */}

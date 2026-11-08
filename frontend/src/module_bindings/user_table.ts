@@ -15,6 +15,9 @@ export default __t.row({
   phone: __t.string(),
   displayName: __t.string().name("display_name"),
   online: __t.bool(),
+<<<<<<< Updated upstream
   isAdmin: __t.bool().name("is_admin"),
+=======
+>>>>>>> Stashed changes
   createdAt: __t.timestamp().name("created_at"),
 });

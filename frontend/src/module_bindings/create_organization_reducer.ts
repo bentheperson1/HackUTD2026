@@ -11,6 +11,11 @@ import {
 } from "spacetimedb";
 
 export default {
+<<<<<<<< Updated upstream:frontend/src/module_bindings/create_organization_reducer.ts
   name: __t.string(),
   industry: __t.string(),
+========
+  phone: __t.string(),
+  displayName: __t.string(),
+>>>>>>>> Stashed changes:frontend/src/module_bindings/register_phone_reducer.ts
 };

@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
+<<<<<<< Updated upstream
 import { useReducer, useTable } from 'spacetimedb/react';
 import { reducers, tables } from '../module_bindings';
 import { useAuth } from '../lib/authContext';
 import { errorMessage, jsonReplacer } from '../lib/live';
+=======
+import { useTable } from 'spacetimedb/react';
+import { tables } from '../module_bindings';
+import { useAuth } from '../lib/authContext';
+import { jsonReplacer } from '../lib/live';
+>>>>>>> Stashed changes
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Notice } from '../components/Notice';
@@ -16,6 +23,7 @@ export const ExportPage: React.FC = () => {
   const [includeDrafts, setIncludeDrafts] = useState(true);
   const [includeRoster, setIncludeRoster] = useState(true);
   const [exportNotice, setExportNotice] = useState('');
+<<<<<<< Updated upstream
   const { activeIncident, incidentRole } = useAuth();
   const logExport = useReducer(reducers.logExport);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +49,18 @@ export const ExportPage: React.FC = () => {
       setError(errorMessage(err));
       return;
     }
+=======
+  const { activeIncident } = useAuth();
+  const [users] = useTable(tables.user);
+  const [members] = useTable(tables.incidentMember);
+  const [messages] = useTable(tables.message);
+  const [scopeItems] = useTable(tables.scopeItem);
+  const [timeline] = useTable(tables.timelineEntry);
+  const [documents] = useTable(tables.incidentDocument);
+
+  const handleExport = () => {
+    if (!activeIncident) return;
+>>>>>>> Stashed changes
     const id = activeIncident.id;
     const roster = members
       .filter((m) => m.incidentId === id)
@@ -51,6 +71,7 @@ export const ExportPage: React.FC = () => {
       incident: activeIncident,
       contents: {
         ...(includeRoster ? { roster } : {}),
+<<<<<<< Updated upstream
         ...(includeTimeline ? {
               warroom_messages: [...adminMessages, ...incidentMessages, ...generalMessages]
                 .filter((m) => m.incidentId === id)
@@ -65,6 +86,11 @@ export const ExportPage: React.FC = () => {
         ...(includeAuditLogs
           ? { timeline: timeline.filter((t) => t.incidentId === id), tasks: tasks.filter((t) => t.incidentId === id) }
           : {}),
+=======
+        ...(includeTimeline ? { warroom_messages: messages.filter((m) => m.incidentId === id) } : {}),
+        ...(includeScope ? { scope_records: scopeItems.filter((s) => s.incidentId === id) } : {}),
+        ...(includeAuditLogs ? { timeline: timeline.filter((t) => t.incidentId === id) } : {}),
+>>>>>>> Stashed changes
         ...(includeDrafts ? { documents: documents.filter((d) => d.incidentId === id) } : {}),
       },
     };
