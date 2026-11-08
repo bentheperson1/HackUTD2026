@@ -1,4 +1,14 @@
-import { Database, Download, FileText, MessagesSquare, ScrollText, Siren, Target, Users } from 'lucide-react';
+import {
+  Building2,
+  Database,
+  Download,
+  FileText,
+  MessagesSquare,
+  ScrollText,
+  Siren,
+  Target,
+  Users,
+} from "lucide-react";
 
 /**
  * Every place in the app, in the order you use them during an emergency.
@@ -10,22 +20,42 @@ export interface Place {
   to: string;
   label: string;
   icon: React.FC<{ className?: string }>;
-  group: 'Anytime' | 'Respond' | 'Record' | 'Prepare';
+  group: "Anytime" | "Respond" | "Record" | "Prepare";
   /** Position in the emergency walkthrough. Chat and Prepare pages are not part of it. */
   step?: number;
 }
 
 export const PLACES: Place[] = [
-  { to: '/chat', label: 'Chat', icon: MessagesSquare, group: 'Anytime' },
-  { to: '/incident', label: 'Incident', icon: Siren, group: 'Respond', step: 1 },
-  { to: '/scope', label: 'Affected data', icon: Database, group: 'Respond', step: 2 },
-  { to: '/docs', label: 'Audit log', icon: ScrollText, group: 'Record', step: 3 },
-  { to: '/editor', label: 'Reports', icon: FileText, group: 'Record', step: 4 },
-  { to: '/export', label: 'Export', icon: Download, group: 'Record', step: 5 },
-  { to: '/drill', label: 'Drill Night', icon: Target, group: 'Prepare' },
-  { to: '/members', label: 'Team', icon: Users, group: 'Prepare' },
+  { to: "/chat", label: "Chat", icon: MessagesSquare, group: "Anytime" },
+  {
+    to: "/incident",
+    label: "Incident",
+    icon: Siren,
+    group: "Respond",
+    step: 1,
+  },
+  {
+    to: "/scope",
+    label: "Affected data",
+    icon: Database,
+    group: "Respond",
+    step: 2,
+  },
+  {
+    to: "/docs",
+    label: "Audit log",
+    icon: ScrollText,
+    group: "Record",
+    step: 3,
+  },
+  { to: "/editor", label: "Reports", icon: FileText, group: "Record", step: 4 },
+  { to: "/export", label: "Export", icon: Download, group: "Record", step: 5 },
+  { to: "/drill", label: "Drill Night", icon: Target, group: "Prepare" },
+  { to: "/members", label: "Team", icon: Users, group: "Prepare" },
+  { to: "/insurer", label: "Insurer board", icon: Building2, group: "Prepare" },
 ];
 
 export const FLOW_LENGTH = PLACES.filter((p) => p.step).length;
 
-export const placeFor = (pathname: string) => PLACES.find((p) => p.to === pathname);
+export const placeFor = (pathname: string) =>
+  PLACES.find((p) => p.to === pathname);
