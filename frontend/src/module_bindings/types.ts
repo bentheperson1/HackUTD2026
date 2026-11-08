@@ -19,6 +19,29 @@ export const Activation = __t.object("Activation", {
 });
 export type Activation = __Infer<typeof Activation>;
 
+export const CatastropheEvent = __t.object("CatastropheEvent", {
+  id: __t.u64(),
+  insurerOrgId: __t.u64(),
+  title: __t.string(),
+  kind: __t.string(),
+  signature: __t.string(),
+  label: __t.string(),
+  status: __t.string(),
+  detectedAt: __t.timestamp(),
+  summary: __t.string(),
+  summaryUpdatedAt: __t.option(__t.timestamp()),
+});
+export type CatastropheEvent = __Infer<typeof CatastropheEvent>;
+
+export const ClaimPacket = __t.object("ClaimPacket", {
+  incidentId: __t.string(),
+  body: __t.string(),
+  narrative: __t.string(),
+  generatedAt: __t.timestamp(),
+  generatedBy: __t.identity(),
+});
+export type ClaimPacket = __Infer<typeof ClaimPacket>;
+
 export const DocTemplate = __t.object("DocTemplate", {
   id: __t.string(),
   name: __t.string(),
@@ -101,6 +124,25 @@ export const DrillTick = __t.object("DrillTick", {
   sessionId: __t.u64(),
 });
 export type DrillTick = __Infer<typeof DrillTick>;
+
+export const EventIncident = __t.object("EventIncident", {
+  id: __t.u64(),
+  eventId: __t.u64(),
+  incidentId: __t.string(),
+  linkedAt: __t.timestamp(),
+});
+export type EventIncident = __Infer<typeof EventIncident>;
+
+export const ExposureAlert = __t.object("ExposureAlert", {
+  id: __t.u64(),
+  eventId: __t.u64(),
+  policyholderOrgId: __t.u64(),
+  reason: __t.string(),
+  status: __t.string(),
+  draft: __t.string(),
+  updatedAt: __t.timestamp(),
+});
+export type ExposureAlert = __Infer<typeof ExposureAlert>;
 
 export const GuestGrant = __t.object("GuestGrant", {
   id: __t.u64(),
@@ -194,6 +236,14 @@ export const OrgMember = __t.object("OrgMember", {
 });
 export type OrgMember = __Infer<typeof OrgMember>;
 
+export const OrgProfile = __t.object("OrgProfile", {
+  orgId: __t.u64(),
+  kind: __t.string(),
+  zip: __t.string(),
+  vendors: __t.array(__t.string()),
+});
+export type OrgProfile = __Infer<typeof OrgProfile>;
+
 export const Organization = __t.object("Organization", {
   id: __t.u64(),
   name: __t.string(),
@@ -201,6 +251,13 @@ export const Organization = __t.object("Organization", {
   createdAt: __t.timestamp(),
 });
 export type Organization = __Infer<typeof Organization>;
+
+export const Policy = __t.object("Policy", {
+  id: __t.u64(),
+  insurerOrgId: __t.u64(),
+  policyholderOrgId: __t.u64(),
+});
+export type Policy = __Infer<typeof Policy>;
 
 export const ScopeItem = __t.object("ScopeItem", {
   id: __t.u64(),
@@ -234,6 +291,15 @@ export const TimelineEntry = __t.object("TimelineEntry", {
   createdAt: __t.timestamp(),
 });
 export type TimelineEntry = __Infer<typeof TimelineEntry>;
+
+export const TriageAssessment = __t.object("TriageAssessment", {
+  incidentId: __t.string(),
+  score: __t.i32(),
+  level: __t.string(),
+  factors: __t.array(__t.string()),
+  updatedAt: __t.timestamp(),
+});
+export type TriageAssessment = __Infer<typeof TriageAssessment>;
 
 export const User = __t.object("User", {
   id: __t.identity(),
