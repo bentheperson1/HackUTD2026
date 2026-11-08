@@ -4,48 +4,36 @@ using SpacetimeDB;
 
 public static partial class Module
 {
-    [SpacetimeDB.View(Accessor = "AdminMessages", Public = true)]
-    public static List<Message> AdminMessages(ViewContext ctx)
+    static List<Message> VisibleMessages(ViewContext ctx, int chatType)
     {
+        var seen = new HashSet<ulong>();
         var result = new List<Message>();
-        if (ctx.Db.User.Id.Find(ctx.Sender) is User me && me.IsAdmin)
+
+        void AddFrom(string incidentId)
         {
-            result.AddRange(ctx.Db.Message.ChatType.Filter(1));
+            foreach (var msg in ctx.Db.Message.IncidentId.Filter(incidentId))
+                if (msg.ChatType == chatType && seen.Add(msg.Id)) result.Add(msg);
         }
+
+        foreach (var om in ctx.Db.OrgMember.Person.Filter(ctx.Sender))
+            foreach (var inc in ctx.Db.Incident.OrgId.Filter(om.OrgId))
+                if (chatType == 3 || (om.IsAdmin && chatType <= 2)) AddFrom(inc.Id);
+
+        if (chatType == 2)
+        {
+            foreach (var m in ctx.Db.IncidentMember.Person.Filter(ctx.Sender)) AddFrom(m.IncidentId);
+            foreach (var g in ctx.Db.GuestGrant.Person.Filter(ctx.Sender)) AddFrom(g.IncidentId);
+        }
+
         return result;
     }
+
+    [SpacetimeDB.View(Accessor = "AdminMessages", Public = true)]
+    public static List<Message> AdminMessages(ViewContext ctx) => VisibleMessages(ctx, 1);
 
     [SpacetimeDB.View(Accessor = "IncidentMessages", Public = true)]
-    public static List<Message> IncidentMessages(ViewContext ctx)
-    {
-        var result = new List<Message>();
-        if (ctx.Db.User.Id.Find(ctx.Sender) is not User me) return result;
-
-        if (me.IsAdmin)
-        {
-            result.AddRange(ctx.Db.Message.ChatType.Filter(2));
-        }
-        else
-        {
-            foreach (var membership in ctx.Db.IncidentMember.Person.Filter(ctx.Sender))
-            {
-                foreach (var msg in ctx.Db.Message.IncidentId.Filter(membership.IncidentId))
-                {
-                    if (msg.ChatType == 2) result.Add(msg);
-                }
-            }
-        }
-        return result;
-    }
+    public static List<Message> IncidentMessages(ViewContext ctx) => VisibleMessages(ctx, 2);
 
     [SpacetimeDB.View(Accessor = "GeneralMessages", Public = true)]
-    public static List<Message> GeneralMessages(ViewContext ctx)
-    {
-        var result = new List<Message>();
-        if (ctx.Db.User.Id.Find(ctx.Sender) is not null)
-        {
-            result.AddRange(ctx.Db.Message.ChatType.Filter(3));
-        }
-        return result;
-    }
+    public static List<Message> GeneralMessages(ViewContext ctx) => VisibleMessages(ctx, 3);
 }
