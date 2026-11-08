@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# BrowserRouter: serve index.html for every client-side route
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
