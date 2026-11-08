@@ -19,17 +19,6 @@ public static partial class Module
         return "+" + digits;
     }
 
-    static string NewIncidentId(ReducerContext ctx)
-    {
-        string id;
-        do
-        {
-            id = ctx.Rng.NextInt64(0, long.MaxValue).ToString("x");
-        }
-        while (ctx.Db.Incident.Id.Find(id) is not null);
-        return id;
-    }
-
     static IncidentMember RequireMember(ReducerContext ctx, string incidentId)
     {
         foreach (var m in ctx.Db.IncidentMember.IncidentId.Filter(incidentId))
@@ -57,20 +46,6 @@ public static partial class Module
             Author = ctx.Sender,
             Action = action,
             CreatedAt = ctx.Timestamp
-        });
-    }
-
-    static void PostSystemMessage(ReducerContext ctx, string incidentId, string text)
-    {
-        ctx.Db.Message.Insert(new Message
-        {
-            Id = 0,
-            IncidentId = incidentId,
-            Sender = ctx.Sender,
-            Text = text,
-            SentAt = ctx.Timestamp,
-            ChatType = 3,
-            IsSystem = true
         });
     }
 
