@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-<<<<<<< Updated upstream
 import type { Identity } from 'spacetimedb';
 import { useReducer, useTable } from 'spacetimedb/react';
 import { reducers, tables } from '../module_bindings';
@@ -7,34 +6,14 @@ import type { GuestGrant, OrgMember } from '../module_bindings/types';
 import { useAuth } from '../lib/authContext';
 import { Role } from '../lib/types';
 import { errorMessage, GUEST_ROLES, STAFF_ROLES, toBackendRole, toDate, toUiRole } from '../lib/live';
-=======
-import { useReducer, useTable } from 'spacetimedb/react';
-import { reducers, tables } from '../module_bindings';
-import type { IncidentMember } from '../module_bindings/types';
-import { useAuth, UI_ROLE_TO_BACKEND } from '../lib/authContext';
-import { Role } from '../lib/types';
-import { ROLES } from '../lib/constants';
-import { toDate } from '../lib/live';
->>>>>>> Stashed changes
 import { DataTable, Column } from '../components/DataTable';
-import { Button } from '../components/Button';
+import { Button, IconButton } from '../components/Button';
 import { Card, SectionTitle } from '../components/Card';
 import { Field } from '../components/Field';
 import { Notice } from '../components/Notice';
 import { PageHeader } from '../components/PageHeader';
-<<<<<<< Updated upstream
 import { RoleBadge, roleLabel } from '../components/RoleBadge';
 import { Trash2 } from 'lucide-react';
-=======
-import { RoleBadge } from '../components/RoleBadge';
-
-// Only roles the backend's AddMember accepts
-const ASSIGNABLE_ROLES = ROLES.filter((r) => UI_ROLE_TO_BACKEND[r.value]);
-const BACKEND_TO_UI = Object.fromEntries(Object.entries(UI_ROLE_TO_BACKEND).map(([ui, be]) => [be, ui])) as Record<
-  string,
-  Role
->;
->>>>>>> Stashed changes
 
 const CreateCompany: React.FC<{ onError: (msg: string) => void }> = ({ onError }) => {
   const createOrganization = useReducer(reducers.createOrganization);
@@ -89,7 +68,6 @@ const CreateCompany: React.FC<{ onError: (msg: string) => void }> = ({ onError }
 };
 
 export const MembersPage: React.FC = () => {
-<<<<<<< Updated upstream
   const { isRegistered, myOrgs, activeOrg, setActiveOrgId, isAdmin, activeIncident, incidentRole, me } = useAuth();
   const [users] = useTable(tables.user);
   const [orgMembers] = useTable(tables.orgMember);
@@ -167,49 +145,6 @@ export const MembersPage: React.FC = () => {
     {
       header: 'Phone',
       render: (m) => <span className="whitespace-nowrap font-mono text-on-surface-variant">{userFor(m.person)?.phone}</span>,
-=======
-  const { activeIncident, currentUser } = useAuth();
-  const [users] = useTable(tables.user);
-  const [allMembers] = useTable(tables.incidentMember);
-  const addMember = useReducer(reducers.addMember);
-  const [newPhone, setNewPhone] = useState('');
-  const [newRole, setNewRole] = useState<Role>('it_lead');
-  const [error, setError] = useState<string | null>(null);
-
-  const members = activeIncident ? allMembers.filter((m) => m.incidentId === activeIncident.id) : [];
-  const userFor = (m: IncidentMember) => users.find((u) => u.id.isEqual(m.person));
-  const isOwner = currentUser.role === 'owner';
-
-  const handleAddMember = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeIncident) return;
-    setError(null);
-    try {
-      // The person must have signed in once (registerPhone) so their phone is known
-      await addMember({ incidentId: activeIncident.id, phone: newPhone, role: UI_ROLE_TO_BACKEND[newRole]! });
-      setNewPhone('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
-  };
-
-  const columns: Column<IncidentMember>[] = [
-    {
-      header: 'Name',
-      render: (m) => userFor(m)?.displayName ?? 'Unknown',
-    },
-    {
-      header: 'Role',
-      render: (m) => <RoleBadge role={BACKEND_TO_UI[m.role] ?? 'member'} />,
-    },
-    {
-      header: 'Phone',
-      render: (m) => <span className="whitespace-nowrap font-mono text-on-surface-variant">{userFor(m)?.phone}</span>,
-    },
-    {
-      header: 'Online',
-      render: (m) => (userFor(m)?.online ? '🟢' : '⚪'),
->>>>>>> Stashed changes
     },
     { header: 'Online', render: (m) => (userFor(m.person)?.online ? '🟢' : '⚪') },
   ];
@@ -218,7 +153,6 @@ export const MembersPage: React.FC = () => {
     { header: 'Name', render: (g) => userFor(g.person)?.displayName ?? 'Unknown' },
     { header: 'Role', render: (g) => <RoleBadge role={toUiRole(g.role)} /> },
     {
-<<<<<<< Updated upstream
       header: 'Access until',
       render: (g) => <span className="whitespace-nowrap text-on-surface-variant">{toDate(g.expiresAt).toLocaleString()}</span>,
     },
@@ -235,10 +169,6 @@ export const MembersPage: React.FC = () => {
             <Trash2 />
           </IconButton>
         ),
-=======
-      header: 'Added',
-      render: (m) => <span className="whitespace-nowrap text-on-surface-variant">{toDate(m.addedAt).toLocaleString()}</span>,
->>>>>>> Stashed changes
     },
   ];
 
@@ -260,7 +190,6 @@ export const MembersPage: React.FC = () => {
 
       {isRegistered && !activeOrg && <CreateCompany onError={setError} />}
 
-<<<<<<< Updated upstream
       {myOrgs.length > 1 && (
         <Field label="Company">
           <select
@@ -362,39 +291,6 @@ export const MembersPage: React.FC = () => {
             </Card>
           )}
         </section>
-=======
-      {isOwner && (
-        <Card className="p-5">
-          <SectionTitle>Add a person</SectionTitle>
-          <form onSubmit={handleAddMember} className="space-y-5">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Personal phone" help="They must have signed in once with this number.">
-                <input
-                  type="tel"
-                  value={newPhone}
-                  onChange={(e) => setNewPhone(e.target.value)}
-                  placeholder="+1 (555) 000-0000"
-                  className="w-full"
-                />
-              </Field>
-
-              <Field label="Role">
-                <select value={newRole} onChange={(e) => setNewRole(e.target.value as Role)} className="w-full">
-                  {ASSIGNABLE_ROLES.map((r) => (
-                    <option key={r.value} value={r.value}>
-                      {r.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            </div>
-
-            <Button type="submit" disabled={!newPhone.trim()}>
-              Add to incident
-            </Button>
-          </form>
-        </Card>
->>>>>>> Stashed changes
       )}
     </div>
   );

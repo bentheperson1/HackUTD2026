@@ -1,5 +1,4 @@
 import type { Timestamp } from 'spacetimedb';
-<<<<<<< Updated upstream
 import { IncidentPhase, Role } from './types';
 import { PHASES } from './constants';
 
@@ -7,20 +6,10 @@ import { PHASES } from './constants';
 export const phaseName = (phase: number): IncidentPhase => PHASES[phase] ?? PHASES[0];
 
 // Incident.status: 0 = open, 1 = closed (Helpers.cs)
-=======
-import { IncidentPhase } from './types';
-import { PHASES } from './constants';
-
-// Incident.phase is an int index into PHASES (backend starts every incident at 0)
-export const phaseName = (phase: number): IncidentPhase => PHASES[phase] ?? PHASES[0];
-
-// Incident.status: 0 = open (set by CreateIncident); anything else is treated as closed
->>>>>>> Stashed changes
 export const isIncidentOpen = (status: number) => status === 0;
 
 export const toDate = (ts: Timestamp) => new Date(Number(ts.microsSinceUnixEpoch / 1000n));
 
-<<<<<<< Updated upstream
 // ScopeItem.status values, in backend order (Helpers.cs: Unknown=0, Exfiltrated=1, Locked=2, Restored=3)
 export const SCOPE_STATUSES = [
   { value: 0, key: 'unknown', label: 'Under investigation' },
@@ -36,6 +25,7 @@ const BACKEND_ROLES: Record<Role, string> = {
   it_lead: 'ItLead',
   legal: 'Legal',
   comms: 'Comms',
+  member: 'Member',
   insurer: 'Insurer',
   outside_counsel: 'Counsel',
 };
@@ -56,17 +46,6 @@ export const SEVERITIES = [
 
 export const errorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
-=======
-// ScopeItem.status is an int index into this list
-export const SCOPE_STATUSES = [
-  { value: 'unknown', label: 'Under investigation' },
-  { value: 'locked', label: 'Encrypted' },
-  { value: 'exfiltrated', label: 'Exfiltrated' },
-  { value: 'restored', label: 'Restored' },
-] as const;
-export const scopeStatus = (status: number) => SCOPE_STATUSES[status] ?? SCOPE_STATUSES[0];
-
->>>>>>> Stashed changes
 // JSON.stringify can't handle bigint, and Identity/Timestamp print as noise without this
 export const jsonReplacer = (_key: string, value: unknown) => {
   if (typeof value === 'bigint') return value.toString();

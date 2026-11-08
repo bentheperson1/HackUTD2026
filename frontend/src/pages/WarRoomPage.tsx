@@ -3,17 +3,13 @@ import type { Identity } from 'spacetimedb';
 import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
 import { reducers, tables } from '../module_bindings';
 import { useAuth } from '../lib/authContext';
-<<<<<<< Updated upstream
 import { Role } from '../lib/types';
 import { errorMessage, isIncidentOpen, STAFF_ROLES, toBackendRole, toDate, toUiRole } from '../lib/live';
-=======
-import { toDate } from '../lib/live';
->>>>>>> Stashed changes
 import { Button } from '../components/Button';
 import { Card, SectionTitle } from '../components/Card';
+import { Field } from '../components/Field';
 import { Notice } from '../components/Notice';
 import { PageHeader } from '../components/PageHeader';
-<<<<<<< Updated upstream
 import { RoleBadge, roleLabel } from '../components/RoleBadge';
 import { Send, Lock } from 'lucide-react';
 
@@ -25,13 +21,6 @@ const TASK_STATUSES = [
   { value: 'doing', label: 'In progress' },
   { value: 'done', label: 'Done' },
 ];
-=======
-import { Send } from 'lucide-react';
-
-// TODO: channels, broadcasts, slow mode and action items need backend tables/reducers before they can come back
-
-const byTime = <T,>(get: (row: T) => bigint) => (a: T, b: T) => Number(get(a) - get(b));
->>>>>>> Stashed changes
 
 // chatType values match Message.ChatType in the backend
 const CHANNELS = [
@@ -44,7 +33,6 @@ const byTime = <T,>(get: (row: T) => bigint) => (a: T, b: T) => Number(get(a) - 
 
 export const WarRoomPage: React.FC = () => {
   const { identity } = useSpacetimeDB();
-<<<<<<< Updated upstream
   const { activeIncident, isAdmin, incidentRole } = useAuth();
   // The message table is private; each channel is read through its own server-side view
   const [adminMessages] = useTable(tables.adminMessages);
@@ -94,32 +82,10 @@ export const WarRoomPage: React.FC = () => {
     }
   };
 
-=======
-  const { activeIncident } = useAuth();
-  const [allMessages] = useTable(tables.message);
-  const [allTimeline] = useTable(tables.timelineEntry);
-  const [users] = useTable(tables.user);
-  const sendMessage = useReducer(reducers.sendMessage);
-
-  const [inputMessage, setInputMessage] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const incidentId = activeIncident?.id;
-  const messages = allMessages
-    .filter((m) => m.incidentId === incidentId)
-    .sort(byTime((m) => m.sentAt.microsSinceUnixEpoch));
-  const timeline = allTimeline
-    .filter((t) => t.incidentId === incidentId)
-    .sort(byTime((t) => t.createdAt.microsSinceUnixEpoch))
-    .reverse();
-
->>>>>>> Stashed changes
   const nameOf = (who: Identity) => users.find((u) => u.id.isEqual(who))?.displayName ?? 'Unknown';
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-<<<<<<< Updated upstream
   }, [messages.length, activeChatType]);
 
   // Kick non-admins out of the leadership channel
@@ -141,22 +107,6 @@ export const WarRoomPage: React.FC = () => {
     if (ok) setTaskTitle('');
   };
 
-=======
-  }, [messages.length]);
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!incidentId || !inputMessage.trim()) return;
-    setError(null);
-    try {
-      await sendMessage({ incidentId, text: inputMessage });
-      setInputMessage('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
-  };
-
->>>>>>> Stashed changes
   if (!activeIncident) {
     return (
       <div className="space-y-6">
@@ -178,7 +128,6 @@ export const WarRoomPage: React.FC = () => {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 [&>*]:min-w-0">
         {/* Chat */}
         <Card className="flex flex-col overflow-hidden lg:col-span-7">
-<<<<<<< Updated upstream
           <div role="tablist" className="flex border-b border-outline-variant px-2">
             {channels.map((c) => {
               const selected = c.chatType === activeChatType;
@@ -199,11 +148,6 @@ export const WarRoomPage: React.FC = () => {
                 </button>
               );
             })}
-=======
-          <div className="flex h-12 items-center border-b border-outline-variant px-4 type-title-small text-primary">
-            {activeIncident.name}
-            <span className="ml-2 type-label-small opacity-70">{messages.length}</span>
->>>>>>> Stashed changes
           </div>
 
           <div className="h-[440px] space-y-4 overflow-y-auto px-4 py-4">
@@ -259,7 +203,6 @@ export const WarRoomPage: React.FC = () => {
           </form>
         </Card>
 
-<<<<<<< Updated upstream
         {/* Tasks */}
         <div className="space-y-6 lg:col-span-5">
           <section>
@@ -334,28 +277,6 @@ export const WarRoomPage: React.FC = () => {
             </section>
           )}
         </div>
-=======
-        {/* Timeline */}
-        <section className="lg:col-span-5">
-          <SectionTitle trailing={`${timeline.length} events`}>Timeline</SectionTitle>
-          <Card variant="outlined" className="max-h-[520px] overflow-y-auto">
-            {timeline.length === 0 ? (
-              <p className="m-0 p-4 type-body-medium text-on-surface-variant">Nothing logged yet.</p>
-            ) : (
-              <ul className="m-0 list-none divide-y divide-outline-variant p-0">
-                {timeline.map((t) => (
-                  <li key={String(t.id)} className="px-4 py-3">
-                    <div className="type-body-large text-on-surface">{t.action}</div>
-                    <div className="mt-1 type-body-small text-on-surface-variant">
-                      {nameOf(t.author)} · {toDate(t.createdAt).toLocaleString()}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </section>
->>>>>>> Stashed changes
       </div>
     </div>
   );

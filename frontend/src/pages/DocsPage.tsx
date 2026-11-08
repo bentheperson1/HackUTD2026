@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 import React, { useState } from 'react';
 import { useReducer, useTable } from 'spacetimedb/react';
 import { reducers, tables } from '../module_bindings';
@@ -7,23 +6,16 @@ import { useAuth } from '../lib/authContext';
 import { IncidentPhase } from '../lib/types';
 import { PHASES } from '../lib/constants';
 import { errorMessage, phaseName, toDate } from '../lib/live';
-=======
-import React from 'react';
-import { useTable } from 'spacetimedb/react';
-import { tables } from '../module_bindings';
-import type { TimelineEntry } from '../module_bindings/types';
-import { useAuth } from '../lib/authContext';
-import { toDate } from '../lib/live';
->>>>>>> Stashed changes
 import { DataTable, Column } from '../components/DataTable';
-import { SectionTitle } from '../components/Card';
+import { Button } from '../components/Button';
+import { Card, SectionTitle } from '../components/Card';
+import { Field } from '../components/Field';
 import { Chip } from '../components/Chip';
 import { Notice } from '../components/Notice';
 import { PageHeader } from '../components/PageHeader';
 import { Lock } from 'lucide-react';
 
 export const DocsPage: React.FC = () => {
-<<<<<<< Updated upstream
   const { activeIncident, incidentRole } = useAuth();
   const [users] = useTable(tables.user);
   const [allTimeline] = useTable(tables.timelineEntry);
@@ -32,18 +24,12 @@ export const DocsPage: React.FC = () => {
   const [selectedPhase, setSelectedPhase] = useState<IncidentPhase | ''>('');
   const [statusMessage, setStatusMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
-=======
-  const { activeIncident } = useAuth();
-  const [users] = useTable(tables.user);
-  const [allTimeline] = useTable(tables.timelineEntry);
->>>>>>> Stashed changes
 
   // The backend writes a timeline_entry for every action, so it doubles as the audit log
   const auditLogs = allTimeline
     .filter((t) => t.incidentId === activeIncident?.id)
     .sort((a, b) => Number(b.createdAt.microsSinceUnixEpoch - a.createdAt.microsSinceUnixEpoch));
 
-<<<<<<< Updated upstream
   const phase = selectedPhase || (activeIncident ? phaseName(activeIncident.phase) : PHASES[0]);
 
   const handleAddNote = async (e: React.FormEvent) => {
@@ -59,8 +45,6 @@ export const DocsPage: React.FC = () => {
     }
   };
 
-=======
->>>>>>> Stashed changes
   const auditColumns: Column<TimelineEntry>[] = [
     {
       header: 'Time',
@@ -74,11 +58,7 @@ export const DocsPage: React.FC = () => {
       header: 'By',
       render: (log) => (
         <span className="whitespace-nowrap">
-<<<<<<< Updated upstream
           {users.find((u) => u.id.isEqual(log.author))?.displayName ?? 'System'}
-=======
-          {users.find((u) => u.id.isEqual(log.author))?.displayName ?? 'Unknown'}
->>>>>>> Stashed changes
         </span>
       ),
     },
@@ -100,7 +80,6 @@ export const DocsPage: React.FC = () => {
         }
       />
 
-<<<<<<< Updated upstream
       {statusMessage && <Notice tone="success">{statusMessage}</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
       {!activeIncident && <Notice>You're not part of any incident yet.</Notice>}
@@ -140,10 +119,6 @@ export const DocsPage: React.FC = () => {
           </form>
         </Card>
       )}
-=======
-      {/* TODO: needs an AddNote reducer in the backend to bring back the "Add a note" form */}
-      {!activeIncident && <Notice>You're not part of any incident yet.</Notice>}
->>>>>>> Stashed changes
 
       <section>
         <SectionTitle trailing={`${auditLogs.length} entries`}>Entries</SectionTitle>

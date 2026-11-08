@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReducer, useTable } from 'spacetimedb/react';
@@ -6,20 +5,12 @@ import { reducers, tables } from '../module_bindings';
 import type { ScopeItem } from '../module_bindings/types';
 import { useAuth } from '../lib/authContext';
 import { errorMessage, isIncidentOpen, SCOPE_STATUSES, toDate } from '../lib/live';
-=======
-import React from 'react';
-import { useTable } from 'spacetimedb/react';
-import { tables } from '../module_bindings';
-import type { ScopeItem } from '../module_bindings/types';
-import { useAuth } from '../lib/authContext';
-import { scopeStatus, toDate } from '../lib/live';
->>>>>>> Stashed changes
 import { DataTable, Column } from '../components/DataTable';
-import { Chip } from '../components/Chip';
-import { SectionTitle } from '../components/Card';
+import { Button } from '../components/Button';
+import { Card, SectionTitle } from '../components/Card';
+import { Field } from '../components/Field';
 import { Notice } from '../components/Notice';
 import { PageHeader } from '../components/PageHeader';
-<<<<<<< Updated upstream
 import { ArrowRight } from 'lucide-react';
 
 // Matches CanEditScope in Helpers.cs
@@ -102,31 +93,6 @@ export const ScopePage: React.FC = () => {
       render: (item) => <span className="font-mono text-on-surface-variant">{item.recordCount.toLocaleString()}</span>,
     },
     {
-=======
-
-export const ScopePage: React.FC = () => {
-  const { activeIncident } = useAuth();
-  const [allScopeItems] = useTable(tables.scopeItem);
-  const scopeItems = allScopeItems.filter((i) => i.incidentId === activeIncident?.id);
-
-  const columns: Column<ScopeItem>[] = [
-    {
-      header: 'System or data',
-      render: (item) => item.dataType,
-    },
-    {
-      header: 'Status',
-      render: (item) => {
-        const st = scopeStatus(item.status);
-        return <Chip tone={st.value === 'exfiltrated' ? 'error' : 'neutral'}>{st.label}</Chip>;
-      },
-    },
-    {
-      header: 'Records',
-      render: (item) => <span className="font-mono text-on-surface-variant">{item.recordCount.toString()}</span>,
-    },
-    {
->>>>>>> Stashed changes
       header: 'States',
       render: (item) => <span className="font-mono text-on-surface-variant">{item.states.join(', ') || '—'}</span>,
     },
@@ -147,7 +113,6 @@ export const ScopePage: React.FC = () => {
         description="Every kind of data that may be compromised, and which states its records come from. This drives the notification deadlines."
       />
 
-<<<<<<< Updated upstream
       {error && <Notice tone="error">{error}</Notice>}
       {!activeIncident && <Notice>You're not part of any incident yet.</Notice>}
 
@@ -166,16 +131,11 @@ export const ScopePage: React.FC = () => {
             : 'No states were listed, so no notification rules apply yet.'}
         </Notice>
       )}
-=======
-      {/* TODO: needs AddScopeItem / UpdateScopeItem reducers in the backend to bring back the form */}
-      <Notice>Logging affected data isn't wired up yet. The backend has no reducer for it.</Notice>
->>>>>>> Stashed changes
 
       <section>
         <SectionTitle trailing={`${scopeItems.length} items`}>Inventory</SectionTitle>
         <DataTable columns={columns} data={scopeItems} emptyMessage="Nothing logged yet." />
       </section>
-<<<<<<< Updated upstream
 
       {canEdit && (
         <Card className="p-5">
@@ -236,8 +196,6 @@ export const ScopePage: React.FC = () => {
           </form>
         </Card>
       )}
-=======
->>>>>>> Stashed changes
     </div>
   );
 };

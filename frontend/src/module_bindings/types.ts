@@ -10,7 +10,6 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-<<<<<<< Updated upstream
 export const Activation = __t.object("Activation", {
   id: __t.u64(),
   incidentId: __t.string(),
@@ -119,17 +118,6 @@ export const GuestGrantSweep = __t.object("GuestGrantSweep", {
 });
 export type GuestGrantSweep = __Infer<typeof GuestGrantSweep>;
 
-=======
-export const DocTemplate = __t.object("DocTemplate", {
-  id: __t.string(),
-  name: __t.string(),
-  description: __t.string(),
-  body: __t.string(),
-  createdBy: __t.identity(),
-});
-export type DocTemplate = __Infer<typeof DocTemplate>;
-
->>>>>>> Stashed changes
 export const Incident = __t.object("Incident", {
   id: __t.string(),
   name: __t.string(),
@@ -141,11 +129,8 @@ export const Incident = __t.object("Incident", {
   currentStatus: __t.string(),
   openedBy: __t.identity(),
   openedAt: __t.timestamp(),
-<<<<<<< Updated upstream
   orgId: __t.u64(),
   isDrill: __t.bool(),
-=======
->>>>>>> Stashed changes
 });
 export type Incident = __Infer<typeof Incident>;
 
@@ -175,15 +160,11 @@ export const Message = __t.object("Message", {
   sender: __t.identity(),
   text: __t.string(),
   sentAt: __t.timestamp(),
-<<<<<<< Updated upstream
   chatType: __t.i32(),
-=======
->>>>>>> Stashed changes
   isSystem: __t.bool(),
 });
 export type Message = __Infer<typeof Message>;
 
-<<<<<<< Updated upstream
 export const NotificationObligation = __t.object("NotificationObligation", {
   id: __t.u64(),
   incidentId: __t.string(),
@@ -221,8 +202,6 @@ export const Organization = __t.object("Organization", {
 });
 export type Organization = __Infer<typeof Organization>;
 
-=======
->>>>>>> Stashed changes
 export const ScopeItem = __t.object("ScopeItem", {
   id: __t.u64(),
   incidentId: __t.string(),
@@ -235,7 +214,6 @@ export const ScopeItem = __t.object("ScopeItem", {
 });
 export type ScopeItem = __Infer<typeof ScopeItem>;
 
-<<<<<<< Updated upstream
 export const TaskItem = __t.object("TaskItem", {
   id: __t.u64(),
   incidentId: __t.string(),
@@ -248,8 +226,6 @@ export const TaskItem = __t.object("TaskItem", {
 });
 export type TaskItem = __Infer<typeof TaskItem>;
 
-=======
->>>>>>> Stashed changes
 export const TimelineEntry = __t.object("TimelineEntry", {
   id: __t.u64(),
   incidentId: __t.string(),
@@ -264,10 +240,7 @@ export const User = __t.object("User", {
   phone: __t.string(),
   displayName: __t.string(),
   online: __t.bool(),
-<<<<<<< Updated upstream
   isAdmin: __t.bool(),
-=======
->>>>>>> Stashed changes
   createdAt: __t.timestamp(),
 });
 export type User = __Infer<typeof User>;

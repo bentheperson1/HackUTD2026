@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useReducer, useTable } from 'spacetimedb/react';
@@ -6,15 +5,6 @@ import { reducers, tables } from '../module_bindings';
 import type { NotificationObligation } from '../module_bindings/types';
 import { useAuth } from '../lib/authContext';
 import { errorMessage, toDate } from '../lib/live';
-=======
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useTable } from 'spacetimedb/react';
-import { tables } from '../module_bindings';
-import { useAuth } from '../lib/authContext';
-import { scopeStatus, toDate } from '../lib/live';
-import { STATE_BREACH_RULES } from '../lib/constants';
->>>>>>> Stashed changes
 import { DataTable, Column } from '../components/DataTable';
 import { Chip } from '../components/Chip';
 import { SectionTitle } from '../components/Card';
@@ -32,7 +22,6 @@ const OBLIGATION_STATUSES = [
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const NotifyPage: React.FC = () => {
-<<<<<<< Updated upstream
   const { activeIncident, incidentRole } = useAuth();
   const [allObligations] = useTable(tables.notificationObligation);
   const [rules] = useTable(tables.notificationRule);
@@ -61,39 +50,6 @@ export const NotifyPage: React.FC = () => {
   };
 
   const columns: Column<NotificationObligation>[] = [
-=======
-  const { activeIncident } = useAuth();
-  const [allScopeItems] = useTable(tables.scopeItem);
-  const scopeItems = allScopeItems.filter((i) => i.incidentId === activeIncident?.id);
-
-  const triggeredRules: TriggeredRule[] = [];
-  const baseDate = activeIncident ? toDate(activeIncident.openedAt) : new Date();
-
-  scopeItems.forEach((item) => {
-    item.states.forEach((stateCode) => {
-      const rule = STATE_BREACH_RULES[stateCode];
-      if (rule) {
-        const elapsedDays = Math.floor((Date.now() - baseDate.getTime()) / (1000 * 60 * 60 * 24));
-        const daysRemaining = Math.max(0, rule.deadline_days - elapsedDays);
-
-        triggeredRules.push({
-          state: rule.state,
-          statute: rule.name,
-          authority: rule.authority,
-          deadlineDays: rule.deadline_days,
-          daysRemaining,
-          triggerCategory: item.dataType,
-          status: scopeStatus(item.status).label,
-        });
-      }
-    });
-  });
-
-  // Soonest deadline first
-  triggeredRules.sort((a, b) => a.daysRemaining - b.daysRemaining);
-
-  const columns: Column<TriggeredRule>[] = [
->>>>>>> Stashed changes
     {
       header: 'Due in',
       render: (ob) => {

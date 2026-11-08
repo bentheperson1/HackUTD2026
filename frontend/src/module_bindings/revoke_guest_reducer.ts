@@ -11,11 +11,5 @@ import {
 } from "spacetimedb";
 
 export default {
-<<<<<<<< Updated upstream:frontend/src/module_bindings/revoke_guest_reducer.ts
   grantId: __t.u64(),
-========
-  name: __t.string(),
-  incidentType: __t.i32(),
-  severity: __t.i32(),
->>>>>>>> Stashed changes:frontend/src/module_bindings/create_incident_reducer.ts
 };

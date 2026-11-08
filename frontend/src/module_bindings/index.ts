@@ -34,7 +34,6 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
-<<<<<<< Updated upstream
 import ActivateIncidentReducer from "./activate_incident_reducer";
 import AddMemberReducer from "./add_member_reducer";
 import AddOrgMemberReducer from "./add_org_member_reducer";
@@ -63,17 +62,10 @@ import StartDrillReducer from "./start_drill_reducer";
 import UpdateIncidentReducer from "./update_incident_reducer";
 import UpdateTaskReducer from "./update_task_reducer";
 import UpsertScopeItemReducer from "./upsert_scope_item_reducer";
-=======
-import AddMemberReducer from "./add_member_reducer";
-import CreateIncidentReducer from "./create_incident_reducer";
-import RegisterPhoneReducer from "./register_phone_reducer";
-import SendMessageReducer from "./send_message_reducer";
->>>>>>> Stashed changes
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
-<<<<<<< Updated upstream
 import ActivationRow from "./activation_table";
 import AdminMessagesRow from "./admin_messages_table";
 import DocTemplateRow from "./doc_template_table";
@@ -94,14 +86,6 @@ import OrgMemberRow from "./org_member_table";
 import OrganizationRow from "./organization_table";
 import ScopeItemRow from "./scope_item_table";
 import TaskRow from "./task_table";
-=======
-import DocTemplateRow from "./doc_template_table";
-import IncidentRow from "./incident_table";
-import IncidentDocumentRow from "./incident_document_table";
-import IncidentMemberRow from "./incident_member_table";
-import MessageRow from "./message_table";
-import ScopeItemRow from "./scope_item_table";
->>>>>>> Stashed changes
 import TimelineEntryRow from "./timeline_entry_table";
 import UserRow from "./user_table";
 
@@ -109,7 +93,6 @@ import UserRow from "./user_table";
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
-<<<<<<< Updated upstream
   activation: __table({
     name: 'activation',
     indexes: [
@@ -377,10 +360,6 @@ const tablesSchema = __schema({
   }, UserRow),
   adminMessages: __table({
     name: 'admin_messages',
-=======
-  docTemplate: __table({
-    name: 'doc_template',
->>>>>>> Stashed changes
     indexes: [
       { accessor: 'Id', name: 'doc_template_id_idx_btree', algorithm: 'btree', columns: [
         'id',
@@ -389,7 +368,6 @@ const tablesSchema = __schema({
     constraints: [
       { name: 'doc_template_id_key', constraint: 'unique', columns: ['id'] },
     ],
-<<<<<<< Updated upstream
   }, AdminMessagesRow),
   generalMessages: __table({
     name: 'general_messages',
@@ -405,110 +383,10 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, IncidentMessagesRow),
-=======
-  }, DocTemplateRow),
-  incident: __table({
-    name: 'incident',
-    indexes: [
-      { accessor: 'Id', name: 'incident_id_idx_btree', algorithm: 'btree', columns: [
-        'id',
-      ] },
-    ],
-    constraints: [
-      { name: 'incident_id_key', constraint: 'unique', columns: ['id'] },
-    ],
-  }, IncidentRow),
-  incidentDocument: __table({
-    name: 'incident_document',
-    indexes: [
-      { accessor: 'Id', name: 'incident_document_id_idx_btree', algorithm: 'btree', columns: [
-        'id',
-      ] },
-      { accessor: 'IncidentId', name: 'incident_document_incident_id_idx_btree', algorithm: 'btree', columns: [
-        'incidentId',
-      ] },
-    ],
-    constraints: [
-      { name: 'incident_document_id_key', constraint: 'unique', columns: ['id'] },
-    ],
-  }, IncidentDocumentRow),
-  incidentMember: __table({
-    name: 'incident_member',
-    indexes: [
-      { accessor: 'Id', name: 'incident_member_id_idx_btree', algorithm: 'btree', columns: [
-        'id',
-      ] },
-      { accessor: 'IncidentId', name: 'incident_member_incident_id_idx_btree', algorithm: 'btree', columns: [
-        'incidentId',
-      ] },
-    ],
-    constraints: [
-      { name: 'incident_member_id_key', constraint: 'unique', columns: ['id'] },
-    ],
-  }, IncidentMemberRow),
-  message: __table({
-    name: 'message',
-    indexes: [
-      { accessor: 'Id', name: 'message_id_idx_btree', algorithm: 'btree', columns: [
-        'id',
-      ] },
-      { accessor: 'IncidentId', name: 'message_incident_id_idx_btree', algorithm: 'btree', columns: [
-        'incidentId',
-      ] },
-    ],
-    constraints: [
-      { name: 'message_id_key', constraint: 'unique', columns: ['id'] },
-    ],
-  }, MessageRow),
-  scopeItem: __table({
-    name: 'scope_item',
-    indexes: [
-      { accessor: 'Id', name: 'scope_item_id_idx_btree', algorithm: 'btree', columns: [
-        'id',
-      ] },
-      { accessor: 'IncidentId', name: 'scope_item_incident_id_idx_btree', algorithm: 'btree', columns: [
-        'incidentId',
-      ] },
-    ],
-    constraints: [
-      { name: 'scope_item_id_key', constraint: 'unique', columns: ['id'] },
-    ],
-  }, ScopeItemRow),
-  timelineEntry: __table({
-    name: 'timeline_entry',
-    indexes: [
-      { accessor: 'Id', name: 'timeline_entry_id_idx_btree', algorithm: 'btree', columns: [
-        'id',
-      ] },
-      { accessor: 'IncidentId', name: 'timeline_entry_incident_id_idx_btree', algorithm: 'btree', columns: [
-        'incidentId',
-      ] },
-    ],
-    constraints: [
-      { name: 'timeline_entry_id_key', constraint: 'unique', columns: ['id'] },
-    ],
-  }, TimelineEntryRow),
-  user: __table({
-    name: 'user',
-    indexes: [
-      { accessor: 'Id', name: 'user_id_idx_btree', algorithm: 'btree', columns: [
-        'id',
-      ] },
-      { accessor: 'Phone', name: 'user_phone_idx_btree', algorithm: 'btree', columns: [
-        'phone',
-      ] },
-    ],
-    constraints: [
-      { name: 'user_id_key', constraint: 'unique', columns: ['id'] },
-      { name: 'user_phone_key', constraint: 'unique', columns: ['phone'] },
-    ],
-  }, UserRow),
->>>>>>> Stashed changes
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
-<<<<<<< Updated upstream
   __reducerSchema("activate_incident", ActivateIncidentReducer),
   __reducerSchema("add_member", AddMemberReducer),
   __reducerSchema("add_org_member", AddOrgMemberReducer),
@@ -537,12 +415,6 @@ const reducersSchema = __reducers(
   __reducerSchema("update_incident", UpdateIncidentReducer),
   __reducerSchema("update_task", UpdateTaskReducer),
   __reducerSchema("upsert_scope_item", UpsertScopeItemReducer),
-=======
-  __reducerSchema("add_member", AddMemberReducer),
-  __reducerSchema("create_incident", CreateIncidentReducer),
-  __reducerSchema("register_phone", RegisterPhoneReducer),
-  __reducerSchema("send_message", SendMessageReducer),
->>>>>>> Stashed changes
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */
@@ -551,7 +423,6 @@ const proceduresSchema = __procedures(
 
 type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "tables"> & {
   tables: typeof tablesSchema.schemaType.tables & {
-<<<<<<< Updated upstream
     /** @deprecated Use `activation` instead. This alias will be removed in the next major version. */
     readonly "Activation": Omit<typeof tablesSchema.schemaType.tables["activation"], "accessorName"> & { readonly accessorName: "Activation" };
     /** @deprecated Use `docTemplate` instead. This alias will be removed in the next major version. */
@@ -568,17 +439,12 @@ type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "ta
     readonly "DrillSession": Omit<typeof tablesSchema.schemaType.tables["drillSession"], "accessorName"> & { readonly accessorName: "DrillSession" };
     /** @deprecated Use `guestGrant` instead. This alias will be removed in the next major version. */
     readonly "GuestGrant": Omit<typeof tablesSchema.schemaType.tables["guestGrant"], "accessorName"> & { readonly accessorName: "GuestGrant" };
-=======
-    /** @deprecated Use `docTemplate` instead. This alias will be removed in the next major version. */
-    readonly "DocTemplate": Omit<typeof tablesSchema.schemaType.tables["docTemplate"], "accessorName"> & { readonly accessorName: "DocTemplate" };
->>>>>>> Stashed changes
     /** @deprecated Use `incident` instead. This alias will be removed in the next major version. */
     readonly "Incident": Omit<typeof tablesSchema.schemaType.tables["incident"], "accessorName"> & { readonly accessorName: "Incident" };
     /** @deprecated Use `incidentDocument` instead. This alias will be removed in the next major version. */
     readonly "IncidentDocument": Omit<typeof tablesSchema.schemaType.tables["incidentDocument"], "accessorName"> & { readonly accessorName: "IncidentDocument" };
     /** @deprecated Use `incidentMember` instead. This alias will be removed in the next major version. */
     readonly "IncidentMember": Omit<typeof tablesSchema.schemaType.tables["incidentMember"], "accessorName"> & { readonly accessorName: "IncidentMember" };
-<<<<<<< Updated upstream
     /** @deprecated Use `notificationObligation` instead. This alias will be removed in the next major version. */
     readonly "NotificationObligation": Omit<typeof tablesSchema.schemaType.tables["notificationObligation"], "accessorName"> & { readonly accessorName: "NotificationObligation" };
     /** @deprecated Use `notificationRule` instead. This alias will be removed in the next major version. */
@@ -591,25 +457,16 @@ type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "ta
     readonly "ScopeItem": Omit<typeof tablesSchema.schemaType.tables["scopeItem"], "accessorName"> & { readonly accessorName: "ScopeItem" };
     /** @deprecated Use `task` instead. This alias will be removed in the next major version. */
     readonly "Task": Omit<typeof tablesSchema.schemaType.tables["task"], "accessorName"> & { readonly accessorName: "Task" };
-=======
-    /** @deprecated Use `message` instead. This alias will be removed in the next major version. */
-    readonly "Message": Omit<typeof tablesSchema.schemaType.tables["message"], "accessorName"> & { readonly accessorName: "Message" };
-    /** @deprecated Use `scopeItem` instead. This alias will be removed in the next major version. */
-    readonly "ScopeItem": Omit<typeof tablesSchema.schemaType.tables["scopeItem"], "accessorName"> & { readonly accessorName: "ScopeItem" };
->>>>>>> Stashed changes
     /** @deprecated Use `timelineEntry` instead. This alias will be removed in the next major version. */
     readonly "TimelineEntry": Omit<typeof tablesSchema.schemaType.tables["timelineEntry"], "accessorName"> & { readonly accessorName: "TimelineEntry" };
     /** @deprecated Use `user` instead. This alias will be removed in the next major version. */
     readonly "User": Omit<typeof tablesSchema.schemaType.tables["user"], "accessorName"> & { readonly accessorName: "User" };
-<<<<<<< Updated upstream
     /** @deprecated Use `adminMessages` instead. This alias will be removed in the next major version. */
     readonly "AdminMessages": Omit<typeof tablesSchema.schemaType.tables["adminMessages"], "accessorName"> & { readonly accessorName: "AdminMessages" };
     /** @deprecated Use `generalMessages` instead. This alias will be removed in the next major version. */
     readonly "GeneralMessages": Omit<typeof tablesSchema.schemaType.tables["generalMessages"], "accessorName"> & { readonly accessorName: "GeneralMessages" };
     /** @deprecated Use `incidentMessages` instead. This alias will be removed in the next major version. */
     readonly "IncidentMessages": Omit<typeof tablesSchema.schemaType.tables["incidentMessages"], "accessorName"> & { readonly accessorName: "IncidentMessages" };
-=======
->>>>>>> Stashed changes
   };
 };
 
@@ -628,7 +485,6 @@ const REMOTE_MODULE = {
 >;
 
 const tableAccessorAliases = {
-<<<<<<< Updated upstream
   "Activation": "activation",
   "DocTemplate": "docTemplate",
   "DrillAnswer": "drillAnswer",
@@ -651,16 +507,6 @@ const tableAccessorAliases = {
   "AdminMessages": "adminMessages",
   "GeneralMessages": "generalMessages",
   "IncidentMessages": "incidentMessages",
-=======
-  "DocTemplate": "docTemplate",
-  "Incident": "incident",
-  "IncidentDocument": "incidentDocument",
-  "IncidentMember": "incidentMember",
-  "Message": "message",
-  "ScopeItem": "scopeItem",
-  "TimelineEntry": "timelineEntry",
-  "User": "user",
->>>>>>> Stashed changes
 } as const;
 
 function __withTableAccessorAliases<T extends object>(target: T, freeze = false): T {
@@ -681,7 +527,6 @@ function __withTableAccessorAliases<T extends object>(target: T, freeze = false)
 
 type __DbViewBase = __DbConnectionImpl<typeof REMOTE_MODULE>["db"];
 export type DbView = __DbViewBase & {
-<<<<<<< Updated upstream
   /** @deprecated Use `activation` instead. This alias will be removed in the next major version. */
   readonly "Activation": __DbViewBase["activation"];
   /** @deprecated Use `docTemplate` instead. This alias will be removed in the next major version. */
@@ -698,17 +543,12 @@ export type DbView = __DbViewBase & {
   readonly "DrillSession": __DbViewBase["drillSession"];
   /** @deprecated Use `guestGrant` instead. This alias will be removed in the next major version. */
   readonly "GuestGrant": __DbViewBase["guestGrant"];
-=======
-  /** @deprecated Use `docTemplate` instead. This alias will be removed in the next major version. */
-  readonly "DocTemplate": __DbViewBase["docTemplate"];
->>>>>>> Stashed changes
   /** @deprecated Use `incident` instead. This alias will be removed in the next major version. */
   readonly "Incident": __DbViewBase["incident"];
   /** @deprecated Use `incidentDocument` instead. This alias will be removed in the next major version. */
   readonly "IncidentDocument": __DbViewBase["incidentDocument"];
   /** @deprecated Use `incidentMember` instead. This alias will be removed in the next major version. */
   readonly "IncidentMember": __DbViewBase["incidentMember"];
-<<<<<<< Updated upstream
   /** @deprecated Use `notificationObligation` instead. This alias will be removed in the next major version. */
   readonly "NotificationObligation": __DbViewBase["notificationObligation"];
   /** @deprecated Use `notificationRule` instead. This alias will be removed in the next major version. */
@@ -721,30 +561,20 @@ export type DbView = __DbViewBase & {
   readonly "ScopeItem": __DbViewBase["scopeItem"];
   /** @deprecated Use `task` instead. This alias will be removed in the next major version. */
   readonly "Task": __DbViewBase["task"];
-=======
-  /** @deprecated Use `message` instead. This alias will be removed in the next major version. */
-  readonly "Message": __DbViewBase["message"];
-  /** @deprecated Use `scopeItem` instead. This alias will be removed in the next major version. */
-  readonly "ScopeItem": __DbViewBase["scopeItem"];
->>>>>>> Stashed changes
   /** @deprecated Use `timelineEntry` instead. This alias will be removed in the next major version. */
   readonly "TimelineEntry": __DbViewBase["timelineEntry"];
   /** @deprecated Use `user` instead. This alias will be removed in the next major version. */
   readonly "User": __DbViewBase["user"];
-<<<<<<< Updated upstream
   /** @deprecated Use `adminMessages` instead. This alias will be removed in the next major version. */
   readonly "AdminMessages": __DbViewBase["adminMessages"];
   /** @deprecated Use `generalMessages` instead. This alias will be removed in the next major version. */
   readonly "GeneralMessages": __DbViewBase["generalMessages"];
   /** @deprecated Use `incidentMessages` instead. This alias will be removed in the next major version. */
   readonly "IncidentMessages": __DbViewBase["incidentMessages"];
-=======
->>>>>>> Stashed changes
 };
 
 type __TablesBase = __QueryBuilder<typeof tablesSchema.schemaType>;
 export type Tables = __TablesBase & {
-<<<<<<< Updated upstream
   /** @deprecated Use `activation` instead. This alias will be removed in the next major version. */
   readonly "Activation": __TablesBase["activation"];
   /** @deprecated Use `docTemplate` instead. This alias will be removed in the next major version. */
@@ -761,17 +591,12 @@ export type Tables = __TablesBase & {
   readonly "DrillSession": __TablesBase["drillSession"];
   /** @deprecated Use `guestGrant` instead. This alias will be removed in the next major version. */
   readonly "GuestGrant": __TablesBase["guestGrant"];
-=======
-  /** @deprecated Use `docTemplate` instead. This alias will be removed in the next major version. */
-  readonly "DocTemplate": __TablesBase["docTemplate"];
->>>>>>> Stashed changes
   /** @deprecated Use `incident` instead. This alias will be removed in the next major version. */
   readonly "Incident": __TablesBase["incident"];
   /** @deprecated Use `incidentDocument` instead. This alias will be removed in the next major version. */
   readonly "IncidentDocument": __TablesBase["incidentDocument"];
   /** @deprecated Use `incidentMember` instead. This alias will be removed in the next major version. */
   readonly "IncidentMember": __TablesBase["incidentMember"];
-<<<<<<< Updated upstream
   /** @deprecated Use `notificationObligation` instead. This alias will be removed in the next major version. */
   readonly "NotificationObligation": __TablesBase["notificationObligation"];
   /** @deprecated Use `notificationRule` instead. This alias will be removed in the next major version. */
@@ -784,25 +609,16 @@ export type Tables = __TablesBase & {
   readonly "ScopeItem": __TablesBase["scopeItem"];
   /** @deprecated Use `task` instead. This alias will be removed in the next major version. */
   readonly "Task": __TablesBase["task"];
-=======
-  /** @deprecated Use `message` instead. This alias will be removed in the next major version. */
-  readonly "Message": __TablesBase["message"];
-  /** @deprecated Use `scopeItem` instead. This alias will be removed in the next major version. */
-  readonly "ScopeItem": __TablesBase["scopeItem"];
->>>>>>> Stashed changes
   /** @deprecated Use `timelineEntry` instead. This alias will be removed in the next major version. */
   readonly "TimelineEntry": __TablesBase["timelineEntry"];
   /** @deprecated Use `user` instead. This alias will be removed in the next major version. */
   readonly "User": __TablesBase["user"];
-<<<<<<< Updated upstream
   /** @deprecated Use `adminMessages` instead. This alias will be removed in the next major version. */
   readonly "AdminMessages": __TablesBase["adminMessages"];
   /** @deprecated Use `generalMessages` instead. This alias will be removed in the next major version. */
   readonly "GeneralMessages": __TablesBase["generalMessages"];
   /** @deprecated Use `incidentMessages` instead. This alias will be removed in the next major version. */
   readonly "IncidentMessages": __TablesBase["incidentMessages"];
-=======
->>>>>>> Stashed changes
 };
 
 /** The tables available in this remote SpacetimeDB module. Each table reference doubles as a query builder. */

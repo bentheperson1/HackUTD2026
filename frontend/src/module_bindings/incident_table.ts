@@ -21,9 +21,6 @@ export default __t.row({
   currentStatus: __t.string().name("current_status"),
   openedBy: __t.identity().name("opened_by"),
   openedAt: __t.timestamp().name("opened_at"),
-<<<<<<< Updated upstream
   orgId: __t.u64().name("org_id"),
   isDrill: __t.bool().name("is_drill"),
-=======
->>>>>>> Stashed changes
 });

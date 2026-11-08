@@ -6,7 +6,6 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
-<<<<<<< Updated upstream
 import ActivateIncidentReducer from "../activate_incident_reducer";
 import AddMemberReducer from "../add_member_reducer";
 import AddOrgMemberReducer from "../add_org_member_reducer";
@@ -64,15 +63,4 @@ export type StartDrillParams = __Infer<typeof StartDrillReducer>;
 export type UpdateIncidentParams = __Infer<typeof UpdateIncidentReducer>;
 export type UpdateTaskParams = __Infer<typeof UpdateTaskReducer>;
 export type UpsertScopeItemParams = __Infer<typeof UpsertScopeItemReducer>;
-=======
-import AddMemberReducer from "../add_member_reducer";
-import CreateIncidentReducer from "../create_incident_reducer";
-import RegisterPhoneReducer from "../register_phone_reducer";
-import SendMessageReducer from "../send_message_reducer";
-
-export type AddMemberParams = __Infer<typeof AddMemberReducer>;
-export type CreateIncidentParams = __Infer<typeof CreateIncidentReducer>;
-export type RegisterPhoneParams = __Infer<typeof RegisterPhoneReducer>;
-export type SendMessageParams = __Infer<typeof SendMessageReducer>;
->>>>>>> Stashed changes
 

@@ -21,13 +21,9 @@ export const DebugPage: React.FC = () => {
   const [users] = useTable(tables.user);
   const [incidents] = useTable(tables.incident);
   const [incidentMembers] = useTable(tables.incidentMember);
-<<<<<<< Updated upstream
   const [adminMessages] = useTable(tables.adminMessages);
   const [incidentMessages] = useTable(tables.incidentMessages);
   const [generalMessages] = useTable(tables.generalMessages);
-=======
-  const [messages] = useTable(tables.message);
->>>>>>> Stashed changes
   const [timelineEntries] = useTable(tables.timelineEntry);
   const [scopeItems] = useTable(tables.scopeItem);
   const [docTemplates] = useTable(tables.docTemplate);
@@ -37,13 +33,9 @@ export const DebugPage: React.FC = () => {
     user: users,
     incident: incidents,
     incident_member: incidentMembers,
-<<<<<<< Updated upstream
     admin_messages: adminMessages,
     incident_messages: incidentMessages,
     general_messages: generalMessages,
-=======
-    message: messages,
->>>>>>> Stashed changes
     timeline_entry: timelineEntries,
     scope_item: scopeItems,
     doc_template: docTemplates,
