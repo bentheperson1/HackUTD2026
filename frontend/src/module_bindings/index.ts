@@ -34,53 +34,279 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
-import AddReducer from "./add_reducer";
-import SayHelloReducer from "./say_hello_reducer";
+import AddMemberReducer from "./add_member_reducer";
+import CreateIncidentReducer from "./create_incident_reducer";
+import RegisterPhoneReducer from "./register_phone_reducer";
+import SendMessageReducer from "./send_message_reducer";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
-import PersonRow from "./person_table";
+import AdminMessagesRow from "./admin_messages_table";
+import DocTemplateRow from "./doc_template_table";
+import GeneralMessagesRow from "./general_messages_table";
+import IncidentRow from "./incident_table";
+import IncidentDocumentRow from "./incident_document_table";
+import IncidentMemberRow from "./incident_member_table";
+import IncidentMessagesRow from "./incident_messages_table";
+import ScopeItemRow from "./scope_item_table";
+import TimelineEntryRow from "./timeline_entry_table";
+import UserRow from "./user_table";
 
 /** Type-only namespace exports for generated type groups. */
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
-  person: __table({
-    name: 'person',
+  docTemplate: __table({
+    name: 'doc_template',
+    indexes: [
+      { accessor: 'Id', name: 'doc_template_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'doc_template_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, DocTemplateRow),
+  incident: __table({
+    name: 'incident',
+    indexes: [
+      { accessor: 'Id', name: 'incident_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'incident_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, IncidentRow),
+  incidentDocument: __table({
+    name: 'incident_document',
+    indexes: [
+      { accessor: 'Id', name: 'incident_document_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'IncidentId', name: 'incident_document_incident_id_idx_btree', algorithm: 'btree', columns: [
+        'incidentId',
+      ] },
+    ],
+    constraints: [
+      { name: 'incident_document_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, IncidentDocumentRow),
+  incidentMember: __table({
+    name: 'incident_member',
+    indexes: [
+      { accessor: 'Id', name: 'incident_member_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'IncidentId', name: 'incident_member_incident_id_idx_btree', algorithm: 'btree', columns: [
+        'incidentId',
+      ] },
+      { accessor: 'Person', name: 'incident_member_person_idx_btree', algorithm: 'btree', columns: [
+        'person',
+      ] },
+    ],
+    constraints: [
+      { name: 'incident_member_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, IncidentMemberRow),
+  scopeItem: __table({
+    name: 'scope_item',
+    indexes: [
+      { accessor: 'Id', name: 'scope_item_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'IncidentId', name: 'scope_item_incident_id_idx_btree', algorithm: 'btree', columns: [
+        'incidentId',
+      ] },
+    ],
+    constraints: [
+      { name: 'scope_item_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ScopeItemRow),
+  timelineEntry: __table({
+    name: 'timeline_entry',
+    indexes: [
+      { accessor: 'Id', name: 'timeline_entry_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'IncidentId', name: 'timeline_entry_incident_id_idx_btree', algorithm: 'btree', columns: [
+        'incidentId',
+      ] },
+    ],
+    constraints: [
+      { name: 'timeline_entry_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, TimelineEntryRow),
+  user: __table({
+    name: 'user',
+    indexes: [
+      { accessor: 'Id', name: 'user_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'Phone', name: 'user_phone_idx_btree', algorithm: 'btree', columns: [
+        'phone',
+      ] },
+    ],
+    constraints: [
+      { name: 'user_id_key', constraint: 'unique', columns: ['id'] },
+      { name: 'user_phone_key', constraint: 'unique', columns: ['phone'] },
+    ],
+  }, UserRow),
+  adminMessages: __table({
+    name: 'admin_messages',
     indexes: [
     ],
     constraints: [
     ],
-  }, PersonRow),
+  }, AdminMessagesRow),
+  generalMessages: __table({
+    name: 'general_messages',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, GeneralMessagesRow),
+  incidentMessages: __table({
+    name: 'incident_messages',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, IncidentMessagesRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
-  __reducerSchema("add", AddReducer),
-  __reducerSchema("say_hello", SayHelloReducer),
+  __reducerSchema("add_member", AddMemberReducer),
+  __reducerSchema("create_incident", CreateIncidentReducer),
+  __reducerSchema("register_phone", RegisterPhoneReducer),
+  __reducerSchema("send_message", SendMessageReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */
 const proceduresSchema = __procedures(
 );
 
+type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "tables"> & {
+  tables: typeof tablesSchema.schemaType.tables & {
+    /** @deprecated Use `docTemplate` instead. This alias will be removed in the next major version. */
+    readonly "DocTemplate": Omit<typeof tablesSchema.schemaType.tables["docTemplate"], "accessorName"> & { readonly accessorName: "DocTemplate" };
+    /** @deprecated Use `incident` instead. This alias will be removed in the next major version. */
+    readonly "Incident": Omit<typeof tablesSchema.schemaType.tables["incident"], "accessorName"> & { readonly accessorName: "Incident" };
+    /** @deprecated Use `incidentDocument` instead. This alias will be removed in the next major version. */
+    readonly "IncidentDocument": Omit<typeof tablesSchema.schemaType.tables["incidentDocument"], "accessorName"> & { readonly accessorName: "IncidentDocument" };
+    /** @deprecated Use `incidentMember` instead. This alias will be removed in the next major version. */
+    readonly "IncidentMember": Omit<typeof tablesSchema.schemaType.tables["incidentMember"], "accessorName"> & { readonly accessorName: "IncidentMember" };
+    /** @deprecated Use `scopeItem` instead. This alias will be removed in the next major version. */
+    readonly "ScopeItem": Omit<typeof tablesSchema.schemaType.tables["scopeItem"], "accessorName"> & { readonly accessorName: "ScopeItem" };
+    /** @deprecated Use `timelineEntry` instead. This alias will be removed in the next major version. */
+    readonly "TimelineEntry": Omit<typeof tablesSchema.schemaType.tables["timelineEntry"], "accessorName"> & { readonly accessorName: "TimelineEntry" };
+    /** @deprecated Use `user` instead. This alias will be removed in the next major version. */
+    readonly "User": Omit<typeof tablesSchema.schemaType.tables["user"], "accessorName"> & { readonly accessorName: "User" };
+    /** @deprecated Use `adminMessages` instead. This alias will be removed in the next major version. */
+    readonly "AdminMessages": Omit<typeof tablesSchema.schemaType.tables["adminMessages"], "accessorName"> & { readonly accessorName: "AdminMessages" };
+    /** @deprecated Use `generalMessages` instead. This alias will be removed in the next major version. */
+    readonly "GeneralMessages": Omit<typeof tablesSchema.schemaType.tables["generalMessages"], "accessorName"> & { readonly accessorName: "GeneralMessages" };
+    /** @deprecated Use `incidentMessages` instead. This alias will be removed in the next major version. */
+    readonly "IncidentMessages": Omit<typeof tablesSchema.schemaType.tables["incidentMessages"], "accessorName"> & { readonly accessorName: "IncidentMessages" };
+  };
+};
+
 /** The remote SpacetimeDB module schema, both runtime and type information. */
 const REMOTE_MODULE = {
   versionInfo: {
     cliVersion: "2.14.1" as const,
   },
-  tables: tablesSchema.schemaType.tables,
+  tables: tablesSchema.schemaType.tables as __SchemaWithTableAccessorAliases["tables"],
   reducers: reducersSchema.reducersType.reducers,
   ...proceduresSchema,
 } satisfies __RemoteModule<
-  typeof tablesSchema.schemaType,
+  __SchemaWithTableAccessorAliases,
   typeof reducersSchema.reducersType,
   typeof proceduresSchema
 >;
 
+const tableAccessorAliases = {
+  "DocTemplate": "docTemplate",
+  "Incident": "incident",
+  "IncidentDocument": "incidentDocument",
+  "IncidentMember": "incidentMember",
+  "ScopeItem": "scopeItem",
+  "TimelineEntry": "timelineEntry",
+  "User": "user",
+  "AdminMessages": "adminMessages",
+  "GeneralMessages": "generalMessages",
+  "IncidentMessages": "incidentMessages",
+} as const;
+
+function __withTableAccessorAliases<T extends object>(target: T, freeze = false): T {
+  const out = Object.create(Object.getPrototypeOf(target)) as T & Record<string, unknown>;
+  Object.defineProperties(out, Object.getOwnPropertyDescriptors(target));
+  for (const [deprecatedAccessor, targetAccessor] of Object.entries(tableAccessorAliases)) {
+    if (deprecatedAccessor in out) {
+      continue;
+    }
+    Object.defineProperty(out, deprecatedAccessor, {
+      enumerable: true,
+      configurable: false,
+      get: () => out[targetAccessor],
+    });
+  }
+  return freeze ? Object.freeze(out) : out;
+}
+
+type __DbViewBase = __DbConnectionImpl<typeof REMOTE_MODULE>["db"];
+export type DbView = __DbViewBase & {
+  /** @deprecated Use `docTemplate` instead. This alias will be removed in the next major version. */
+  readonly "DocTemplate": __DbViewBase["docTemplate"];
+  /** @deprecated Use `incident` instead. This alias will be removed in the next major version. */
+  readonly "Incident": __DbViewBase["incident"];
+  /** @deprecated Use `incidentDocument` instead. This alias will be removed in the next major version. */
+  readonly "IncidentDocument": __DbViewBase["incidentDocument"];
+  /** @deprecated Use `incidentMember` instead. This alias will be removed in the next major version. */
+  readonly "IncidentMember": __DbViewBase["incidentMember"];
+  /** @deprecated Use `scopeItem` instead. This alias will be removed in the next major version. */
+  readonly "ScopeItem": __DbViewBase["scopeItem"];
+  /** @deprecated Use `timelineEntry` instead. This alias will be removed in the next major version. */
+  readonly "TimelineEntry": __DbViewBase["timelineEntry"];
+  /** @deprecated Use `user` instead. This alias will be removed in the next major version. */
+  readonly "User": __DbViewBase["user"];
+  /** @deprecated Use `adminMessages` instead. This alias will be removed in the next major version. */
+  readonly "AdminMessages": __DbViewBase["adminMessages"];
+  /** @deprecated Use `generalMessages` instead. This alias will be removed in the next major version. */
+  readonly "GeneralMessages": __DbViewBase["generalMessages"];
+  /** @deprecated Use `incidentMessages` instead. This alias will be removed in the next major version. */
+  readonly "IncidentMessages": __DbViewBase["incidentMessages"];
+};
+
+type __TablesBase = __QueryBuilder<typeof tablesSchema.schemaType>;
+export type Tables = __TablesBase & {
+  /** @deprecated Use `docTemplate` instead. This alias will be removed in the next major version. */
+  readonly "DocTemplate": __TablesBase["docTemplate"];
+  /** @deprecated Use `incident` instead. This alias will be removed in the next major version. */
+  readonly "Incident": __TablesBase["incident"];
+  /** @deprecated Use `incidentDocument` instead. This alias will be removed in the next major version. */
+  readonly "IncidentDocument": __TablesBase["incidentDocument"];
+  /** @deprecated Use `incidentMember` instead. This alias will be removed in the next major version. */
+  readonly "IncidentMember": __TablesBase["incidentMember"];
+  /** @deprecated Use `scopeItem` instead. This alias will be removed in the next major version. */
+  readonly "ScopeItem": __TablesBase["scopeItem"];
+  /** @deprecated Use `timelineEntry` instead. This alias will be removed in the next major version. */
+  readonly "TimelineEntry": __TablesBase["timelineEntry"];
+  /** @deprecated Use `user` instead. This alias will be removed in the next major version. */
+  readonly "User": __TablesBase["user"];
+  /** @deprecated Use `adminMessages` instead. This alias will be removed in the next major version. */
+  readonly "AdminMessages": __TablesBase["adminMessages"];
+  /** @deprecated Use `generalMessages` instead. This alias will be removed in the next major version. */
+  readonly "GeneralMessages": __TablesBase["generalMessages"];
+  /** @deprecated Use `incidentMessages` instead. This alias will be removed in the next major version. */
+  readonly "IncidentMessages": __TablesBase["incidentMessages"];
+};
+
 /** The tables available in this remote SpacetimeDB module. Each table reference doubles as a query builder. */
-export const tables: __QueryBuilder<typeof tablesSchema.schemaType> = __makeQueryBuilder(tablesSchema.schemaType);
+const tablesBase: __TablesBase = __makeQueryBuilder(tablesSchema.schemaType);
+export const tables: Tables = __withTableAccessorAliases(tablesBase, true) as Tables;
 
 /** The reducers available in this remote SpacetimeDB module. */
 export const reducers = __convertToAccessorMap(reducersSchema.reducersType.reducers);
@@ -89,13 +315,13 @@ export const reducers = __convertToAccessorMap(reducersSchema.reducersType.reduc
 export const procedures = __convertToAccessorMap(proceduresSchema.procedures);
 
 /** The context type returned in callbacks for all possible events. */
-export type EventContext = __EventContextInterface<typeof REMOTE_MODULE>;
+export type EventContext = Omit<__EventContextInterface<typeof REMOTE_MODULE>, "db"> & { db: DbView };
 /** The context type returned in callbacks for reducer events. */
-export type ReducerEventContext = __ReducerEventContextInterface<typeof REMOTE_MODULE>;
+export type ReducerEventContext = Omit<__ReducerEventContextInterface<typeof REMOTE_MODULE>, "db"> & { db: DbView };
 /** The context type returned in callbacks for subscription events. */
-export type SubscriptionEventContext = __SubscriptionEventContextInterface<typeof REMOTE_MODULE>;
+export type SubscriptionEventContext = Omit<__SubscriptionEventContextInterface<typeof REMOTE_MODULE>, "db"> & { db: DbView };
 /** The context type returned in callbacks for error events. */
-export type ErrorContext = __ErrorContextInterface<typeof REMOTE_MODULE>;
+export type ErrorContext = Omit<__ErrorContextInterface<typeof REMOTE_MODULE>, "db"> & { db: DbView };
 /** The subscription handle type to manage active subscriptions created from a {@link SubscriptionBuilder}. */
 export type SubscriptionHandle = __SubscriptionHandleImpl<typeof REMOTE_MODULE>;
 
@@ -107,6 +333,13 @@ export class DbConnectionBuilder extends __DbConnectionBuilder<DbConnection> {}
 
 /** The typed database connection to manage connections to the remote SpacetimeDB instance. This class has type information specific to the generated module. */
 export class DbConnection extends __DbConnectionImpl<typeof REMOTE_MODULE> {
+  declare db: DbView;
+
+  constructor(config: __DbConnectionConfig<typeof REMOTE_MODULE>) {
+    super(config);
+    this.db = __withTableAccessorAliases(this.db) as DbView;
+  }
+
   /** Creates a new {@link DbConnectionBuilder} to configure and connect to the remote SpacetimeDB instance. */
   static builder = (): DbConnectionBuilder => {
     return new DbConnectionBuilder(REMOTE_MODULE, (config: __DbConnectionConfig<typeof REMOTE_MODULE>) => new DbConnection(config));

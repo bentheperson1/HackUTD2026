@@ -1,109 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import { store, AppState } from '../lib/store';
-import { DataTable, Column } from '../components/DataTable';
+import React, { useState } from 'react';
 import { Button } from '../components/Button';
 import { Card, SectionTitle } from '../components/Card';
 import { Chip } from '../components/Chip';
 import { PageHeader } from '../components/PageHeader';
-import { ReducerCallLog } from '../lib/types';
 import { tables, reducers } from '../module_bindings';
 import { useSpacetimeDB, useTable, useReducer } from 'spacetimedb/react';
-import { RotateCcw } from 'lucide-react';
+import { jsonReplacer } from '../lib/live';
 
 export const DebugPage: React.FC = () => {
-  const [state, setState] = useState<AppState>(store.getState());
-  const [selectedTable, setSelectedTable] = useState<keyof AppState>('members');
-  const [personName, setPersonName] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [registerError, setRegisterError] = useState('');
 
   // Live SpacetimeDB hook connection
   const conn = useSpacetimeDB();
   const dbConnected = conn?.isActive ?? false;
-  const [people] = useTable(tables.person);
-  const addReducer = useReducer(reducers.add);
+  const registerPhone = useReducer(reducers.registerPhone);
 
-  useEffect(() => {
-    return store.subscribe((nextState) => {
-      setState(nextState);
-    });
-  }, []);
+  // One subscription per backend table, for the raw inspector below
+  const [users] = useTable(tables.user);
+  const [incidents] = useTable(tables.incident);
+  const [incidentMembers] = useTable(tables.incidentMember);
+  const [adminMessages] = useTable(tables.adminMessages);
+  const [incidentMessages] = useTable(tables.incidentMessages);
+  const [generalMessages] = useTable(tables.generalMessages);
+  const [timelineEntries] = useTable(tables.timelineEntry);
+  const [scopeItems] = useTable(tables.scopeItem);
+  const [docTemplates] = useTable(tables.docTemplate);
+  const [incidentDocuments] = useTable(tables.incidentDocument);
 
-  const handleReset = () => {
-    if (confirm('Reset store back to default demo state?')) {
-      store.resetToDefaults();
-    }
+  const liveTables: Record<string, readonly unknown[]> = {
+    user: users,
+    incident: incidents,
+    incident_member: incidentMembers,
+    admin_messages: adminMessages,
+    incident_messages: incidentMessages,
+    general_messages: generalMessages,
+    timeline_entry: timelineEntries,
+    scope_item: scopeItems,
+    doc_template: docTemplates,
+    incident_document: incidentDocuments,
   };
+  const [selectedTable, setSelectedTable] = useState('user');
 
-  const handleAddPerson = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!personName.trim()) return;
+    if (!displayName.trim() || !phone.trim()) return;
+    setRegisterError('');
     try {
-      addReducer({ name: personName });
-      setPersonName('');
+      await registerPhone({ phone, displayName });
+      setDisplayName('');
+      setPhone('');
     } catch (err) {
-      console.error(err);
+      // Exceptions thrown by the C# reducer land here
+      setRegisterError(err instanceof Error ? err.message : String(err));
     }
   };
-
-  const reducerLogColumns: Column<ReducerCallLog>[] = [
-    {
-      header: 'Time',
-      render: (l) => (
-        <span className="whitespace-nowrap font-mono type-body-small text-on-surface-variant">
-          {new Date(l.timestamp).toLocaleTimeString()}
-        </span>
-      ),
-    },
-    {
-      header: 'Reducer',
-      render: (l) => <code className="font-mono">{l.reducer_name}</code>,
-    },
-    {
-      header: 'Status',
-      render: (l) => <Chip tone={l.status === 'success' ? 'success' : 'error'}>{l.status}</Chip>,
-    },
-    {
-      header: 'Args',
-      render: (l) => (
-        <div>
-          <pre className="m-0 whitespace-pre-wrap break-all font-mono type-body-small text-on-surface-variant">
-            {JSON.stringify(l.args)}
-          </pre>
-          {l.error_message && <div className="mt-0.5 type-body-small text-error">{l.error_message}</div>}
-        </div>
-      ),
-    },
-  ];
-
-  const tableKeys: (keyof AppState)[] = [
-    'org',
-    'members',
-    'incident',
-    'messages',
-    'tasks',
-    'auditLogs',
-    'scopeItems',
-    'reportTemplates',
-    'reportDrafts',
-    'drillSession',
-    'drillPlayers',
-    'drillEvents',
-  ];
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        title="Diagnostics"
-        description="Connection state, reducer calls and the raw local store."
-        actions={
-          <Button variant="outlined" icon={<RotateCcw />} onClick={handleReset}>
-            Reset demo data
-          </Button>
-        }
-      />
+      <PageHeader title="Diagnostics" description="Connection state and the raw contents of every SpacetimeDB table." />
 
       <Card className="space-y-4 p-5">
         <SectionTitle>
-          SpacetimeDB <code className="font-mono">person</code> table
+          SpacetimeDB <code className="font-mono">user</code> table
         </SectionTitle>
 
         <dl className="m-0 space-y-1 type-body-medium">
@@ -120,42 +80,51 @@ export const DebugPage: React.FC = () => {
         </dl>
 
         <div className="flex flex-wrap gap-2">
-          {people.length === 0 ? (
+          {users.length === 0 ? (
             <span className="type-body-medium text-on-surface-variant">No rows yet.</span>
           ) : (
-            people.map((p, idx) => <Chip key={idx}>{p.name}</Chip>)
+            users.map((u) => (
+              <Chip key={u.id.toHexString()}>
+                {u.displayName} · {u.phone} {u.online ? '🟢' : '⚪'}
+              </Chip>
+            ))
           )}
         </div>
 
-        <form onSubmit={handleAddPerson} className="flex gap-2">
+        <form onSubmit={handleRegister} className="flex gap-2">
           <input
             type="text"
-            aria-label="Person name"
-            placeholder="Name to insert"
-            value={personName}
-            onChange={(e) => setPersonName(e.target.value)}
+            aria-label="Display name"
+            placeholder="Display name"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
             className="h-10 flex-1 py-0"
             disabled={!dbConnected}
           />
-          <Button type="submit" variant="tonal" disabled={!dbConnected || !personName.trim()}>
-            Call add
+          <input
+            type="tel"
+            aria-label="Phone"
+            placeholder="Phone (10 digits)"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="h-10 flex-1 py-0"
+            disabled={!dbConnected}
+          />
+          <Button
+            type="submit"
+            variant="tonal"
+            disabled={!dbConnected || !displayName.trim() || !phone.trim()}
+          >
+            Call registerPhone
           </Button>
         </form>
+        {registerError && <p className="m-0 type-body-medium text-error">{registerError}</p>}
       </Card>
 
       <section>
-        <SectionTitle trailing={`${state.reducerLogs.length} calls`}>Reducer calls</SectionTitle>
-        <DataTable
-          columns={reducerLogColumns}
-          data={state.reducerLogs}
-          emptyMessage="No reducer calls yet. Do anything elsewhere in the app and it will show up here."
-        />
-      </section>
-
-      <section>
-        <SectionTitle>Local store</SectionTitle>
+        <SectionTitle>Live tables</SectionTitle>
         <div className="mb-3 flex flex-wrap gap-2">
-          {tableKeys.map((key) => {
+          {Object.entries(liveTables).map(([key, rows]) => {
             const selected = selectedTable === key;
             return (
               <button
@@ -167,13 +136,13 @@ export const DebugPage: React.FC = () => {
                     : 'border border-outline-variant text-on-surface-variant'
                 }`}
               >
-                {key}
+                {key} ({rows.length})
               </button>
             );
           })}
         </div>
         <pre className="max-h-[360px] overflow-auto rounded-xl bg-surface-container-lowest p-4 font-mono type-body-small text-on-surface-variant">
-          {JSON.stringify(state[selectedTable], null, 2)}
+          {JSON.stringify(liveTables[selectedTable], jsonReplacer, 2)}
         </pre>
       </section>
     </div>

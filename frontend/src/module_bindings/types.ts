@@ -10,8 +10,88 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-export const Person = __t.object("Person", {
+export const DocTemplate = __t.object("DocTemplate", {
+  id: __t.string(),
   name: __t.string(),
+  description: __t.string(),
+  body: __t.string(),
+  createdBy: __t.identity(),
 });
-export type Person = __Infer<typeof Person>;
+export type DocTemplate = __Infer<typeof DocTemplate>;
+
+export const Incident = __t.object("Incident", {
+  id: __t.string(),
+  name: __t.string(),
+  incidentType: __t.i32(),
+  severity: __t.i32(),
+  phase: __t.i32(),
+  status: __t.i32(),
+  summary: __t.string(),
+  currentStatus: __t.string(),
+  openedBy: __t.identity(),
+  openedAt: __t.timestamp(),
+});
+export type Incident = __Infer<typeof Incident>;
+
+export const IncidentDocument = __t.object("IncidentDocument", {
+  id: __t.string(),
+  incidentId: __t.string(),
+  templateId: __t.string(),
+  body: __t.string(),
+  updatedBy: __t.identity(),
+  updatedAt: __t.timestamp(),
+});
+export type IncidentDocument = __Infer<typeof IncidentDocument>;
+
+export const IncidentMember = __t.object("IncidentMember", {
+  id: __t.u64(),
+  incidentId: __t.string(),
+  person: __t.identity(),
+  role: __t.string(),
+  addedBy: __t.identity(),
+  addedAt: __t.timestamp(),
+});
+export type IncidentMember = __Infer<typeof IncidentMember>;
+
+export const Message = __t.object("Message", {
+  id: __t.u64(),
+  incidentId: __t.string(),
+  sender: __t.identity(),
+  text: __t.string(),
+  sentAt: __t.timestamp(),
+  chatType: __t.i32(),
+  isSystem: __t.bool(),
+});
+export type Message = __Infer<typeof Message>;
+
+export const ScopeItem = __t.object("ScopeItem", {
+  id: __t.u64(),
+  incidentId: __t.string(),
+  dataType: __t.string(),
+  recordCount: __t.u64(),
+  status: __t.i32(),
+  states: __t.array(__t.string()),
+  updatedBy: __t.identity(),
+  updatedAt: __t.timestamp(),
+});
+export type ScopeItem = __Infer<typeof ScopeItem>;
+
+export const TimelineEntry = __t.object("TimelineEntry", {
+  id: __t.u64(),
+  incidentId: __t.string(),
+  author: __t.identity(),
+  action: __t.string(),
+  createdAt: __t.timestamp(),
+});
+export type TimelineEntry = __Infer<typeof TimelineEntry>;
+
+export const User = __t.object("User", {
+  id: __t.identity(),
+  phone: __t.string(),
+  displayName: __t.string(),
+  online: __t.bool(),
+  isAdmin: __t.bool(),
+  createdAt: __t.timestamp(),
+});
+export type User = __Infer<typeof User>;
 

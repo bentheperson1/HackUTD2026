@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { store } from '../lib/store';
+import { useTable } from 'spacetimedb/react';
+import { tables } from '../module_bindings';
+import { useAuth } from '../lib/authContext';
+import { scopeStatus, toDate } from '../lib/live';
 import { STATE_BREACH_RULES } from '../lib/constants';
-import { ScopeItem } from '../lib/types';
 import { DataTable, Column } from '../components/DataTable';
 import { Chip } from '../components/Chip';
 import { SectionTitle } from '../components/Card';
@@ -20,20 +22,15 @@ interface TriggeredRule {
 }
 
 export const NotifyPage: React.FC = () => {
-  const [scopeItems, setScopeItems] = useState<ScopeItem[]>(store.getState().scopeItems);
-  const incidentStartedAt = store.getState().incident.started_at;
-
-  useEffect(() => {
-    return store.subscribe((state) => {
-      setScopeItems(state.scopeItems);
-    });
-  }, []);
+  const { activeIncident } = useAuth();
+  const [allScopeItems] = useTable(tables.scopeItem);
+  const scopeItems = allScopeItems.filter((i) => i.incidentId === activeIncident?.id);
 
   const triggeredRules: TriggeredRule[] = [];
-  const baseDate = incidentStartedAt ? new Date(incidentStartedAt) : new Date();
+  const baseDate = activeIncident ? toDate(activeIncident.openedAt) : new Date();
 
   scopeItems.forEach((item) => {
-    item.affected_states.forEach((stateCode) => {
+    item.states.forEach((stateCode) => {
       const rule = STATE_BREACH_RULES[stateCode];
       if (rule) {
         const elapsedDays = Math.floor((Date.now() - baseDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -45,8 +42,8 @@ export const NotifyPage: React.FC = () => {
           authority: rule.authority,
           deadlineDays: rule.deadline_days,
           daysRemaining,
-          triggerCategory: item.category,
-          status: item.status,
+          triggerCategory: item.dataType,
+          status: scopeStatus(item.status).label,
         });
       }
     });

@@ -5,6 +5,7 @@ export const ROLES: { value: Role; label: string }[] = [
   { value: 'it_lead', label: 'IT Lead' },
   { value: 'legal', label: 'In-House Legal' },
   { value: 'comms', label: 'Communications' },
+  { value: 'member', label: 'Member' },
   { value: 'insurer', label: 'Cyber Insurer (Guest)' },
   { value: 'outside_counsel', label: 'Outside Counsel (Guest)' },
 ];

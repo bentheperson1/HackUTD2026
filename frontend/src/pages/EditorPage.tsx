@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { store } from '../lib/store';
-import { ReportTemplate } from '../lib/types';
+import { useTable } from 'spacetimedb/react';
+import { tables } from '../module_bindings';
+import { useAuth } from '../lib/authContext';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Field } from '../components/Field';
@@ -9,31 +10,33 @@ import { PageHeader } from '../components/PageHeader';
 import { Check, Save } from 'lucide-react';
 
 export const EditorPage: React.FC = () => {
-  const [templates] = useState<ReportTemplate[]>(store.getState().reportTemplates);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(templates[0]?.id || '');
+  const { activeIncident } = useAuth();
+  const [templates] = useTable(tables.docTemplate);
+  const [documents] = useTable(tables.incidentDocument);
+  const [pickedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const selectedTemplateId = pickedTemplateId || templates[0]?.id || '';
   const [draftTitle, setDraftTitle] = useState('');
   const [draftContent, setDraftContent] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
 
   useEffect(() => {
     const currentTpl = templates.find((t) => t.id === selectedTemplateId);
-    const existingDraft = store.getState().reportDrafts.find((d) => d.template_id === selectedTemplateId);
+    const existingDraft = documents.find(
+      (d) => d.incidentId === activeIncident?.id && d.templateId === selectedTemplateId
+    );
 
+    if (currentTpl) setDraftTitle(`${currentTpl.name} - Draft`);
     if (existingDraft) {
-      setDraftTitle(existingDraft.title);
-      setDraftContent(existingDraft.content);
+      setDraftContent(existingDraft.body);
     } else if (currentTpl) {
-      setDraftTitle(`${currentTpl.name} - Draft`);
-      setDraftContent(currentTpl.content);
+      setDraftContent(currentTpl.body);
     }
-  }, [selectedTemplateId, templates]);
+  }, [selectedTemplateId, templates, documents, activeIncident?.id]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    const res = store.saveDraft(selectedTemplateId, draftTitle, draftContent);
-    if (res.success) {
-      setStatusMessage('Draft saved at ' + new Date().toLocaleTimeString());
-    }
+    // TODO: needs a SaveDocument reducer in the backend (incident_document table exists, no way to write it yet)
+    setStatusMessage("Saving isn't wired up yet. The backend has no reducer for incident documents.");
   };
 
   return (
@@ -43,7 +46,8 @@ export const EditorPage: React.FC = () => {
         description="Start from a template for your insurer, outside counsel or a state regulator, then edit and save."
       />
 
-      {statusMessage && <Notice tone="success">{statusMessage}</Notice>}
+      {statusMessage && <Notice>{statusMessage}</Notice>}
+      {templates.length === 0 && <Notice>No document templates in the database yet.</Notice>}
 
       {/* Filter chips for template choice */}
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Template">

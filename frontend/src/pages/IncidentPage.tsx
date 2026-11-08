@@ -1,45 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useReducer } from 'spacetimedb/react';
+import { reducers } from '../module_bindings';
 import { useAuth } from '../lib/authContext';
-import { store } from '../lib/store';
-import { Incident, IncidentPhase } from '../lib/types';
-import { PHASES } from '../lib/constants';
+import { PHASES, SCENARIOS } from '../lib/constants';
+import { isIncidentOpen, phaseName, toDate } from '../lib/live';
 import { Button } from '../components/Button';
 import { Card, SectionTitle } from '../components/Card';
 import { Chip } from '../components/Chip';
+import { Field } from '../components/Field';
 import { Notice } from '../components/Notice';
 import { PageHeader } from '../components/PageHeader';
 import { Check, Siren } from 'lucide-react';
 
 export const IncidentPage: React.FC = () => {
-  const { currentUser } = useAuth();
-  const [incident, setIncident] = useState<Incident>(store.getState().incident);
+  const { isRegistered, activeIncident: incident, myIncidents, setActiveIncidentId } = useAuth();
+  const createIncident = useReducer(reducers.createIncident);
+  const [name, setName] = useState('');
+  // Incident.incidentType is an index into SCENARIOS
+  const [incidentType, setIncidentType] = useState(0);
+  const [severity, setSeverity] = useState(5);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    return store.subscribe((state) => {
-      setIncident(state.incident);
-    });
-  }, []);
-
-  const handleActivate = () => {
-    const res = store.setIncidentStatus(currentUser.name, 'active');
-    if (!res.success) setError(res.error || 'Failed to activate incident');
-  };
-
-  const handleClose = () => {
-    if (confirm('Mark the incident as resolved and close it?')) {
-      const res = store.setIncidentStatus(currentUser.name, 'closed');
-      if (!res.success) setError(res.error || 'Failed to close incident');
+  const handleDeclare = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    try {
+      await createIncident({ name, incidentType, severity });
+      setName('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     }
   };
 
-  const handlePhaseChange = (phase: IncidentPhase) => {
-    const res = store.setIncidentPhase(currentUser.name, phase);
-    if (!res.success) setError(res.error || 'Failed to update phase');
-  };
-
-  const isActive = incident.status === 'active';
-  const currentPhaseIdx = PHASES.indexOf(incident.phase);
+  const isActive = !!incident && isIncidentOpen(incident.status);
+  const currentPhase = incident ? phaseName(incident.phase) : PHASES[0];
+  const currentPhaseIdx = PHASES.indexOf(currentPhase);
 
   return (
     <div className="space-y-8">
@@ -49,59 +44,101 @@ export const IncidentPage: React.FC = () => {
       />
 
       {error && <Notice tone="error">{error}</Notice>}
+      {!isRegistered && <Notice tone="error">Sign in with your phone number before declaring an incident.</Notice>}
+
+      {myIncidents.length > 1 && (
+        <Field label="Viewing incident">
+          <select value={incident?.id} onChange={(e) => setActiveIncidentId(e.target.value)} className="w-full">
+            {myIncidents.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
 
       <section
         className={`rounded-2xl p-6 ${isActive ? 'bg-error-container text-on-error-container' : 'bg-surface-container'}`}
       >
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <Chip className={`capitalize ${isActive ? '!border-on-error-container/40 !text-on-error-container' : ''}`}>
-              {incident.status}
-            </Chip>
-            <h2 className="mb-2 mt-3 type-headline-medium">
-              {isActive ? 'Incident in progress' : incident.status === 'closed' ? 'Incident closed' : 'No active incident'}
-            </h2>
-            <dl className="m-0 flex flex-wrap gap-x-8 gap-y-1 type-body-medium">
-              <div className="flex gap-2">
-                <dt className="opacity-75">Phase</dt>
-                <dd className="m-0 capitalize">{incident.phase}</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="opacity-75">Started</dt>
-                <dd className="m-0">{incident.started_at ? new Date(incident.started_at).toLocaleString() : 'Not started'}</dd>
-              </div>
-            </dl>
-          </div>
-
-          {!isActive ? (
-            <Button variant="danger" icon={<Siren />} onClick={handleActivate} className="h-12 px-8">
-              Declare incident
-            </Button>
-          ) : (
-            <Button variant="outlined" icon={<Check />} onClick={handleClose} className="!border-on-error-container/40 !text-on-error-container">
-              Close incident
-            </Button>
-          )}
-        </div>
+        <Chip className={isActive ? '!border-on-error-container/40 !text-on-error-container' : ''}>
+          {incident ? (isActive ? 'Active' : 'Closed') : 'Standby'}
+        </Chip>
+        <h2 className="mb-2 mt-3 type-headline-medium">{incident ? incident.name : 'No active incident'}</h2>
+        {incident && (
+          <dl className="m-0 flex flex-wrap gap-x-8 gap-y-1 type-body-medium">
+            <div className="flex gap-2">
+              <dt className="opacity-75">Phase</dt>
+              <dd className="m-0 capitalize">{currentPhase}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="opacity-75">Type</dt>
+              <dd className="m-0">{SCENARIOS[incident.incidentType]?.label ?? 'Other'}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="opacity-75">Severity</dt>
+              <dd className="m-0">{incident.severity}/10</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="opacity-75">Started</dt>
+              <dd className="m-0">{toDate(incident.openedAt).toLocaleString()}</dd>
+            </div>
+          </dl>
+        )}
       </section>
+
+      <Card className="p-5">
+        <SectionTitle>Declare a new incident</SectionTitle>
+        <form onSubmit={handleDeclare} className="space-y-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <Field label="Name">
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ransomware on file server"
+                className="w-full"
+                maxLength={100}
+              />
+            </Field>
+            <Field label="Type">
+              <select value={incidentType} onChange={(e) => setIncidentType(Number(e.target.value))} className="w-full">
+                {SCENARIOS.map((s, idx) => (
+                  <option key={s.type} value={idx}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Severity (1-10)">
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={severity}
+                onChange={(e) => setSeverity(Number(e.target.value))}
+                className="w-full"
+              />
+            </Field>
+          </div>
+          <Button type="submit" variant="danger" icon={<Siren />} disabled={!isRegistered || !name.trim()}>
+            Declare incident
+          </Button>
+        </form>
+      </Card>
 
       <Card variant="outlined" className="p-5">
         <SectionTitle trailing="NIST SP 800-61">Response phase</SectionTitle>
-        {!isActive && (
-          <p className="mb-4 mt-0 type-body-medium text-on-surface-variant">Declare an incident to move between phases.</p>
-        )}
-
+        {/* TODO: needs a SetPhase reducer in the backend before these can be clicked */}
         <ol className="m-0 grid list-none grid-cols-2 gap-2 p-0 md:grid-cols-4">
           {PHASES.map((p, idx) => {
-            const isCurrent = incident.phase === p;
-            const isPast = idx < currentPhaseIdx;
+            const isCurrent = !!incident && currentPhase === p;
+            const isPast = !!incident && idx < currentPhaseIdx;
             return (
               <li key={p}>
-                <button
-                  onClick={() => handlePhaseChange(p)}
-                  disabled={!isActive}
+                <div
                   aria-current={isCurrent ? 'step' : undefined}
-                  className={`state-layer flex w-full items-center gap-3 rounded-xl p-3 text-left disabled:cursor-not-allowed disabled:opacity-50 ${
+                  className={`flex w-full items-center gap-3 rounded-xl p-3 ${
                     isCurrent ? 'bg-secondary-container text-on-secondary-container' : 'text-on-surface'
                   }`}
                 >
@@ -117,7 +154,7 @@ export const IncidentPage: React.FC = () => {
                     {isPast ? <Check className="h-4 w-4" /> : idx + 1}
                   </span>
                   <span className="type-title-small capitalize">{p}</span>
-                </button>
+                </div>
               </li>
             );
           })}

@@ -10,6 +10,7 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-export default __t.row({
-  name: __t.string(),
-});
+export default {
+  phone: __t.string(),
+  displayName: __t.string(),
+};

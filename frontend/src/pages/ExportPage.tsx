@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { store } from '../lib/store';
+import { useTable } from 'spacetimedb/react';
+import { tables } from '../module_bindings';
+import { useAuth } from '../lib/authContext';
+import { jsonReplacer } from '../lib/live';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Notice } from '../components/Notice';
@@ -13,24 +16,41 @@ export const ExportPage: React.FC = () => {
   const [includeDrafts, setIncludeDrafts] = useState(true);
   const [includeRoster, setIncludeRoster] = useState(true);
   const [exportNotice, setExportNotice] = useState('');
+  const { activeIncident } = useAuth();
+  const [users] = useTable(tables.user);
+  const [members] = useTable(tables.incidentMember);
+  // message is private; these views only return what the signed-in user may see
+  const [adminMessages] = useTable(tables.adminMessages);
+  const [incidentMessages] = useTable(tables.incidentMessages);
+  const [generalMessages] = useTable(tables.generalMessages);
+  const [scopeItems] = useTable(tables.scopeItem);
+  const [timeline] = useTable(tables.timelineEntry);
+  const [documents] = useTable(tables.incidentDocument);
 
   const handleExport = () => {
-    const state = store.getState();
+    if (!activeIncident) return;
+    const id = activeIncident.id;
+    const roster = members
+      .filter((m) => m.incidentId === id)
+      .map((m) => ({ ...m, user: users.find((u) => u.id.isEqual(m.person)) }));
     const packet = {
       title: 'Drill Night Crisis Command Center - Formal Incident Package',
       generated_at: new Date().toISOString(),
-      organization: state.org.name,
-      incident: state.incident,
+      incident: activeIncident,
       contents: {
-        ...(includeRoster ? { roster: state.members } : {}),
-        ...(includeTimeline ? { warroom_messages: state.messages } : {}),
-        ...(includeScope ? { scope_records: state.scopeItems } : {}),
-        ...(includeAuditLogs ? { immutable_audit_logs: state.auditLogs } : {}),
-        ...(includeDrafts ? { report_drafts: state.reportDrafts } : {}),
+        ...(includeRoster ? { roster } : {}),
+        ...(includeTimeline ? {
+              warroom_messages: [...adminMessages, ...incidentMessages, ...generalMessages]
+                .filter((m) => m.incidentId === id)
+                .sort((a, b) => Number(a.sentAt.microsSinceUnixEpoch - b.sentAt.microsSinceUnixEpoch)),
+            } : {}),
+        ...(includeScope ? { scope_records: scopeItems.filter((s) => s.incidentId === id) } : {}),
+        ...(includeAuditLogs ? { timeline: timeline.filter((t) => t.incidentId === id) } : {}),
+        ...(includeDrafts ? { documents: documents.filter((d) => d.incidentId === id) } : {}),
       },
     };
 
-    const blob = new Blob([JSON.stringify(packet, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(packet, jsonReplacer, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -43,10 +63,10 @@ export const ExportPage: React.FC = () => {
 
   const sections = [
     { label: 'Team roster', detail: 'Everyone with access and their roles', checked: includeRoster, set: setIncludeRoster },
-    { label: 'War room messages', detail: 'All channels, in order', checked: includeTimeline, set: setIncludeTimeline },
+    { label: 'War room messages', detail: 'All messages, in order', checked: includeTimeline, set: setIncludeTimeline },
     { label: 'Affected data', detail: 'Inventory and status of each item', checked: includeScope, set: setIncludeScope },
-    { label: 'Audit log', detail: 'Every recorded action with actor and time', checked: includeAuditLogs, set: setIncludeAuditLogs },
-    { label: 'Insurance & legal drafts', detail: 'Saved drafts only', checked: includeDrafts, set: setIncludeDrafts },
+    { label: 'Timeline', detail: 'Every recorded action with actor and time', checked: includeAuditLogs, set: setIncludeAuditLogs },
+    { label: 'Incident documents', detail: 'Insurance and legal drafts', checked: includeDrafts, set: setIncludeDrafts },
   ];
   const nothingSelected = sections.every((s) => !s.checked);
 
@@ -75,7 +95,7 @@ export const ExportPage: React.FC = () => {
           ))}
         </ul>
         <div className="flex justify-end border-t border-outline-variant p-4">
-          <Button icon={<Download />} onClick={handleExport} disabled={nothingSelected}>
+          <Button icon={<Download />} onClick={handleExport} disabled={nothingSelected || !activeIncident}>
             Download JSON
           </Button>
         </div>
