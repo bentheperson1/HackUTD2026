@@ -1,283 +1,368 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { Identity } from 'spacetimedb';
-import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
-import { reducers, tables } from '../module_bindings';
+import { Send, Megaphone, Lock, MessagesSquare } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
-import { Role } from '../lib/types';
-import { errorMessage, isIncidentOpen, STAFF_ROLES, toBackendRole, toDate, toUiRole } from '../lib/live';
-import { Button } from '../components/Button';
-import { Card, SectionTitle } from '../components/Card';
+import { store } from '../lib/store';
+import { Role, ChatChannel } from '../lib/types';
+import { ROLES } from '../lib/constants';
+import { useAppState } from '../lib/useAppState';
+import { RoleBadge } from '../components/RoleBadge';
 import { Field } from '../components/Field';
-import { Notice } from '../components/Notice';
-import { PageHeader } from '../components/PageHeader';
-import { RoleBadge, roleLabel } from '../components/RoleBadge';
-import { Send, Lock } from 'lucide-react';
+import { Alert, Button, Card, EmptyState, Kbd, Modal, PageHeader, Segmented, cx } from '../components/ui';
 
-// TODO: broadcasts and slow mode need backend support before they can come back
-
-// Task.status values accepted by UpdateTask
-const TASK_STATUSES = [
-  { value: 'todo', label: 'To do' },
-  { value: 'doing', label: 'In progress' },
-  { value: 'done', label: 'Done' },
-];
-
-// chatType values match Message.ChatType in the backend
-const CHANNELS = [
-  { chatType: 1, label: 'Leadership', adminOnly: true },
-  { chatType: 2, label: 'War room', adminOnly: false },
-  { chatType: 3, label: 'Company Q&A', adminOnly: false },
-];
-
-const byTime = <T,>(get: (row: T) => bigint) => (a: T, b: T) => Number(get(a) - get(b));
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
 export const WarRoomPage: React.FC = () => {
-  const { identity } = useSpacetimeDB();
-  const { activeIncident, isAdmin, incidentRole } = useAuth();
-  // The message table is private; each channel is read through its own server-side view
-  const [adminMessages] = useTable(tables.adminMessages);
-  const [incidentMessages] = useTable(tables.incidentMessages);
-  const [generalMessages] = useTable(tables.generalMessages);
-  const [allTasks] = useTable(tables.task);
-  const [users] = useTable(tables.user);
-  const sendMessage = useReducer(reducers.sendMessage);
-  const createTask = useReducer(reducers.createTask);
-  const updateTask = useReducer(reducers.updateTask);
+  const { currentUser, mode } = useAuth();
+  const isLive = mode === 'live';
+  const messages = useAppState((s) => s.messages);
+  const tasks = useAppState((s) => s.tasks);
+  const activeBroadcast = useAppState((s) => s.activeBroadcast);
+  const slowModeSeconds = useAppState((s) => s.slowModeSeconds || 0);
 
-  const [activeChatType, setActiveChatType] = useState(2);
+  const [activeChannel, setActiveChannel] = useState<ChatChannel>('warroom');
   const [inputMessage, setInputMessage] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [broadcastInput, setBroadcastInput] = useState('');
+  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+
   const [taskTitle, setTaskTitle] = useState('');
+  const [taskDesc, setTaskDesc] = useState('');
   const [taskRole, setTaskRole] = useState<Role>('it_lead');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [taskAssignee, setTaskAssignee] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [taskView, setTaskView] = useState<'all' | 'mine' | 'open'>('all');
 
-  const channels = CHANNELS.filter((c) => !c.adminOnly || isAdmin);
-  const incidentId = activeIncident?.id;
-  const messagesByChatType: Record<number, typeof incidentMessages> = {
-    1: adminMessages,
-    2: incidentMessages,
-    3: generalMessages,
-  };
-  const channelMessages = (chatType: number) =>
-    messagesByChatType[chatType]
-      .filter((m) => m.incidentId === incidentId)
-      .sort(byTime((m) => m.sentAt.microsSinceUnixEpoch));
-  const messages = channelMessages(activeChatType);
-  const tasks = allTasks.filter((t) => t.incidentId === incidentId).sort((a, b) => Number(a.id - b.id));
-  const doneCount = tasks.filter((t) => t.status === 'done').length;
-  // Staff can work tasks; guests (Insurer/Counsel) can only read them
-  const isStaff = !!incidentRole && STAFF_ROLES.map(toBackendRole).includes(incidentRole);
-  const isOpen = !!activeIncident && isIncidentOpen(activeIncident.status);
-  // UpdateTask only lets the owner or the task's own role change it
-  const canUpdate = (forRole: string) => isOpen && (incidentRole === 'Owner' || incidentRole === forRole);
+  const listRef = useRef<HTMLDivElement>(null);
+  const isAdmin = currentUser.role === 'owner';
 
-  const run = async (fn: () => Promise<unknown>) => {
+  // Slow mode cooldown
+  useEffect(() => {
+    if (cooldownRemaining <= 0) return;
+    const t = setInterval(() => setCooldownRemaining((prev) => Math.max(0, prev - 1)), 1000);
+    return () => clearInterval(t);
+  }, [cooldownRemaining]);
+
+  // Scroll the message list (not the page) to the newest message
+  useEffect(() => {
+    const el = listRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, activeChannel]);
+
+  // Non-admins can't stay in the admin room
+  useEffect(() => {
+    if (activeChannel === 'admin' && !isAdmin) setActiveChannel('warroom');
+  }, [currentUser, activeChannel, isAdmin]);
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
-    try {
-      await fn();
-      return true;
-    } catch (err) {
-      setError(errorMessage(err));
-      return false;
+    if (!inputMessage.trim()) return;
+    if (!isAdmin && cooldownRemaining > 0) {
+      setError(`Slow mode is on. Wait ${cooldownRemaining}s before sending another message.`);
+      return;
+    }
+    const res = store.sendMessage(currentUser.name, currentUser.role, inputMessage, activeChannel);
+    if (!res.success) {
+      setError(res.error || 'Failed to send message');
+    } else {
+      setInputMessage('');
+      if (!isAdmin && slowModeSeconds > 0) setCooldownRemaining(slowModeSeconds);
     }
   };
 
-  const nameOf = (who: Identity) => users.find((u) => u.id.isEqual(who))?.displayName ?? 'Unknown';
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [messages.length, activeChatType]);
-
-  // Kick non-admins out of the leadership channel
-  useEffect(() => {
-    if (activeChatType === 1 && !isAdmin) setActiveChatType(2);
-  }, [activeChatType, isAdmin]);
-
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendBroadcast = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!incidentId || !inputMessage.trim()) return;
-    const ok = await run(() => sendMessage({ incidentId, text: inputMessage, chatType: activeChatType }));
-    if (ok) setInputMessage('');
+    if (!broadcastInput.trim()) return;
+    store.setBroadcast(currentUser.name, broadcastInput);
+    setBroadcastInput('');
+    setIsBroadcastModalOpen(false);
   };
 
-  const handleCreateTask = async (e: React.FormEvent) => {
+  const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!incidentId || !taskTitle.trim()) return;
-    const ok = await run(() => createTask({ incidentId, title: taskTitle, forRole: toBackendRole(taskRole) }));
-    if (ok) setTaskTitle('');
+    setError(null);
+    if (!taskTitle.trim()) {
+      setError('Task title is required');
+      return;
+    }
+    const res = store.createTask(currentUser.name, taskTitle, taskDesc, taskRole, taskAssignee);
+    if (!res.success) {
+      setError(res.error || 'Failed to create task');
+    } else {
+      setTaskTitle('');
+      setTaskDesc('');
+      setTaskAssignee('');
+    }
   };
 
-  if (!activeIncident) {
-    return (
-      <div className="space-y-6">
-        <PageHeader title="War room" description="Team chat that runs outside company email and Slack." />
-        <Notice>You're not part of any incident yet. Declare one on the Incident page or ask an owner to add you.</Notice>
-      </div>
-    );
-  }
+  const handleToggleTask = (taskId: string) => {
+    const res = store.toggleTask(currentUser.name, taskId);
+    if (!res.success) setError(res.error || 'Failed to toggle task');
+  };
+
+  const count = (c: ChatChannel) => messages.filter((m) => (m.channel || 'warroom') === c).length;
+  const channelMessages = messages.filter((m) => (m.channel || 'warroom') === activeChannel);
+  const coolingDown = !isAdmin && cooldownRemaining > 0;
+  const doneCount = tasks.filter((t) => t.done).length;
+  const visibleTasks = tasks.filter((t) => (taskView === 'mine' ? t.role === currentUser.role : taskView === 'open' ? !t.done : true));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <PageHeader
+        eyebrow="Respond"
         title="War room"
-        description="Team chat that runs outside company email and Slack, which are treated as compromised."
+        description="Out-of-band chat and tasks. Nothing here touches company email or Slack."
+        actions={
+          isAdmin && (
+            <>
+              {!isLive && (
+              <label className="flex items-center gap-2 text-xs text-fg-muted">
+                Slow mode
+                <select
+                  value={slowModeSeconds}
+                  onChange={(e) => store.setSlowMode(Number(e.target.value))}
+                  className="h-8 w-32 py-0 text-xs"
+                  aria-label="Slow mode"
+                >
+                  <option value={0}>Off</option>
+                  <option value={15}>15 seconds</option>
+                  <option value={30}>30 seconds</option>
+                  <option value={60}>60 seconds</option>
+                </select>
+              </label>
+              )}
+              <Button size="sm" onClick={() => setIsBroadcastModalOpen(true)}>
+                <Megaphone className="h-4 w-4" />
+                Broadcast
+              </Button>
+            </>
+          )
+        }
       />
 
-      {error && <Notice tone="error">{error}</Notice>}
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 [&>*]:min-w-0">
-        {/* Chat */}
-        <Card className="flex flex-col overflow-hidden lg:col-span-7">
-          <div role="tablist" className="flex border-b border-outline-variant px-2">
-            {channels.map((c) => {
-              const selected = c.chatType === activeChatType;
-              return (
-                <button
-                  key={c.chatType}
-                  role="tab"
-                  aria-selected={selected}
-                  onClick={() => setActiveChatType(c.chatType)}
-                  className={`state-layer relative flex h-12 items-center gap-1.5 whitespace-nowrap px-4 type-title-small ${
-                    selected ? 'text-primary' : 'text-on-surface-variant'
-                  }`}
-                >
-                  {c.adminOnly && <Lock className="h-3.5 w-3.5" />}
-                  {c.label}
-                  <span className="type-label-small opacity-70">{channelMessages(c.chatType).length}</span>
-                  {selected && <span className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-full bg-primary" />}
-                </button>
-              );
-            })}
+      {activeBroadcast && (
+        <div role="alert" className="flex items-start gap-3 bg-breach px-4 py-3 text-white">
+          <Megaphone className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <div className="text-xs opacity-85">
+              All-hands broadcast from {activeBroadcast.author} · {new Date(activeBroadcast.timestamp).toLocaleTimeString()}
+            </div>
+            <p className="font-display mt-0.5 text-[20px] leading-snug font-bold uppercase">{activeBroadcast.message}</p>
           </div>
+          {isAdmin && (
+            <Button variant="ghost" size="sm" onClick={() => store.clearBroadcast(currentUser.name)}>
+              Clear
+            </Button>
+          )}
+        </div>
+      )}
 
-          <div className="h-[440px] space-y-4 overflow-y-auto px-4 py-4">
-            {messages.length === 0 ? (
-              <div className="flex h-full items-center justify-center type-body-medium text-on-surface-variant">
-                No messages here yet.
-              </div>
+      {error && (
+        <Alert tone="error" onDismiss={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Segmented<ChatChannel>
+          ariaLabel="Chat channel"
+          value={activeChannel}
+          onChange={setActiveChannel}
+          options={[
+            { value: 'warroom', label: 'Incident war room', count: count('warroom') },
+            { value: 'admin', label: <span className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" />Executive</span>, count: count('admin'), hidden: !isAdmin },
+            { value: 'general', label: 'Company Q&A', count: count('general') },
+          ]}
+        />
+        {slowModeSeconds > 0 && <span className="text-xs text-fg-subtle">Slow mode: {slowModeSeconds}s between messages</span>}
+      </div>
+
+      <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-12">
+        {/* Chat */}
+        <Card kind="chat" title={activeChannel === 'warroom' ? 'Incident war room' : activeChannel === 'admin' ? 'Executive' : 'Company Q&A'} description={`${channelMessages.length} messages`} padded={false} className="flex flex-col lg:col-span-7">
+          <div ref={listRef} className="h-0 min-h-[460px] flex-1 space-y-1 overflow-y-auto p-3">
+            {channelMessages.length === 0 ? (
+              <EmptyState
+                icon={<MessagesSquare className="h-6 w-6" />}
+                title="No messages yet"
+                description="Post what you're seeing. Everyone in this room sees it instantly."
+              />
             ) : (
-              messages.map((m) => {
-                if (m.isSystem) {
+              channelMessages.map((m) => {
+                const isMe = m.sender_name === currentUser.name;
+                if (m.is_system) {
                   return (
-                    <p key={String(m.id)} className="m-0 text-center type-body-small text-on-surface-variant">
-                      {m.text}
-                    </p>
+                    <div key={m.id} className="flex items-baseline gap-3 px-2 py-1.5 text-xs text-fg-subtle">
+                      <span className="font-mono">{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span className="border-l-2 border-accent pl-2 text-fg-muted">{m.content}</span>
+                    </div>
                   );
                 }
-                const isMe = !!identity && m.sender.isEqual(identity);
                 return (
-                  <div key={String(m.id)} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                    <div className="mb-1 flex items-center gap-2 px-1 type-body-small text-on-surface-variant">
-                      {!isMe && <span className="type-label-medium text-on-surface">{nameOf(m.sender)}</span>}
-                      <span>{toDate(m.sentAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
-                    </div>
-                    <p
-                      className={`m-0 max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 type-body-large ${
-                        isMe
-                          ? 'rounded-br-md bg-primary-container text-on-primary-container'
-                          : 'rounded-bl-md bg-surface-container-highest text-on-surface'
-                      }`}
+                  <div key={m.id} className={cx('flex gap-3 rounded-md px-2 py-2', isMe && 'bg-surface-2/60')}>
+                    <div
+                      className={cx(
+                        'flex h-8 w-8 shrink-0 items-center justify-center text-[11px] font-semibold',
+                        isMe ? 'bg-accent text-bg' : 'bg-surface-3 text-fg'
+                      )}
                     >
-                      {m.text}
-                    </p>
+                      {initials(m.sender_name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-medium text-fg">{m.sender_name}</span>
+                        <RoleBadge role={m.sender_role} />
+                        <span className="font-mono text-xs text-fg-subtle">
+                          {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className={cx('mt-0.5 text-sm leading-relaxed break-words', m.is_broadcast ? 'font-semibold text-breach-text' : 'text-fg-muted')}>
+                        {m.is_broadcast && <Megaphone className="mr-1.5 inline h-3.5 w-3.5" aria-label="Broadcast" />}
+                        {m.content}
+                      </p>
+                    </div>
                   </div>
                 );
               })
             )}
-            <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={handleSendMessage} className="flex items-center gap-2 border-t border-outline-variant p-3">
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              aria-label="Message"
-              placeholder="Write a message"
-              maxLength={2000}
-              className="h-12 flex-1 rounded-full border-transparent bg-surface-container-highest px-5"
-            />
-            <Button type="submit" disabled={!inputMessage.trim()} icon={<Send />} className="h-12">
-              Send
-            </Button>
+          <form onSubmit={handleSendMessage} className="border-t border-line p-3">
+            <div className="flex gap-2">
+              <label htmlFor="chat-input" className="sr-only">
+                Message
+              </label>
+              <input
+                id="chat-input"
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                disabled={coolingDown}
+                placeholder={coolingDown ? `Slow mode: ${cooldownRemaining}s` : 'Write a message'}
+                autoComplete="off"
+              />
+              <Button type="submit" variant="primary" size="lg" disabled={coolingDown || !inputMessage.trim()} aria-label="Send message">
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="mt-2 flex items-center gap-1.5 px-0.5 text-[11px] text-fg-subtle">
+              <Kbd>↵</Kbd> to send · posts only to this room
+            </div>
           </form>
         </Card>
 
         {/* Tasks */}
         <div className="space-y-6 lg:col-span-5">
-          <section>
-            <SectionTitle trailing={`${doneCount} of ${tasks.length} done`}>Action items</SectionTitle>
-            <Card variant="outlined" className="max-h-[360px] overflow-y-auto">
-              {tasks.length === 0 ? (
-                <p className="m-0 p-4 type-body-medium text-on-surface-variant">No action items yet.</p>
-              ) : (
-                <ul className="m-0 list-none divide-y divide-outline-variant p-0">
-                  {tasks.map((t) => (
-                    <li key={String(t.id)} className="flex items-start gap-3 px-4 py-3">
+          <Card
+            kind="list"
+            title="Tasks by role"
+            actions={
+              <Segmented<'all' | 'mine' | 'open'>
+                ariaLabel="Which tasks"
+                value={taskView}
+                onChange={setTaskView}
+                options={[
+                  { value: 'all', label: 'All', count: tasks.length },
+                  { value: 'mine', label: 'Mine', count: tasks.filter((t) => t.role === currentUser.role).length },
+                  { value: 'open', label: 'Open', count: tasks.length - doneCount },
+                ]}
+              />
+            }
+            padded={false}
+          >
+            {visibleTasks.length === 0 ? (
+              <EmptyState title={tasks.length ? 'Nothing in this view' : 'No tasks yet'} description={tasks.length ? 'Try another filter.' : 'Add the first task below.'} />
+            ) : (
+              <ul className="max-h-[260px] divide-y divide-line overflow-y-auto">
+                {visibleTasks.map((t) => (
+                  <li key={t.id}>
+                    <label className="flex cursor-pointer items-start gap-3 px-5 py-3 hover:bg-surface-2/50">
+                      <input type="checkbox" checked={t.done} onChange={() => handleToggleTask(t.id)} className="mt-0.5" />
                       <div className="min-w-0 flex-1">
-                        <div
-                          className={`type-body-large ${
-                            t.status === 'done' ? 'text-on-surface-variant line-through' : 'text-on-surface'
-                          }`}
-                        >
-                          {t.title}
-                        </div>
-                        <div className="mt-1.5 flex items-center gap-2 type-body-small text-on-surface-variant">
-                          <RoleBadge role={toUiRole(t.forRole)} />
-                          <span>{t.assignee ? nameOf(t.assignee) : 'Unassigned'}</span>
+                        <div className={cx('text-sm', t.done ? 'text-fg-subtle line-through' : 'text-fg')}>{t.title}</div>
+                        {t.description && <div className="mt-0.5 text-xs text-fg-subtle">{t.description}</div>}
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <RoleBadge role={t.role} />
+                          <span className="text-xs text-fg-subtle">{t.assignee || 'Unassigned'}</span>
                         </div>
                       </div>
-                      <select
-                        aria-label={`Status of ${t.title}`}
-                        value={t.status}
-                        disabled={!canUpdate(t.forRole)}
-                        onChange={(e) => run(() => updateTask({ taskId: t.id, status: e.target.value }))}
-                        className="h-9 shrink-0 py-0"
-                      >
-                        {TASK_STATUSES.map((st) => (
-                          <option key={st.value} value={st.value}>
-                            {st.label}
-                          </option>
-                        ))}
-                      </select>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          </section>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
 
-          {isStaff && isOpen && (
-            <section>
-              <SectionTitle>New action item</SectionTitle>
-              <form onSubmit={handleCreateTask} className="space-y-4">
-                <Field label="Title">
-                  <input
-                    type="text"
-                    value={taskTitle}
-                    onChange={(e) => setTaskTitle(e.target.value)}
-                    placeholder="Revoke cloud sync API tokens"
-                    className="w-full"
-                    maxLength={200}
-                  />
+          <Card kind="form" title="New task">
+            <form onSubmit={handleCreateTask} className="space-y-3">
+              <Field label="Task" htmlFor="task-title">
+                <input id="task-title" type="text" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="e.g. Revoke cloud sync tokens" />
+              </Field>
+              {!isLive && (
+                <Field label="Instructions (optional)" htmlFor="task-desc">
+                  <textarea id="task-desc" value={taskDesc} onChange={(e) => setTaskDesc(e.target.value)} rows={2} placeholder="What exactly should they do?" />
                 </Field>
-                <Field label="For role">
-                  <select value={taskRole} onChange={(e) => setTaskRole(e.target.value as Role)} className="w-full">
-                    {STAFF_ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {roleLabel(r)}
+              )}
+              <div className={cx('grid gap-3', isLive ? 'grid-cols-1' : 'grid-cols-2')}>
+                <Field label="Role" htmlFor="task-role">
+                  <select id="task-role" value={taskRole} onChange={(e) => setTaskRole(e.target.value as Role)}>
+                    {ROLES.filter((r) => !isLive || (r.value !== 'insurer' && r.value !== 'outside_counsel')).map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
                       </option>
                     ))}
                   </select>
                 </Field>
-                <Button type="submit" variant="tonal" disabled={!taskTitle.trim()}>
-                  Add action item
-                </Button>
-              </form>
-            </section>
-          )}
+                {!isLive && (
+                  <Field label="Assignee" htmlFor="task-assignee">
+                    <input id="task-assignee" type="text" value={taskAssignee} onChange={(e) => setTaskAssignee(e.target.value)} placeholder="Name" />
+                  </Field>
+                )}
+              </div>
+              <Button type="submit" block>
+                Add task
+              </Button>
+            </form>
+          </Card>
         </div>
       </div>
+
+      {isBroadcastModalOpen && (
+        <Modal
+          title="Send an all-hands broadcast"
+          description="Pins a banner to the top of everyone's war room until you clear it."
+          onClose={() => setIsBroadcastModalOpen(false)}
+        >
+          <form onSubmit={handleSendBroadcast} className="space-y-4">
+            <label htmlFor="broadcast" className="sr-only">
+              Broadcast message
+            </label>
+            <textarea
+              id="broadcast"
+              value={broadcastInput}
+              onChange={(e) => setBroadcastInput(e.target.value)}
+              placeholder="e.g. Do not power off any computers. Unplug network cables now."
+              rows={3}
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setIsBroadcastModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="danger" disabled={!broadcastInput.trim()}>
+                <Megaphone className="h-4 w-4" />
+                Send broadcast
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 };

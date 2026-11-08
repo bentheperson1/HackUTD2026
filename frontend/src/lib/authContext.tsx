@@ -1,120 +1,90 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
-import type { Identity } from 'spacetimedb';
-import { useSpacetimeDB, useTable } from 'spacetimedb/react';
-import { tables } from '../module_bindings';
-import type { Incident, Organization, OrgMember, User } from '../module_bindings/types';
-import { Role } from './types';
-import { isIncidentOpen, toUiRole } from './live';
-
-export interface CurrentUser {
-  id: string; // identity hex
-  name: string;
-  phone: string;
-  /** Role in the active incident, falling back to the company role. Null if neither. */
-  role: Role | null;
-}
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Member } from './types';
+import { store } from './store';
+import { live, LiveAccount, LiveStatus } from './live';
 
 interface AuthContextType {
-  /** My row in the `user` table, or undefined until I call registerPhone. */
-  me: User | undefined;
-  isRegistered: boolean;
-  /** True once the user table has been replayed from the server. */
-  ready: boolean;
-  currentUser: CurrentUser;
-
-  /** Companies I belong to, and the one I'm working in. */
-  myOrgs: Organization[];
-  activeOrg: Organization | undefined;
-  orgMembership: OrgMember | undefined;
-  /** Company admin: sees the leadership chat, manages the roster. */
-  isAdmin: boolean;
-  setActiveOrgId: (id: bigint) => void;
-
-  /** Incidents I can see (member or unexpired guest), open ones first, then newest. */
-  myIncidents: Incident[];
-  activeIncident: Incident | undefined;
-  /** My role in the active incident, as the backend spells it (e.g. "ItLead"). */
-  incidentRole: string | undefined;
-  setActiveIncidentId: (id: string) => void;
-
-  connectionStatus: 'connected' | 'disconnected';
+  currentUser: Member;
+  /** Live: phone registered AND on a company roster (or a guest). Demo: always true. */
+  isSignedIn: boolean;
+  /** Live onboarding stage (null in demo mode) */
+  account: LiveAccount | null;
+  mode: 'live' | 'demo';
+  liveStatus: LiveStatus;
+  /** Live: register_phone. Demo: pick the roster member with that phone. */
+  signIn: (phone: string, name: string) => Promise<void>;
+  /** Live only: create_organization (you become its owner). */
+  createCompany: (name: string, industry: string) => Promise<void>;
+  /** Demo: switch persona. Live: take over that registered phone (the backend allows it for demos). */
+  switchToPhone: (phone: string, name: string) => Promise<void>;
+  connectionStatus: 'connected' | 'connecting' | 'disconnected';
   spacetimedbIdentity: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const GUEST: Member = { id: 'm-guest', identity: '', name: 'Not signed in', phone: '', role: 'comms', org_id: '', expires_at: null };
+
+const digits = (p: string) => p.replace(/\D/g, '').slice(-10);
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { identity, isActive } = useSpacetimeDB();
-  const [users, usersReady] = useTable(tables.user);
-  const [orgs] = useTable(tables.organization);
-  const [orgMembers] = useTable(tables.orgMember);
-  const [incidents] = useTable(tables.incident);
-  const [incidentMembers] = useTable(tables.incidentMember);
-  const [guestGrants] = useTable(tables.guestGrant);
-  const [pickedOrgId, setActiveOrgId] = useState<bigint | null>(null);
-  const [pickedIncidentId, setActiveIncidentId] = useState<string | null>(null);
+  const [members, setMembers] = useState<Member[]>(store.getState().members);
+  const [demoUserId, setDemoUserId] = useState<string>(members[0]?.id || 'm-1');
+  const [, force] = useState(0);
 
-  const identityHex = identity?.toHexString() ?? '';
-  const isMe = (who: Identity) => !!identity && who.isEqual(identity);
-  const me = users.find((u) => isMe(u.id));
+  useEffect(() => store.subscribe((state) => setMembers(state.members)), []);
+  useEffect(() => live.subscribe(() => force((n) => n + 1)), []);
 
-  const myOrgMemberships = orgMembers.filter((m) => isMe(m.person));
-  const myOrgs = orgs.filter((o) => myOrgMemberships.some((m) => m.orgId === o.id));
-  const activeOrg = myOrgs.find((o) => o.id === pickedOrgId) ?? myOrgs[0];
-  const orgMembership = myOrgMemberships.find((m) => m.orgId === activeOrg?.id);
+  const mode = store.mode();
 
-  // incidentId -> my role: membership wins over an unexpired guest grant (same as FindIncidentRole)
-  const roleIn = useMemo(() => {
-    const map = new Map<string, string>();
-    if (!identity) return map;
-    const nowMicros = BigInt(Date.now()) * 1000n;
-    for (const g of guestGrants) {
-      if (g.person.isEqual(identity) && g.expiresAt.microsSinceUnixEpoch > nowMicros) map.set(g.incidentId, g.role);
+  let currentUser: Member;
+  let isSignedIn: boolean;
+  if (mode === 'live') {
+    const me = members.find((m) => m.id === live.myMemberId);
+    currentUser = me ?? { ...GUEST, identity: live.identityHex };
+    isSignedIn = !!me;
+  } else {
+    currentUser = members.find((m) => m.id === demoUserId) ?? members[0] ?? GUEST;
+    isSignedIn = true;
+  }
+
+  const signIn = async (phone: string, name: string) => {
+    if (store.mode() === 'live') {
+      await live.call('registerPhone', { phone, displayName: name.trim() });
+      return;
     }
-    for (const m of incidentMembers) if (m.person.isEqual(identity)) map.set(m.incidentId, m.role);
-    return map;
-  }, [incidentMembers, guestGrants, identity]);
+    const match = members.find((m) => digits(m.phone) === digits(phone));
+    if (!match) throw new Error('No one on the demo roster has that number. Try one of the demo people below.');
+    setDemoUserId(match.id);
+  };
 
-  const myIncidents = useMemo(
-    () =>
-      incidents
-        .filter((i) => roleIn.has(i.id))
-        .sort((a, b) => {
-          const open = Number(isIncidentOpen(b.status)) - Number(isIncidentOpen(a.status));
-          return open || Number(b.openedAt.microsSinceUnixEpoch - a.openedAt.microsSinceUnixEpoch);
-        }),
-    [incidents, roleIn]
-  );
+  const createCompany = async (name: string, industry: string) => {
+    if (store.mode() !== 'live') throw new Error('Connect to SpacetimeDB to create a company.');
+    await live.call('createOrganization', { name: name.trim(), industry: industry.trim() });
+  };
 
-  const activeIncident = myIncidents.find((i) => i.id === pickedIncidentId) ?? myIncidents[0];
-  const incidentRole = activeIncident ? roleIn.get(activeIncident.id) : undefined;
-  const roleString = incidentRole ?? orgMembership?.role;
-
-  const currentUser: CurrentUser = {
-    id: identityHex,
-    name: me?.displayName ?? 'Unregistered',
-    phone: me?.phone ?? '',
-    role: roleString ? toUiRole(roleString) : null,
+  const switchToPhone = async (phone: string, name: string) => {
+    if (store.mode() === 'live') {
+      await live.call('registerPhone', { phone, displayName: name });
+      return;
+    }
+    const match = members.find((m) => digits(m.phone) === digits(phone));
+    if (match) setDemoUserId(match.id);
   };
 
   return (
     <AuthContext.Provider
       value={{
-        me,
-        isRegistered: !!me,
-        ready: usersReady,
         currentUser,
-        myOrgs,
-        activeOrg,
-        orgMembership,
-        isAdmin: !!orgMembership?.isAdmin,
-        setActiveOrgId,
-        myIncidents,
-        activeIncident,
-        incidentRole,
-        setActiveIncidentId,
-        connectionStatus: isActive ? 'connected' : 'disconnected',
-        spacetimedbIdentity: identityHex,
+        isSignedIn,
+        account: mode === 'live' ? live.account : null,
+        mode,
+        liveStatus: live.status,
+        signIn,
+        createCompany,
+        switchToPhone,
+        connectionStatus: live.status === 'live' ? 'connected' : live.status === 'connecting' ? 'connecting' : 'disconnected',
+        spacetimedbIdentity: live.identityHex,
       }}
     >
       {children}
@@ -124,8 +94,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
