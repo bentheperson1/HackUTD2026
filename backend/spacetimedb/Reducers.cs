@@ -4,7 +4,7 @@ using SpacetimeDB;
 
 public static partial class Module
 {
-    const bool AllowPhoneTakeover = true;
+    const bool AllowPhoneTakeover = true; //temporarily for demo purposes, since we dont have SMS and verification for the prototype
 
     //helpers
     static string NormalizePhone(string raw)

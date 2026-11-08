@@ -37,6 +37,8 @@ import {
 import ActivateIncidentReducer from "./activate_incident_reducer";
 import AddOrgMemberReducer from "./add_org_member_reducer";
 import AnswerInjectReducer from "./answer_inject_reducer";
+import BuildClaimPacketReducer from "./build_claim_packet_reducer";
+import CloseEventReducer from "./close_event_reducer";
 import CloseIncidentReducer from "./close_incident_reducer";
 import CreateDrillReducer from "./create_drill_reducer";
 import CreateOrganizationReducer from "./create_organization_reducer";
@@ -44,20 +46,29 @@ import CreateTaskReducer from "./create_task_reducer";
 import EndDrillReducer from "./end_drill_reducer";
 import GrantGuestReducer from "./grant_guest_reducer";
 import JoinDrillReducer from "./join_drill_reducer";
+import LinkInsurerReducer from "./link_insurer_reducer";
 import LogActionReducer from "./log_action_reducer";
 import LogExportReducer from "./log_export_reducer";
 import NextInjectNowReducer from "./next_inject_now_reducer";
+import RefreshEventExposureReducer from "./refresh_event_exposure_reducer";
 import RegisterPhoneReducer from "./register_phone_reducer";
 import ReseedReducer from "./reseed_reducer";
 import RevokeGuestReducer from "./revoke_guest_reducer";
+import SaveAlertDraftReducer from "./save_alert_draft_reducer";
+import SaveClaimNarrativeReducer from "./save_claim_narrative_reducer";
 import SaveDocumentReducer from "./save_document_reducer";
+import SaveEventSummaryReducer from "./save_event_summary_reducer";
 import SaveTemplateReducer from "./save_template_reducer";
+import SeedDemoPortfolioReducer from "./seed_demo_portfolio_reducer";
 import SendMessageReducer from "./send_message_reducer";
 import SetObligationStatusReducer from "./set_obligation_status_reducer";
+import SetOrgProfileReducer from "./set_org_profile_reducer";
 import SetOrgRoleReducer from "./set_org_role_reducer";
 import SetPhaseReducer from "./set_phase_reducer";
+import SimulateVendorOutageReducer from "./simulate_vendor_outage_reducer";
 import StartDrillReducer from "./start_drill_reducer";
 import SyncRosterReducer from "./sync_roster_reducer";
+import UpdateAlertStatusReducer from "./update_alert_status_reducer";
 import UpdateIncidentReducer from "./update_incident_reducer";
 import UpdateTaskReducer from "./update_task_reducer";
 import UpsertScopeItemReducer from "./upsert_scope_item_reducer";
@@ -79,6 +90,13 @@ import IncidentRow from "./incident_table";
 import IncidentDocumentRow from "./incident_document_table";
 import IncidentMemberRow from "./incident_member_table";
 import IncidentMessagesRow from "./incident_messages_table";
+import InsurerAlertsRow from "./insurer_alerts_table";
+import InsurerEventLinksRow from "./insurer_event_links_table";
+import InsurerEventsRow from "./insurer_events_table";
+import InsurerIncidentsRow from "./insurer_incidents_table";
+import InsurerIncidentsViewsRow from "./insurer_incidents_views_table";
+import InsurerProfilesRow from "./insurer_profiles_table";
+import InsurerTriageRow from "./insurer_triage_table";
 import NotificationObligationRow from "./notification_obligation_table";
 import NotificationRuleRow from "./notification_rule_table";
 import OrgMemberRow from "./org_member_table";
@@ -87,6 +105,7 @@ import ScopeItemRow from "./scope_item_table";
 import TaskRow from "./task_table";
 import TimelineEntryRow from "./timeline_entry_table";
 import UserRow from "./user_table";
+import VisibleClaimPacketsRow from "./visible_claim_packets_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -378,6 +397,62 @@ const tablesSchema = __schema({
     constraints: [
     ],
   }, IncidentMessagesRow),
+  insurerAlerts: __table({
+    name: 'insurer_alerts',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, InsurerAlertsRow),
+  insurerEventLinks: __table({
+    name: 'insurer_event_links',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, InsurerEventLinksRow),
+  insurerEvents: __table({
+    name: 'insurer_events',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, InsurerEventsRow),
+  insurerIncidents: __table({
+    name: 'insurer_incidents',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, InsurerIncidentsRow),
+  insurerIncidentsViews: __table({
+    name: 'insurer_incidents_views',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, InsurerIncidentsViewsRow),
+  insurerProfiles: __table({
+    name: 'insurer_profiles',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, InsurerProfilesRow),
+  insurerTriage: __table({
+    name: 'insurer_triage',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, InsurerTriageRow),
+  visibleClaimPackets: __table({
+    name: 'visible_claim_packets',
+    indexes: [
+    ],
+    constraints: [
+    ],
+  }, VisibleClaimPacketsRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
@@ -385,6 +460,8 @@ const reducersSchema = __reducers(
   __reducerSchema("activate_incident", ActivateIncidentReducer),
   __reducerSchema("add_org_member", AddOrgMemberReducer),
   __reducerSchema("answer_inject", AnswerInjectReducer),
+  __reducerSchema("build_claim_packet", BuildClaimPacketReducer),
+  __reducerSchema("close_event", CloseEventReducer),
   __reducerSchema("close_incident", CloseIncidentReducer),
   __reducerSchema("create_drill", CreateDrillReducer),
   __reducerSchema("create_organization", CreateOrganizationReducer),
@@ -392,20 +469,29 @@ const reducersSchema = __reducers(
   __reducerSchema("end_drill", EndDrillReducer),
   __reducerSchema("grant_guest", GrantGuestReducer),
   __reducerSchema("join_drill", JoinDrillReducer),
+  __reducerSchema("link_insurer", LinkInsurerReducer),
   __reducerSchema("log_action", LogActionReducer),
   __reducerSchema("log_export", LogExportReducer),
   __reducerSchema("next_inject_now", NextInjectNowReducer),
+  __reducerSchema("refresh_event_exposure", RefreshEventExposureReducer),
   __reducerSchema("register_phone", RegisterPhoneReducer),
   __reducerSchema("reseed", ReseedReducer),
   __reducerSchema("revoke_guest", RevokeGuestReducer),
+  __reducerSchema("save_alert_draft", SaveAlertDraftReducer),
+  __reducerSchema("save_claim_narrative", SaveClaimNarrativeReducer),
   __reducerSchema("save_document", SaveDocumentReducer),
+  __reducerSchema("save_event_summary", SaveEventSummaryReducer),
   __reducerSchema("save_template", SaveTemplateReducer),
+  __reducerSchema("seed_demo_portfolio", SeedDemoPortfolioReducer),
   __reducerSchema("send_message", SendMessageReducer),
   __reducerSchema("set_obligation_status", SetObligationStatusReducer),
+  __reducerSchema("set_org_profile", SetOrgProfileReducer),
   __reducerSchema("set_org_role", SetOrgRoleReducer),
   __reducerSchema("set_phase", SetPhaseReducer),
+  __reducerSchema("simulate_vendor_outage", SimulateVendorOutageReducer),
   __reducerSchema("start_drill", StartDrillReducer),
   __reducerSchema("sync_roster", SyncRosterReducer),
+  __reducerSchema("update_alert_status", UpdateAlertStatusReducer),
   __reducerSchema("update_incident", UpdateIncidentReducer),
   __reducerSchema("update_task", UpdateTaskReducer),
   __reducerSchema("upsert_scope_item", UpsertScopeItemReducer),
@@ -461,6 +547,22 @@ type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "ta
     readonly "GeneralMessages": Omit<typeof tablesSchema.schemaType.tables["generalMessages"], "accessorName"> & { readonly accessorName: "GeneralMessages" };
     /** @deprecated Use `incidentMessages` instead. This alias will be removed in the next major version. */
     readonly "IncidentMessages": Omit<typeof tablesSchema.schemaType.tables["incidentMessages"], "accessorName"> & { readonly accessorName: "IncidentMessages" };
+    /** @deprecated Use `insurerAlerts` instead. This alias will be removed in the next major version. */
+    readonly "InsurerAlerts": Omit<typeof tablesSchema.schemaType.tables["insurerAlerts"], "accessorName"> & { readonly accessorName: "InsurerAlerts" };
+    /** @deprecated Use `insurerEventLinks` instead. This alias will be removed in the next major version. */
+    readonly "InsurerEventLinks": Omit<typeof tablesSchema.schemaType.tables["insurerEventLinks"], "accessorName"> & { readonly accessorName: "InsurerEventLinks" };
+    /** @deprecated Use `insurerEvents` instead. This alias will be removed in the next major version. */
+    readonly "InsurerEvents": Omit<typeof tablesSchema.schemaType.tables["insurerEvents"], "accessorName"> & { readonly accessorName: "InsurerEvents" };
+    /** @deprecated Use `insurerIncidents` instead. This alias will be removed in the next major version. */
+    readonly "InsurerIncidents": Omit<typeof tablesSchema.schemaType.tables["insurerIncidents"], "accessorName"> & { readonly accessorName: "InsurerIncidents" };
+    /** @deprecated Use `insurerIncidentsViews` instead. This alias will be removed in the next major version. */
+    readonly "InsurerIncidents_Views": Omit<typeof tablesSchema.schemaType.tables["insurerIncidentsViews"], "accessorName"> & { readonly accessorName: "InsurerIncidents_Views" };
+    /** @deprecated Use `insurerProfiles` instead. This alias will be removed in the next major version. */
+    readonly "InsurerProfiles": Omit<typeof tablesSchema.schemaType.tables["insurerProfiles"], "accessorName"> & { readonly accessorName: "InsurerProfiles" };
+    /** @deprecated Use `insurerTriage` instead. This alias will be removed in the next major version. */
+    readonly "InsurerTriage": Omit<typeof tablesSchema.schemaType.tables["insurerTriage"], "accessorName"> & { readonly accessorName: "InsurerTriage" };
+    /** @deprecated Use `visibleClaimPackets` instead. This alias will be removed in the next major version. */
+    readonly "VisibleClaimPackets": Omit<typeof tablesSchema.schemaType.tables["visibleClaimPackets"], "accessorName"> & { readonly accessorName: "VisibleClaimPackets" };
   };
 };
 
@@ -501,6 +603,14 @@ const tableAccessorAliases = {
   "AdminMessages": "adminMessages",
   "GeneralMessages": "generalMessages",
   "IncidentMessages": "incidentMessages",
+  "InsurerAlerts": "insurerAlerts",
+  "InsurerEventLinks": "insurerEventLinks",
+  "InsurerEvents": "insurerEvents",
+  "InsurerIncidents": "insurerIncidents",
+  "InsurerIncidents_Views": "insurerIncidentsViews",
+  "InsurerProfiles": "insurerProfiles",
+  "InsurerTriage": "insurerTriage",
+  "VisibleClaimPackets": "visibleClaimPackets",
 } as const;
 
 function __withTableAccessorAliases<T extends object>(target: T, freeze = false): T {
@@ -565,6 +675,22 @@ export type DbView = __DbViewBase & {
   readonly "GeneralMessages": __DbViewBase["generalMessages"];
   /** @deprecated Use `incidentMessages` instead. This alias will be removed in the next major version. */
   readonly "IncidentMessages": __DbViewBase["incidentMessages"];
+  /** @deprecated Use `insurerAlerts` instead. This alias will be removed in the next major version. */
+  readonly "InsurerAlerts": __DbViewBase["insurerAlerts"];
+  /** @deprecated Use `insurerEventLinks` instead. This alias will be removed in the next major version. */
+  readonly "InsurerEventLinks": __DbViewBase["insurerEventLinks"];
+  /** @deprecated Use `insurerEvents` instead. This alias will be removed in the next major version. */
+  readonly "InsurerEvents": __DbViewBase["insurerEvents"];
+  /** @deprecated Use `insurerIncidents` instead. This alias will be removed in the next major version. */
+  readonly "InsurerIncidents": __DbViewBase["insurerIncidents"];
+  /** @deprecated Use `insurerIncidentsViews` instead. This alias will be removed in the next major version. */
+  readonly "InsurerIncidents_Views": __DbViewBase["insurerIncidentsViews"];
+  /** @deprecated Use `insurerProfiles` instead. This alias will be removed in the next major version. */
+  readonly "InsurerProfiles": __DbViewBase["insurerProfiles"];
+  /** @deprecated Use `insurerTriage` instead. This alias will be removed in the next major version. */
+  readonly "InsurerTriage": __DbViewBase["insurerTriage"];
+  /** @deprecated Use `visibleClaimPackets` instead. This alias will be removed in the next major version. */
+  readonly "VisibleClaimPackets": __DbViewBase["visibleClaimPackets"];
 };
 
 type __TablesBase = __QueryBuilder<typeof tablesSchema.schemaType>;
@@ -613,6 +739,22 @@ export type Tables = __TablesBase & {
   readonly "GeneralMessages": __TablesBase["generalMessages"];
   /** @deprecated Use `incidentMessages` instead. This alias will be removed in the next major version. */
   readonly "IncidentMessages": __TablesBase["incidentMessages"];
+  /** @deprecated Use `insurerAlerts` instead. This alias will be removed in the next major version. */
+  readonly "InsurerAlerts": __TablesBase["insurerAlerts"];
+  /** @deprecated Use `insurerEventLinks` instead. This alias will be removed in the next major version. */
+  readonly "InsurerEventLinks": __TablesBase["insurerEventLinks"];
+  /** @deprecated Use `insurerEvents` instead. This alias will be removed in the next major version. */
+  readonly "InsurerEvents": __TablesBase["insurerEvents"];
+  /** @deprecated Use `insurerIncidents` instead. This alias will be removed in the next major version. */
+  readonly "InsurerIncidents": __TablesBase["insurerIncidents"];
+  /** @deprecated Use `insurerIncidentsViews` instead. This alias will be removed in the next major version. */
+  readonly "InsurerIncidents_Views": __TablesBase["insurerIncidentsViews"];
+  /** @deprecated Use `insurerProfiles` instead. This alias will be removed in the next major version. */
+  readonly "InsurerProfiles": __TablesBase["insurerProfiles"];
+  /** @deprecated Use `insurerTriage` instead. This alias will be removed in the next major version. */
+  readonly "InsurerTriage": __TablesBase["insurerTriage"];
+  /** @deprecated Use `visibleClaimPackets` instead. This alias will be removed in the next major version. */
+  readonly "VisibleClaimPackets": __TablesBase["visibleClaimPackets"];
 };
 
 /** The tables available in this remote SpacetimeDB module. Each table reference doubles as a query builder. */

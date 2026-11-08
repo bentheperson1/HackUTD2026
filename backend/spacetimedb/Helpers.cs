@@ -105,7 +105,7 @@ public static partial class Module
 
         bool admin = false, orgMember = false;
         foreach (var om in ctx.Db.OrgMember.OrgId.Filter(inc.OrgId))
-            if (om.Person == ctx.Sender) { orgMember = true; admin = om.IsAdmin; break; }
+            if (om.Person == ctx.Sender) { orgMember = !IsExternal(om.Role); admin = om.IsAdmin; break; }
 
         bool inRoom = FindIncidentRole(ctx, incidentId) != null;   // incident member or guest
 
@@ -118,6 +118,8 @@ public static partial class Module
         };
         if (!allowed) throw new Exception("You can't post in that chat.");
     }
+
+    static bool IsExternal(string role) => role == RoleName.Insurer || role == RoleName.Counsel;
 
     static Incident OpenWarRoom(ReducerContext ctx, ulong orgId, string id, string name, int incidentType, int severity, bool isDrill)
     {
@@ -138,6 +140,8 @@ public static partial class Module
         });
 
         foreach (var om in ctx.Db.OrgMember.OrgId.Filter(orgId))
+        {
+            if (isDrill && IsExternal(om.Role)) continue;
             ctx.Db.IncidentMember.Insert(new IncidentMember
             {
                 Id = 0,
@@ -147,6 +151,7 @@ public static partial class Module
                 AddedBy = ctx.Sender,
                 AddedAt = ctx.Timestamp,
             });
+        }
 
         AddTask(ctx, id, "Call the cyber insurer's hotline", RoleName.Owner);
         AddTask(ctx, id, "Disconnect affected machines from the network", RoleName.ItLead);

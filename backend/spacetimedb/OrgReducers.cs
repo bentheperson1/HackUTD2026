@@ -38,8 +38,8 @@ public static partial class Module
     public static void AddOrgMember(ReducerContext ctx, ulong orgId, string phone, string role)
     {
         if (!RequireOrgMember(ctx, orgId).IsAdmin) throw new Exception("Only company admins can do that.");
-        if (!RoleName.Staff.Contains(role))
-            throw new Exception("Role must be Owner, ItLead, Legal or Comms. Insurers and counsel join as guests.");
+        if (!RoleName.All.Contains(role))
+            throw new Exception("Role must be Owner, ItLead, Legal, Comms, Insurer or Counsel.");
 
         if (ctx.Db.User.Phone.Find(NormalizePhone(phone)) is not User target)
             throw new Exception("Nobody has registered with that phone number yet.");
@@ -78,7 +78,8 @@ public static partial class Module
     public static void SetOrgRole(ReducerContext ctx, ulong orgId, Identity person, string role)
     {
         if (!RequireOrgMember(ctx, orgId).IsAdmin) throw new Exception("Only company admins can do that.");
-        if (!RoleName.Staff.Contains(role)) throw new Exception("Unknown role.");
+        if (!RoleName.All.Contains(role))
+            throw new Exception("Role must be Owner, ItLead, Legal, Comms, Insurer or Counsel.");
         if (person == ctx.Sender) throw new Exception("You can't change your own role.");
 
         foreach (var m in ctx.Db.OrgMember.OrgId.Filter(orgId))
