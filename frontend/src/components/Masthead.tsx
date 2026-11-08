@@ -78,7 +78,7 @@ export const Masthead: React.FC = () => {
         <Link to="/drill" className="block bg-drill text-bg">
           <div className="mx-auto flex h-9 max-w-[1240px] items-center gap-4 px-4 text-[13px] md:px-8">
             <span className="font-display text-[15px] font-bold tracking-[0.04em] uppercase">Drill in progress</span>
-            <span>Practice only</span>
+            <span>This is practice, not a real incident.</span>
             <span className="ml-auto font-semibold">Go to drill →</span>
           </div>
         </Link>
@@ -161,7 +161,7 @@ export const Masthead: React.FC = () => {
       {lastError && (
         <div role="alert" className="fixed right-4 bottom-20 z-50 flex max-w-sm items-start gap-3 border-t-2 border-breach bg-surface px-4 py-3 shadow-2xl">
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-semibold tracking-[0.09em] text-breach-text uppercase">That didn't work</div>
+            <div className="text-[11px] font-semibold tracking-[0.09em] text-breach-text uppercase">Error</div>
             <p className="mt-0.5 text-[13px] text-fg">{lastError.message}</p>
           </div>
           <button type="button" onClick={() => store.clearLastError()} className="text-xs font-semibold text-fg-subtle hover:text-fg">

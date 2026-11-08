@@ -119,7 +119,7 @@ export const ScopePage: React.FC = () => {
       <PageHeader
         eyebrow="Respond"
         title="Affected data"
-        description="What data was hit and where the affected people live."
+        description="Record each type of data the attack touched, whether it was stolen or locked, and which states the affected people live in. This decides which notification laws apply."
       />
 
       {error && (
@@ -161,14 +161,14 @@ export const ScopePage: React.FC = () => {
         ))}
       </FilterBar>
 
-      <Card kind="table" title="List" padded={false}>
-        <DataTable bare columns={columns} data={visibleItems} rowKey={(i) => i.id} emptyMessage={statusFilter === 'all' ? 'Nothing added yet.' : 'Nothing with this status.'} />
+      <Card kind="table" title="Recorded data" padded={false}>
+        <DataTable bare columns={columns} data={visibleItems} rowKey={(i) => i.id} emptyMessage={statusFilter === 'all' ? 'No affected data has been recorded yet.' : 'No data has this status.'} />
       </Card>
 
       <Card kind="form" title="Add affected data">
         <form onSubmit={handleAddScopeItem} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="What data?" htmlFor="scope-category" help="Pick from the list or type your own.">
+            <Field label="Type of data" htmlFor="scope-category" help="Pick from the list or type your own.">
               <input id="scope-category" type="text" list="scope-types" maxLength={40} value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. payment" />
               <datalist id="scope-types">
                 {['payment', 'health', 'ssn', 'customer contact info', 'employee records', 'login credentials'].map((t) => (
@@ -185,15 +185,15 @@ export const ScopePage: React.FC = () => {
                 ))}
               </select>
             </Field>
-            <Field label="States where affected people live" htmlFor="scope-states" help="Example: TX, CA">
+            <Field label="States where affected people live" htmlFor="scope-states" help="Use two-letter codes separated by commas.">
               <input id="scope-states" type="text" value={affectedStates} onChange={(e) => setAffectedStates(e.target.value)} placeholder="TX, CA, NY" />
             </Field>
-            <Field label="How many records? (optional)" htmlFor="scope-records" help="A guess is fine.">
+            <Field label="Number of records (optional)" htmlFor="scope-records" help="An estimate is fine.">
               <input id="scope-records" type="text" inputMode="numeric" value={records} onChange={(e) => setRecords(e.target.value)} placeholder="e.g. 14000" />
             </Field>
           </div>
           <Button type="submit" variant="primary">
-            Add
+            Add data
           </Button>
         </form>
       </Card>

@@ -53,12 +53,12 @@ function useNextAction(): NextAction {
 
   if (!isActive) {
     if (drill && (drill.status === 'lobby' || drill.status === 'running')) {
-      return { tone: 'drill', title: 'A practice drill is on. Join it.', to: '/drill', button: 'Join drill' };
+      return { tone: 'drill', title: 'A practice drill is open.', to: '/drill', button: 'Join drill' };
     }
     if (canActivate) {
-      return { tone: 'neutral', title: 'All clear. If something looks wrong, start an incident.', to: '/incident', button: 'Start incident', activate: true };
+      return { tone: 'neutral', title: 'There is no active incident. If you think you are under attack, start one.', to: '/incident', button: 'Start incident', activate: true };
     }
-    return { tone: 'neutral', title: 'All clear. If something looks wrong, tell the team.', to: '/chat', button: 'Open chat' };
+    return { tone: 'neutral', title: 'There is no active incident. If you think you are under attack, tell your team in Chat.', to: '/chat', button: 'Open chat' };
   }
 
   const cardIdx = CARD_FOR_ROLE[role] ?? 0;
@@ -72,10 +72,10 @@ function useNextAction(): NextAction {
   if (myTask) return { tone: 'accent', title: `Your task: ${myTask.title}`, to: '/chat', button: 'Open tasks' };
 
   if (scopeCount === 0 && (role === 'owner' || role === 'legal' || role === 'it_lead')) {
-    return { tone: 'accent', title: 'Write down what data was hit', to: '/scope', button: 'Add affected data' };
+    return { tone: 'accent', title: 'Record which types of data were affected.', to: '/scope', button: 'Add affected data' };
   }
 
-  return { tone: 'accent', title: 'Your list is done. Check chat for updates.', to: '/chat', button: 'Open chat' };
+  return { tone: 'accent', title: 'You have finished your checklist. Check Chat for new tasks and updates.', to: '/chat', button: 'Open chat' };
 }
 
 /** The "Do this now" bar. Sits under the nav on every page. */
@@ -95,7 +95,7 @@ export const NextActionBar: React.FC = () => {
     <>
       <div role="status" className={cx('flex flex-col gap-3 border-l-4 px-4 py-3.5 sm:flex-row sm:items-center sm:gap-5', t.band)}>
         <div className="min-w-0 flex-1">
-          <div className={cx('text-[11px] font-bold tracking-[0.12em] uppercase', t.label)}>{action.tone === 'neutral' ? 'Status' : 'Do this now'}</div>
+          <div className={cx('text-[11px] font-bold tracking-[0.12em] uppercase', t.label)}>{action.tone === 'neutral' ? 'Status' : 'Your next step'}</div>
           <div className="mt-0.5 text-[17px] leading-snug font-semibold text-fg">{action.title}</div>
           {action.detail && (
             <div className="mt-1 flex items-center gap-1.5 text-[14px] text-breach-text">

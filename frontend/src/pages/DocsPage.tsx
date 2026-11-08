@@ -27,7 +27,7 @@ export const DocsPage: React.FC = () => {
     );
     if (res.success) {
       setPhaseNotes('');
-      setStatusMessage('Saved.');
+      setStatusMessage('Your note was added to the audit log.');
     }
   };
 
@@ -67,7 +67,7 @@ export const DocsPage: React.FC = () => {
       <PageHeader
         eyebrow="Record"
         title="Audit log"
-        description="A permanent record of what happened. Entries can't be changed or deleted."
+        description="A permanent record of everything done during the incident. Outpost adds entries automatically, and you can add your own notes. Entries can't be changed or deleted."
       />
 
       {statusMessage && (
@@ -76,9 +76,9 @@ export const DocsPage: React.FC = () => {
         </Alert>
       )}
 
-      <Card kind="form" title="Write down what happened">
+      <Card kind="form" title="Add a note">
         <form onSubmit={handleAddPhaseDoc} className="space-y-4">
-          <Field label="Step" htmlFor="doc-phase" className="md:max-w-xs">
+          <Field label="Phase" htmlFor="doc-phase" className="md:max-w-xs">
             <select id="doc-phase" value={selectedPhase} onChange={(e) => setSelectedPhase(e.target.value as IncidentPhase)}>
               {PHASES.map((p) => (
                 <option key={p} value={p}>
@@ -97,7 +97,7 @@ export const DocsPage: React.FC = () => {
             />
           </Field>
           <Button type="submit" variant="primary" disabled={!phaseNotes.trim()}>
-            Save
+            Add note
           </Button>
         </form>
       </Card>
@@ -123,7 +123,7 @@ export const DocsPage: React.FC = () => {
       </FilterBar>
 
       <Card kind="table" title="Entries" description="Newest first" padded={false}>
-        <DataTable bare columns={auditColumns} data={visibleLogs} rowKey={(l) => l.id} emptyMessage={auditLogs.length ? 'No entries match.' : 'No entries yet.'} />
+        <DataTable bare columns={auditColumns} data={visibleLogs} rowKey={(l) => l.id} emptyMessage={auditLogs.length ? 'No entries match your search.' : 'No entries yet.'} />
       </Card>
     </div>
   );

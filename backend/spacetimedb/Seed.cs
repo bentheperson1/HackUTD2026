@@ -89,23 +89,23 @@ public static partial class Module
             Minutes = 15,
         });
 
-        AddInject(ctx, id, 0, "", "Ransom notes appear on 3 front-desk PCs. What first?",
+        AddInject(ctx, id, 0, "", "Ransom notes appear on 3 front-desk PCs. What do you do first?",
             new[] { "Unplug them from the network", "Pay the ransom", "Email IT and wait", "Restart the PCs" }, 0,
-            "Isolate first. Disconnecting stops the spread; rebooting or paying burns your options.");
-        AddInject(ctx, id, 120, "ItLead", "Which backups do you trust first?",
+            "Disconnecting the PCs stops the ransomware from spreading. Restarting them can destroy evidence, and paying does not guarantee you get your files back.");
+        AddInject(ctx, id, 120, "ItLead", "Which backups should you trust first?",
             new[] { "The shared drive", "The affected PCs", "Offline backups kept disconnected", "Cloud sync folders" }, 2,
-            "Connected copies may already be encrypted. Offline backups are the ones the attacker can't reach.");
-        AddInject(ctx, id, 240, "Owner", "Who do you call before anything else?",
+            "Backups that stay connected to the network may already be encrypted. Offline backups are out of the attacker's reach.");
+        AddInject(ctx, id, 240, "Owner", "Who do you call before anyone else?",
             new[] { "A local news station", "Your cyber insurer's hotline", "The attacker", "Your landlord" }, 1,
-            "Insurers often require early notice and can bring in response specialists.");
-        AddInject(ctx, id, 360, "", "The attacker emails: pay in 24 hours or patient data leaks. Reply?",
-            new[] { "Negotiate directly", "Counteroffer", "Delete the email", "Don't reply; preserve it and loop in counsel" }, 3,
-            "Keep the evidence and let counsel and the insurer decide how to engage.");
-        AddInject(ctx, id, 480, "Legal", "Patient data may be stolen. What starts the clock?",
-            new[] { "Document what data, whose, and which states", "Wait to see if it leaks", "Notify every patient now", "Wait for the police" }, 0,
-            "A scope record tells you which breach-notification laws and deadlines apply.");
+            "Most cyber insurers require early notice, and they can connect you with response specialists.");
+        AddInject(ctx, id, 360, "", "The attacker emails saying patient data will be leaked unless you pay within 24 hours. How do you respond?",
+            new[] { "Negotiate directly", "Counteroffer", "Delete the email", "Don't reply. Save the email and tell your lawyer" }, 3,
+            "Keep the email as evidence. Your lawyer and insurer will decide whether and how to respond.");
+        AddInject(ctx, id, 480, "Legal", "Patient data may have been stolen. What should you do first?",
+            new[] { "Record what data was taken, whose it was, and which states they live in", "Wait to see if it leaks", "Notify every patient now", "Wait for the police" }, 0,
+            "Knowing what data was taken and where those people live tells you which notification laws and deadlines apply.");
         AddInject(ctx, id, 600, "Comms", "Staff are asking what's going on. What do you send?",
-            new[] { "A full technical write-up", "A company-email blast", "A short holding statement through your out-of-band channel", "Nothing" }, 2,
-            "Company email may be compromised. Use a channel the attacker can't read.");
+            new[] { "A full technical write-up", "A company-email blast", "A short statement sent through a channel outside company email", "Nothing" }, 2,
+            "Company email may be compromised, so use a channel the attacker can't read.");
     }
 }

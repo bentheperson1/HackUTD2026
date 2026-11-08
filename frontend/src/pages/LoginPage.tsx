@@ -60,12 +60,12 @@ export const LoginPage: React.FC = () => {
       <section className="hidden w-[50%] flex-col justify-between border-r border-line-strong bg-surface p-12 lg:flex">
         <Wordmark size="lg" />
         <div className="max-w-md space-y-4">
-          <h1 className="font-display text-[64px] leading-[0.92] font-bold uppercase">
-            When your network is compromised, <span className="block text-red-500">your response shouldn't be.</span>
-          </h1>
-          <p className="text-fg-muted">Separate from company email and chat, so it keeps working when they don't.</p>
+          <h1 className="font-display text-[56px] leading-[0.95] font-bold uppercase">Cyberattack response for small businesses</h1>
+          <p className="text-fg-muted">
+            Outpost gives your team a place to talk, assign tasks and keep records during a cyberattack. It runs separately from your company email and chat, so it still works if those systems are down.
+          </p>
         </div>
-        <p className="text-xs text-fg-subtle">Made by a 4 college students for HackUTD 2026 in 24 hours</p>
+        <p className="text-xs text-fg-subtle">Built by four college students at HackUTD 2026.</p>
       </section>
 
       <section className="flex flex-1 items-center justify-center px-5 py-12">
@@ -73,13 +73,13 @@ export const LoginPage: React.FC = () => {
           <Wordmark className="lg:hidden" />
 
           <div className="space-y-1.5">
-            <h2 className="font-display text-[32px] leading-none font-bold uppercase">{needsCompany ? (creating ? 'New company' : 'Almost in') : 'Sign in'}</h2>
+            <h2 className="font-display text-[32px] leading-none font-bold uppercase">{needsCompany ? (creating ? 'Create a company' : 'Waiting for access') : 'Sign in'}</h2>
             <p className="text-sm text-fg-muted">
               {needsCompany
                 ? creating
-                  ? "You'll be the owner and can add your team."
-                  : 'Ask your manager to add you to the team using this phone number.'
-                : 'Use your personal phone number.'}
+                  ? 'You will be the owner of this company and can add your team members.'
+                  : 'Ask the owner of your company in Outpost to add you using this phone number.'
+                : "Enter your personal phone number and we'll text you a sign-in code."}
             </p>
             {error && (
               <div className="pt-2">
@@ -95,13 +95,13 @@ export const LoginPage: React.FC = () => {
                   <div className="text-[11px] font-bold tracking-[0.12em] text-fg-subtle uppercase">Your number</div>
                   <div className="mt-1 font-mono text-[24px] text-fg">{account && 'phone' in account ? account.phone : ''}</div>
                   <div className="mt-3 flex items-center gap-2 text-[13px] text-fg-muted">
-                    <StatusDot tone="accent" pulse /> Waiting to be added. This screen moves on by itself.
+                    <StatusDot tone="accent" pulse /> This page will continue automatically once you are added.
                   </div>
                 </div>
                 <p className="text-[13px] text-fg-subtle">
-                  Starting Outpost for your business?{' '}
+                  Is your company new to Outpost?{' '}
                   <button type="button" onClick={() => setCreating(true)} className="font-semibold text-fg underline underline-offset-4 hover:text-accent-hover">
-                    Create a new company
+                    Create a company
                   </button>
                 </p>
               </div>
@@ -124,7 +124,7 @@ export const LoginPage: React.FC = () => {
                   Create company
                 </Button>
                 <button type="button" onClick={() => setCreating(false)} className="text-[13px] font-medium text-fg-muted hover:text-fg">
-                  Back: my company already uses Outpost
+                  Back
                 </button>
               </form>
             )
@@ -173,7 +173,7 @@ export const LoginPage: React.FC = () => {
                 />
               </Field>
               {isNewNumber && (
-                <Field label="Your name" htmlFor="name" help="New number, so tell us who you are.">
+                <Field label="Your name" htmlFor="name" help="This number hasn't been used before, so we need your name.">
                   <input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Alex Rivera" maxLength={50} autoComplete="name" />
                 </Field>
               )}

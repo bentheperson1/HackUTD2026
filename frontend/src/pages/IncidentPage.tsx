@@ -10,11 +10,11 @@ import { useAppState, useNow } from '../lib/useAppState';
 import { Alert, Badge, Button, Card, Modal, PageHeader, formatClock, titleCase, cx } from '../components/ui';
 
 const PHASE_HELP: Record<IncidentPhase, string> = {
-  detection: 'Find out what happened.',
-  containment: 'Stop it spreading.',
-  eradication: 'Remove the attacker.',
-  recovery: 'Get systems back.',
-  post_incident: 'Write down lessons.',
+  detection: 'Figure out what happened and which systems are affected.',
+  containment: 'Stop the attack from spreading to more systems.',
+  eradication: "Remove the attacker's access and any malware.",
+  recovery: 'Restore systems and data from clean backups.',
+  post_incident: 'Review what happened and what to change.',
 };
 
 export const IncidentPage: React.FC = () => {
@@ -45,7 +45,7 @@ export const IncidentPage: React.FC = () => {
       <PageHeader
         eyebrow="Respond"
         title="Incident"
-        description="Start here when something goes wrong."
+        description="Start an incident when you think you are under attack, then update its phase as the response moves forward."
       />
 
       {error && (
@@ -64,7 +64,7 @@ export const IncidentPage: React.FC = () => {
               {isActive && <span className="font-mono text-sm text-fg-muted">{formatClock(elapsed)} elapsed</span>}
             </div>
             <h2 className="text-xl font-semibold text-fg">
-              {isActive ? 'Emergency response in progress' : 'No active incident'}
+              {isActive ? 'An incident is in progress' : 'No active incident'}
             </h2>
             <dl className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm sm:flex sm:gap-8">
               <div>
@@ -94,7 +94,7 @@ export const IncidentPage: React.FC = () => {
 
       {isActive && <RoleChecklist />}
 
-      <Card kind="timeline" title="Where we are" description="Tap the stage you're in">
+      <Card kind="timeline" title="Phase" description="Select the phase the response is in now">
         <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {PHASES.map((p, idx) => {
             const isCurrent = incident.phase === p;
@@ -124,7 +124,7 @@ export const IncidentPage: React.FC = () => {
             );
           })}
         </ol>
-        {!isActive && <p className="mt-4 text-xs text-fg-subtle">Start an incident to use these.</p>}
+        {!isActive && <p className="mt-4 text-xs text-fg-subtle">You can change the phase once an incident is active.</p>}
       </Card>
 
       {confirm === 'activate' && (
@@ -134,7 +134,7 @@ export const IncidentPage: React.FC = () => {
       {confirm === 'close' && (
         <Modal
           title="Close this incident?"
-          description="The record is kept. You can still export it later."
+          description="The incident record is saved, and you can still export it afterward."
           onClose={() => setConfirm(null)}
         >
           <div className="flex justify-end gap-2">

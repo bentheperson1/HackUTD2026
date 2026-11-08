@@ -208,7 +208,7 @@ public static partial class Module
         s.CurrentInject = null;
         ctx.Db.DrillSession.Id.Update(s);
 
-        PostSystemMessage(ctx, s.IncidentId, "Drill started. First question incoming.");
+        PostSystemMessage(ctx, s.IncidentId, "Drill started. The first question will appear shortly.");
         ScheduleDrillTick(ctx, s, injects[0].AtSecond);
     }
 

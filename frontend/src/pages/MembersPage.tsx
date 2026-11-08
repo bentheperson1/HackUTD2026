@@ -129,7 +129,7 @@ export const MembersPage: React.FC = () => {
       <PageHeader
         eyebrow="Prepare"
         title="Team"
-        description="Everyone who can use Outpost. Insurers and outside lawyers get temporary access."
+        description="Everyone in your company who can use Outpost. Insurers and outside lawyers are added as guests, and their access ends after the number of days you choose."
       />
 
       {error && (
@@ -173,7 +173,7 @@ export const MembersPage: React.FC = () => {
                 <input id="m-name" type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Jordan Ellis" />
               </Field>
             )}
-            <Field label="Personal phone" htmlFor="m-phone" help={isLive ? 'They need to sign in once with this number first.' : undefined}>
+            <Field label="Personal phone" htmlFor="m-phone" help={isLive ? 'This person must have signed in to Outpost with this number at least once.' : undefined}>
               <input id="m-phone" type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="+1 (555) 000-0000" />
             </Field>
             <Field label="Role" htmlFor="m-role">
@@ -192,7 +192,7 @@ export const MembersPage: React.FC = () => {
             )}
           </div>
           {isLive && isGuestRole(newRole) && !incidentOpen && (
-            <p className="text-xs text-fg-subtle">Start an incident before adding a guest.</p>
+            <p className="text-xs text-fg-subtle">Guests can only be added while an incident is active.</p>
           )}
           <Button type="submit" variant="primary">
             <UserPlus className="h-4 w-4" />
@@ -202,7 +202,7 @@ export const MembersPage: React.FC = () => {
       </Card>
 
       {removing && (
-        <Modal title={isLive ? `Revoke ${removing.name}'s access?` : `Remove ${removing.name}?`} description="They lose access right away." onClose={() => setRemoving(null)}>
+        <Modal title={isLive ? `Revoke ${removing.name}'s access?` : `Remove ${removing.name}?`} description="They will lose access to Outpost immediately." onClose={() => setRemoving(null)}>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setRemoving(null)}>
               Cancel

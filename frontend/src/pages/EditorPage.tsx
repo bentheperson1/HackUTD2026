@@ -72,7 +72,7 @@ export const EditorPage: React.FC = () => {
 
   return (
     <div className="space-y-10">
-      <PageHeader eyebrow="Record" title="Reports" description="Fill-in-the-blank letters for your insurer, lawyer and the state." />
+      <PageHeader eyebrow="Record" title="Reports" description="Letter templates for notifying your insurer, your lawyer and state regulators. Pick one, fill in the blanks and save your draft." />
 
       <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-12">
         <div className="space-y-2 lg:col-span-4">
@@ -133,7 +133,7 @@ export const EditorPage: React.FC = () => {
         </Card>
       </div>
 
-      <Alert tone="info">Replace anything in [BRACKETS] before sending.</Alert>
+      <Alert tone="info">Replace everything in [BRACKETS] with your own details before you send a letter.</Alert>
     </div>
   );
 };
