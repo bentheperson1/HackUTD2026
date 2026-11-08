@@ -32,6 +32,30 @@ public static partial class Module
     }
 
     [SpacetimeDB.Reducer]
+    public static void SyncRoster(ReducerContext ctx, string incidentId)
+    {
+        if (ctx.Db.Incident.Id.Find(incidentId) is not Incident inc) throw new Exception("No such incident.");
+        RequireOrgMember(ctx, inc.OrgId);
+
+        int added = 0;
+        foreach (var om in ctx.Db.OrgMember.OrgId.Filter(inc.OrgId).ToList())
+        {
+            if (HasMemberRow(ctx, incidentId, om.Person)) continue;
+            ctx.Db.IncidentMember.Insert(new IncidentMember
+            {
+                Id = 0,
+                IncidentId = incidentId,
+                Person = om.Person,
+                Role = om.Role,
+                AddedBy = ctx.Sender,
+                AddedAt = ctx.Timestamp,
+            });
+            added++;
+        }
+        if (added > 0) LogTimeline(ctx, incidentId, $"Roster synced: {added} member(s) added");
+    }
+
+    [SpacetimeDB.Reducer]
     public static void UpdateIncident(ReducerContext ctx, string incidentId, string summary, string currentStatus)
     {
         RequireRole(ctx, incidentId, CanEditDocs);
