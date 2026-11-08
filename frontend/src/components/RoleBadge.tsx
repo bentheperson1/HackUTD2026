@@ -6,9 +6,10 @@ interface RoleBadgeProps {
   role: Role;
 }
 
-export const RoleBadge: React.FC<RoleBadgeProps> = ({ role }) => {
-  const match = ROLES.find((r) => r.value === role);
-  const label = match ? match.label : role;
-  return <span style={{ fontWeight: 'bold', padding: '2px 6px', border: '1px solid #ccc' }}>[{label}]</span>;
-};
+export const roleLabel = (role: Role) => ROLES.find((r) => r.value === role)?.label ?? role;
 
+export const RoleBadge: React.FC<RoleBadgeProps> = ({ role }) => (
+  <span className="inline-flex h-5 items-center whitespace-nowrap rounded bg-surface-container-highest px-1.5 type-label-small text-on-surface-variant">
+    {roleLabel(role)}
+  </span>
+);

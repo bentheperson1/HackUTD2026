@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { store, AppState } from '../lib/store';
 import { DataTable, Column } from '../components/DataTable';
+import { Button } from '../components/Button';
+import { Card, SectionTitle } from '../components/Card';
+import { Chip } from '../components/Chip';
+import { PageHeader } from '../components/PageHeader';
 import { ReducerCallLog } from '../lib/types';
 import { tables, reducers } from '../module_bindings';
 import { useSpacetimeDB, useTable, useReducer } from 'spacetimedb/react';
-import { Terminal, Database, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 
 export const DebugPage: React.FC = () => {
   const [state, setState] = useState<AppState>(store.getState());
@@ -43,26 +47,28 @@ export const DebugPage: React.FC = () => {
   const reducerLogColumns: Column<ReducerCallLog>[] = [
     {
       header: 'Time',
-      render: (l) => <span className="font-mono text-slate-400 text-xs">{new Date(l.timestamp).toLocaleTimeString()}</span>,
-    },
-    {
-      header: 'Reducer',
-      render: (l) => <strong className="text-white text-xs">{l.reducer_name}</strong>,
-    },
-    {
-      header: 'Status',
       render: (l) => (
-        <span className={`text-[11px] font-bold uppercase font-mono ${l.status === 'success' ? 'text-emerald-400' : 'text-rose-400'}`}>
-          {l.status}
+        <span className="whitespace-nowrap font-mono type-body-small text-on-surface-variant">
+          {new Date(l.timestamp).toLocaleTimeString()}
         </span>
       ),
     },
     {
-      header: 'Payload',
+      header: 'Reducer',
+      render: (l) => <code className="font-mono">{l.reducer_name}</code>,
+    },
+    {
+      header: 'Status',
+      render: (l) => <Chip tone={l.status === 'success' ? 'success' : 'error'}>{l.status}</Chip>,
+    },
+    {
+      header: 'Args',
       render: (l) => (
         <div>
-          <pre className="m-0 text-[11px] font-mono text-slate-300">{JSON.stringify(l.args)}</pre>
-          {l.error_message && <div className="text-xs text-rose-400 font-bold mt-0.5">{l.error_message}</div>}
+          <pre className="m-0 whitespace-pre-wrap break-all font-mono type-body-small text-on-surface-variant">
+            {JSON.stringify(l.args)}
+          </pre>
+          {l.error_message && <div className="mt-0.5 type-body-small text-error">{l.error_message}</div>}
         </div>
       ),
     },
@@ -84,116 +90,92 @@ export const DebugPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <h2 className="text-xl font-black text-white flex items-center gap-2 m-0">
-            <Terminal className="w-5 h-5 text-hazard-yellow" />
-            <span>SpacetimeDB Diagnostics &amp; State Introspection</span>
-          </h2>
-          <p className="text-xs text-slate-400 mt-1 mb-0">
-            Introspection harness for live table subscriptions and real-time reducer execution logs.
-          </p>
-        </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Diagnostics"
+        description="Connection state, reducer calls and the raw local store."
+        actions={
+          <Button variant="outlined" icon={<RotateCcw />} onClick={handleReset}>
+            Reset demo data
+          </Button>
+        }
+      />
 
-        <button
-          onClick={handleReset}
-          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-rose-950/30 hover:bg-rose-900/40 text-rose-300 border border-rose-800/40 flex items-center gap-1.5 transition-all"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset Simulation State</span>
-        </button>
-      </div>
+      <Card className="space-y-4 p-5">
+        <SectionTitle>
+          SpacetimeDB <code className="font-mono">person</code> table
+        </SectionTitle>
 
-      {/* Live SpacetimeDB Integration Status */}
-      <div className="bg-card border border-border rounded-xl p-5 shadow-xl space-y-3">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2 m-0">
-          <Database className="w-4 h-4 text-hazard-yellow" />
-          <span>Live SpacetimeDB Cloud Table: <code>person</code></span>
-        </h3>
-
-        <div className="text-xs space-y-1">
-          <div>
-            Status:{' '}
-            <span className={`font-bold ${dbConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
-              ● {dbConnected ? 'Connected to Maincloud (drillnight-dev)' : 'Connecting to SpacetimeDB...'}
-            </span>
+        <dl className="m-0 space-y-1 type-body-medium">
+          <div className="flex gap-2">
+            <dt className="text-on-surface-variant">Status</dt>
+            <dd className="m-0">{dbConnected ? 'Connected to Maincloud' : 'Connecting…'}</dd>
           </div>
-          <div className="font-mono text-slate-400 text-[11px]">
-            Identity: {conn?.identity ? conn.identity.toHexString() : 'Pending'}
+          <div className="flex gap-2">
+            <dt className="text-on-surface-variant">Identity</dt>
+            <dd className="m-0 break-all font-mono type-body-small">
+              {conn?.identity ? conn.identity.toHexString() : 'Pending'}
+            </dd>
           </div>
-        </div>
+        </dl>
 
-        <div className="pt-2 border-t border-[#1F2531]">
-          <div className="text-xs font-semibold text-slate-300 mb-1.5">
-            Current Rows in <code>person</code> table ({people.length}):
-          </div>
+        <div className="flex flex-wrap gap-2">
           {people.length === 0 ? (
-            <p className="text-xs text-slate-500 italic">No rows in person table yet.</p>
+            <span className="type-body-medium text-on-surface-variant">No rows yet.</span>
           ) : (
-            <div className="flex gap-2 flex-wrap mb-3">
-              {people.map((p, idx) => (
-                <span key={idx} className="px-2.5 py-1 rounded bg-[#0B0D11] border border-border text-xs text-white font-mono">
-                  {p.name}
-                </span>
-              ))}
-            </div>
+            people.map((p, idx) => <Chip key={idx}>{p.name}</Chip>)
           )}
-
-          <form onSubmit={handleAddPerson} className="flex gap-2 mt-2">
-            <input
-              type="text"
-              placeholder="Test cloud reducer: enter person name"
-              value={personName}
-              onChange={(e) => setPersonName(e.target.value)}
-              className="flex-1 text-xs"
-              disabled={!dbConnected}
-            />
-            <button
-              type="submit"
-              disabled={!dbConnected}
-              className="min-h-[40px] px-5 bg-hazard-yellow hover:bg-hazard-bright text-black font-extrabold text-xs uppercase tracking-wider rounded-lg disabled:opacity-50 transition-all shrink-0"
-            >
-              Call Add Reducer
-            </button>
-          </form>
         </div>
-      </div>
 
-      {/* Reducer Call Log */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-bold text-slate-200 m-0">Live Reducer Execution Log</h3>
+        <form onSubmit={handleAddPerson} className="flex gap-2">
+          <input
+            type="text"
+            aria-label="Person name"
+            placeholder="Name to insert"
+            value={personName}
+            onChange={(e) => setPersonName(e.target.value)}
+            className="h-10 flex-1 py-0"
+            disabled={!dbConnected}
+          />
+          <Button type="submit" variant="tonal" disabled={!dbConnected || !personName.trim()}>
+            Call add
+          </Button>
+        </form>
+      </Card>
+
+      <section>
+        <SectionTitle trailing={`${state.reducerLogs.length} calls`}>Reducer calls</SectionTitle>
         <DataTable
           columns={reducerLogColumns}
           data={state.reducerLogs}
-          emptyMessage="No reducers called yet. Trigger any action across the crisis tabs to view log."
+          emptyMessage="No reducer calls yet. Do anything elsewhere in the app and it will show up here."
         />
-      </div>
+      </section>
 
-      {/* Table JSON Dump */}
-      <div className="bg-card border border-border rounded-xl p-5 shadow-xl space-y-3">
-        <h3 className="text-sm font-bold text-white m-0">Raw Table JSON Inspector</h3>
-
-        <div className="flex gap-1.5 flex-wrap">
-          {tableKeys.map((key) => (
-            <button
-              key={key}
-              onClick={() => setSelectedTable(key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                selectedTable === key
-                  ? 'bg-hazard-yellow text-black font-bold'
-                  : 'bg-[#0B0D11] text-slate-300 hover:text-white border border-border'
-              }`}
-            >
-              {key}
-            </button>
-          ))}
+      <section>
+        <SectionTitle>Local store</SectionTitle>
+        <div className="mb-3 flex flex-wrap gap-2">
+          {tableKeys.map((key) => {
+            const selected = selectedTable === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setSelectedTable(key)}
+                className={`state-layer inline-flex h-8 items-center rounded-lg px-3 font-mono type-body-small ${
+                  selected
+                    ? 'bg-secondary-container text-on-secondary-container'
+                    : 'border border-outline-variant text-on-surface-variant'
+                }`}
+              >
+                {key}
+              </button>
+            );
+          })}
         </div>
-
-        <pre className="bg-[#0B0D11] border border-[#1E2431] text-emerald-400 p-4 rounded-xl text-xs font-mono overflow-x-auto max-h-[350px]">
+        <pre className="max-h-[360px] overflow-auto rounded-xl bg-surface-container-lowest p-4 font-mono type-body-small text-on-surface-variant">
           {JSON.stringify(state[selectedTable], null, 2)}
         </pre>
-      </div>
+      </section>
     </div>
   );
 };
