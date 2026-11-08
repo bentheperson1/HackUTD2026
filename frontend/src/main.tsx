@@ -13,10 +13,7 @@ import { Identity } from 'spacetimedb';
 import { SpacetimeDBProvider } from 'spacetimedb/react';
 import { DbConnection, ErrorContext } from './module_bindings/index.ts';
 import { live } from './lib/live';
-
-const HOST = import.meta.env.VITE_SPACETIMEDB_HOST ?? 'wss://maincloud.spacetimedb.com';
-const DB_NAME = import.meta.env.VITE_SPACETIMEDB_DB_NAME ?? 'hackutd2026-h9s81';
-const TOKEN_KEY = `${HOST}/${DB_NAME}/auth_token`;
+import { DB_NAME, HOST, TOKEN_KEY } from './lib/config';
 
 const onConnect = (conn: DbConnection, identity: Identity, token: string) => {
   try {

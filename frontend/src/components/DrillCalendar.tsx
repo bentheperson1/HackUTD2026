@@ -44,7 +44,7 @@ export const DrillCalendar: React.FC = () => {
       kind="timeline"
       kindTone="drill"
       title="Schedule"
-      description="One Drill Night per month"
+      description="Once a month"
       actions={
         <div className="flex items-center gap-0.5">
           <IconButton label="Previous month" onClick={() => setCursor(new Date(year, month - 1, 1))}>
@@ -96,17 +96,9 @@ export const DrillCalendar: React.FC = () => {
           <div className="text-[11px] font-semibold tracking-[0.09em] text-fg-subtle uppercase">{isPast ? 'Last drill' : 'Next drill'}</div>
           <div>
             <div className="text-[15px] font-semibold text-fg">{drillDate.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}</div>
-            <div className="font-mono text-xs text-fg-muted">7:00 PM · 5 min</div>
+            <div className="font-mono text-xs text-fg-muted">7:00 PM</div>
           </div>
-          <ul className="space-y-1.5 border-t border-line pt-3 text-xs text-fg-subtle">
-            <li className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-sm bg-drill" aria-hidden="true" /> Drill Night
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-sm shadow-[inset_0_0_0_1px_var(--color-accent)]" aria-hidden="true" /> Today
-            </li>
-          </ul>
-          <p className="text-xs text-fg-subtle">Click any day to move this month's drill.</p>
+          <p className="border-t border-line pt-3 text-xs text-fg-subtle">Click a day to move it.</p>
         </div>
       </div>
     </Card>

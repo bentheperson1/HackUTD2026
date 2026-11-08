@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
-import { Wordmark } from './Masthead';
+import { CompanyLogo, Wordmark } from './Masthead';
 
 type FooterLink = { label: string; to?: string; href?: string };
 
@@ -9,10 +9,9 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Product',
     links: [
-      { label: 'Overview', to: '/admin' },
       { label: 'Incident', to: '/incident' },
-      { label: 'War room', to: '/warroom' },
-      { label: 'Scope', to: '/scope' },
+      { label: 'Chat', to: '/chat' },
+      { label: 'Affected data', to: '/scope' },
       { label: 'Drill Night', to: '/drill' },
     ],
   },
@@ -26,21 +25,11 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
     ],
   },
   {
-    title: 'Company',
-    links: [
-      { label: 'About', href: 'https://fifthedgestudios.com/' },
-      { label: 'Press', href: 'https://fifthedgestudios.com/press' },
-      { label: 'itch.io', href: 'https://fifthedgestudios.itch.io' },
-      { label: 'Source code', href: 'https://github.com/prestonctx2006-rgb/HackUTD2026' },
-    ],
-  },
-  {
     title: 'Legal',
     links: [
       { label: 'Privacy', to: '/legal#privacy' },
       { label: 'Terms', to: '/legal#terms' },
       { label: 'Security', to: '/legal#security' },
-      { label: 'System status', to: '/debug' },
     ],
   },
 ];
@@ -53,16 +42,13 @@ export const Footer: React.FC = () => (
     <div className="mx-auto max-w-[1240px] px-4 pt-12 pb-8 md:px-8">
       <div className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-6">
         <div className="col-span-2 space-y-4">
-          <Link to="/admin" aria-label="Fifth Edge home" className="inline-block">
+          <Link to="/incident" aria-label="Outpost home" className="inline-block">
             <Wordmark size="sm" />
           </Link>
-          <p className="max-w-xs text-[13px] leading-relaxed text-fg-muted">
-            The out-of-band crisis command center for small businesses, with a monthly multiplayer drill to keep the team ready.
-          </p>
-          <p className="flex items-center gap-2 text-xs text-fg-subtle">
-            <span className="h-1.5 w-1.5 bg-brand" aria-hidden="true" />
-            Runs outside company email, chat and SSO
-          </p>
+          <p className="max-w-xs text-[13px] leading-relaxed text-fg-muted">Your crisis room when company systems are down.</p>
+          <a href="https://fifthedgestudios.com/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs text-fg-subtle hover:text-fg">
+            By <CompanyLogo className="h-6" />
+          </a>
         </div>
 
         {COLUMNS.map((col) => (
@@ -90,7 +76,7 @@ export const Footer: React.FC = () => (
 
       <div className="mt-12 flex flex-col gap-2 border-t border-line pt-6 text-xs text-fg-subtle md:flex-row md:items-center md:justify-between">
         <span>© {new Date().getFullYear()} Fifth Edge. All rights reserved.</span>
-        <span>Built at HackUTD 2026 on SpacetimeDB · Not legal advice. Confirm notification duties with counsel.</span>
+        <span>Not legal advice. Check with your lawyer.</span>
       </div>
     </div>
   </footer>

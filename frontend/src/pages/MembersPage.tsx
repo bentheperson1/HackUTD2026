@@ -73,9 +73,6 @@ export const MembersPage: React.FC = () => {
             {m.name}
             {isLive && <span className={m.online ? 'h-1.5 w-1.5 bg-accent' : 'h-1.5 w-1.5 bg-line-strong'} title={m.online ? 'Online now' : 'Offline'} />}
           </div>
-          <div className="font-mono text-xs text-fg-subtle" title={m.identity}>
-            {m.identity.slice(0, 8)}…{m.identity.slice(-4)}
-          </div>
         </div>
       ),
     },
@@ -110,9 +107,9 @@ export const MembersPage: React.FC = () => {
       header: 'Access',
       render: (m) =>
         m.expires_at ? (
-          <Badge tone="accent">Guest until {new Date(m.expires_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</Badge>
+          <Badge tone="accent">Until {new Date(m.expires_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</Badge>
         ) : (
-          <span className="text-xs text-fg-subtle">Permanent</span>
+          <span className="text-xs text-fg-subtle">Always</span>
         ),
     },
     {
@@ -132,7 +129,7 @@ export const MembersPage: React.FC = () => {
       <PageHeader
         eyebrow="Prepare"
         title="Team"
-        description="Everyone who can enter the war room. Staff join the company roster; insurers and outside counsel get guest access to one incident for 1-30 days."
+        description="Everyone who can use Outpost. Insurers and outside lawyers get temporary access."
       />
 
       {error && (
@@ -164,7 +161,7 @@ export const MembersPage: React.FC = () => {
         ))}
       </FilterBar>
 
-      <Card kind="people" title="Roster" description={`${visibleMembers.length} of ${members.length} people`} padded={false}>
+      <Card kind="people" title="People" padded={false}>
         <DataTable bare columns={columns} data={visibleMembers} rowKey={(m) => m.id} emptyMessage="No one matches these filters." />
       </Card>
 
@@ -176,7 +173,7 @@ export const MembersPage: React.FC = () => {
                 <input id="m-name" type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Jordan Ellis" />
               </Field>
             )}
-            <Field label="Personal phone" htmlFor="m-phone" help={isLive ? 'They sign in once with this number first.' : 'Used for sign-in codes.'}>
+            <Field label="Personal phone" htmlFor="m-phone" help={isLive ? 'They need to sign in once with this number first.' : undefined}>
               <input id="m-phone" type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="+1 (555) 000-0000" />
             </Field>
             <Field label="Role" htmlFor="m-role">
@@ -195,17 +192,17 @@ export const MembersPage: React.FC = () => {
             )}
           </div>
           {isLive && isGuestRole(newRole) && !incidentOpen && (
-            <p className="text-xs text-fg-subtle">Guests are granted access to one incident, so activate an incident first.</p>
+            <p className="text-xs text-fg-subtle">Start an incident before adding a guest.</p>
           )}
           <Button type="submit" variant="primary">
             <UserPlus className="h-4 w-4" />
-            Add to roster
+            Add person
           </Button>
         </form>
       </Card>
 
       {removing && (
-        <Modal title={isLive ? `Revoke ${removing.name}'s access?` : `Remove ${removing.name}?`} description="They lose access to the war room immediately. The audit log keeps their past actions." onClose={() => setRemoving(null)}>
+        <Modal title={isLive ? `Revoke ${removing.name}'s access?` : `Remove ${removing.name}?`} description="They lose access right away." onClose={() => setRemoving(null)}>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setRemoving(null)}>
               Cancel

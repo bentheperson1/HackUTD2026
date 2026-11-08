@@ -39,8 +39,8 @@ export const DrillPage: React.FC = () => {
       <PageHeader
         eyebrow="Prepare"
         title="Drill Night"
-        description="A short practice run on the same screens you'd use in a real incident. Questions drop in on a timer, everyone answers on their own phone, and faster right answers score more."
-        actions={<span className="text-xs text-fg-subtle">{mode === 'live' ? 'Multiplayer · SpacetimeDB' : 'Demo mode · teammates are simulated'}</span>}
+        description="A short practice quiz for the whole team. Faster right answers score more."
+        actions={mode !== 'live' && <span className="text-xs text-fg-subtle">Demo: teammates are simulated</span>}
       />
 
       {open && session.status === 'lobby' && <Lobby session={session} players={drill.players} me={me} currentUser={currentUser} />}
@@ -115,7 +115,7 @@ const Home: React.FC<{ scenarios: DrillScenario[]; currentUser: Member }> = ({ s
         <div className="space-y-3 lg:col-span-4">
           <Label>Join with a code</Label>
           <JoinForm currentUser={currentUser} />
-          <p className="text-xs text-fg-subtle">The owner reads the code out or shares their screen.</p>
+          <p className="text-xs text-fg-subtle">Ask the owner for the code.</p>
         </div>
 
         <div className="space-y-3 lg:col-span-8">
@@ -146,12 +146,11 @@ const Home: React.FC<{ scenarios: DrillScenario[]; currentUser: Member }> = ({ s
                   {sc.description && <span className="mt-0.5 block text-sm text-fg-muted">{sc.description}</span>}
                 </span>
                 <span className="shrink-0 pt-0.5 text-right font-mono text-xs text-fg-subtle">
-                  {sc.question_count ? `${sc.question_count} questions` : 'questions on a timer'}
-                  <br />~{sc.minutes} min
+                  ~{sc.minutes} min
                 </span>
               </button>
             ))}
-            {scenarios.length === 0 && <EmptyState title="No scenarios loaded" description="The backend seeds one when it's published." />}
+            {scenarios.length === 0 && <EmptyState title="No drills available yet" />}
           </div>
           {host && (
             <Button variant="drill" size="lg" onClick={() => store.drillCreate(currentUser, picked)} disabled={!picked}>
@@ -183,7 +182,7 @@ const Lobby: React.FC<{ session: DrillSession; players: DrillPlayer[]; me: Drill
   };
 
   return (
-    <Card kind="drill" kindTone="drill" title={`Lobby: ${session.scenario_name}`} description={session.incident_id}>
+    <Card kind="drill" kindTone="drill" title={`Lobby: ${session.scenario_name}`}>
       <div className="grid grid-cols-1 gap-x-12 gap-y-8 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <Label>Join code</Label>
@@ -195,7 +194,7 @@ const Lobby: React.FC<{ session: DrillSession; players: DrillPlayer[]; me: Drill
               {copied ? <Check className="h-5 w-5 text-accent" /> : <Copy className="h-5 w-5" />}
             </button>
           </div>
-          <p className="mt-3 max-w-sm text-sm text-fg-muted">Everyone opens Fifth Edge on their own phone and enters this code. People can still join after it starts.</p>
+          <p className="mt-3 max-w-sm text-sm text-fg-muted">Everyone enters this code on their own phone.</p>
 
           <div className="mt-6 space-y-4">
             {!me && (
@@ -285,7 +284,7 @@ const Running: React.FC<{
     return (
       <Card kind="drill" kindTone="drill" title="First question incoming" description={session.scenario_name} actions={ownerControls}>
         <p className="flex items-center gap-2 text-sm text-fg-muted">
-          <StatusDot tone="drill" pulse /> The drill has started. The first question drops in a few seconds.
+          <StatusDot tone="drill" pulse /> Starting in a few seconds.
         </p>
         {!me && (
           <div className="mt-5 max-w-xs">
@@ -314,7 +313,7 @@ const Running: React.FC<{
       </StatRow>
 
       <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-12">
-        <Card kind="drill" kindTone="drill" title={`For: ${roleLabel(q.for_role)}`} description="100 pts, full marks inside 5 s" className="lg:col-span-8" actions={ownerControls}>
+        <Card kind="drill" kindTone="drill" title={`For: ${roleLabel(q.for_role)}`} className="lg:col-span-8" actions={ownerControls}>
           <h3 className="font-display text-[26px] leading-tight font-bold text-fg uppercase">{q.text}</h3>
 
           <div className="mt-5 grid grid-cols-1 gap-2" role="group" aria-label="Answers">
@@ -346,14 +345,14 @@ const Running: React.FC<{
               'Join the drill to answer.'
             ) : mine ? (
               mine.correct ? (
-                <span className="text-accent">Right. +{drillPoints(100, mine.answered_ms)} points. Why it's right shows in the debrief.</span>
+                <span className="text-accent">Right! +{drillPoints(100, mine.answered_ms)} points.</span>
               ) : (
-                <span className="text-breach-text">Not quite. The right answer and the reason show in the debrief at the end.</span>
+                <span className="text-breach-text">Not quite. You'll see the answer at the end.</span>
               )
             ) : !canAnswer ? (
-              `This one is for ${roleLabel(q.for_role)}. Watch how they call it.`
+              `This one is for ${roleLabel(q.for_role)}.`
             ) : (
-              'Pick one. Full points inside 5 seconds, then it slides to half by 30 seconds.'
+              'Pick one. Faster answers score more.'
             )}
           </p>
           {!me && (
@@ -369,7 +368,7 @@ const Running: React.FC<{
       </div>
 
       {questions.length > 1 && (
-        <Card kind="timeline" kindTone="drill" title="Earlier questions" description="answers are revealed when the drill ends">
+        <Card kind="timeline" kindTone="drill" title="Earlier questions">
           <ol className="divide-y divide-line">
             {questions
               .filter((x) => x.id !== q.id)
@@ -408,21 +407,20 @@ const Results: React.FC<{ session: DrillSession; players: DrillPlayer[]; questio
 
   return (
     <>
-      <Card kind="metric" kindTone="drill" title={`Results: ${session.scenario_name}`} description={session.incident_id}>
+      <Card kind="metric" kindTone="drill" title={`Results: ${session.scenario_name}`}>
         <StatRow>
           <Stat label="Top player" value={ranked[0]?.name ?? '—'} tone="drill" hint={ranked[0] ? `${ranked[0].score} pts` : undefined} />
           <Stat label="Team score" value={team} />
           <Stat label="Accuracy" value={`${accuracy}%`} hint={`${answers.length} answers`} />
           <Stat label="Your score" value={me?.score ?? '—'} tone="drill" />
         </StatRow>
-        <p className="mt-4 text-sm text-fg-muted">The run is recorded in the drill's audit log, and points count toward the all-time standings.</p>
       </Card>
 
       <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-12">
         <Card kind="chart" kindTone="drill" title="Final standings" className="lg:col-span-4" padded={false}>
           <Leaderboard players={players} meId={me?.id} />
         </Card>
-        <Card kind="timeline" kindTone="drill" title="Debrief" description="What the right call was, and why" className="lg:col-span-8">
+        <Card kind="timeline" kindTone="drill" title="Answers" className="lg:col-span-8">
           <ol className="divide-y divide-line">
             {questions.map((q) => {
               const qa = answers.filter((a) => a.question_id === q.id);
@@ -506,7 +504,7 @@ const AllTime: React.FC<{ members: Member[] }> = ({ members }) => {
   const ranked = useMemo(() => [...members].filter((m) => !m.grant_id).sort((a, b) => (b.drill_score ?? 0) - (a.drill_score ?? 0)), [members]);
   const top = Math.max(1, ranked[0]?.drill_score ?? 1);
   return (
-    <Card kind="people" kindTone="drill" title="All-time standings" description="Points from every finished drill">
+    <Card kind="people" kindTone="drill" title="All-time scores">
       <ol className="grid grid-cols-1 gap-x-12 md:grid-cols-2">
         {ranked.map((m, i) => (
           <li key={m.id} className="flex items-center gap-3 border-b border-line py-2.5">

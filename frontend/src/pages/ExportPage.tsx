@@ -18,7 +18,7 @@ export const ExportPage: React.FC = () => {
   const handleExport = () => {
     const s = store.getState();
     const packet = {
-      title: 'Fifth Edge Crisis Command Center - Formal Incident Package',
+      title: 'Outpost incident package',
       generated_at: new Date().toISOString(),
       organization: s.org.name,
       incident: s.incident,
@@ -39,21 +39,21 @@ export const ExportPage: React.FC = () => {
     URL.revokeObjectURL(url);
     // Record the export in the permanent timeline (log_export on the server)
     store.logExport(currentUser.name, options.filter((o) => o.checked).map((o) => o.label));
-    setExportNotice('Incident package downloaded and logged in the audit trail.');
+    setExportNotice('Downloaded.');
   };
 
   const options = [
-    { label: 'Team roster', detail: `${state.members.length} people with roles and phones`, checked: includeRoster, set: setIncludeRoster },
-    { label: 'War room messages', detail: `${state.messages.length} messages across all channels`, checked: includeTimeline, set: setIncludeTimeline },
-    { label: 'Scope of affected data', detail: `${state.scopeItems.length} data types with status and states`, checked: includeScope, set: setIncludeScope },
-    { label: 'Audit log', detail: `${state.auditLogs.length} permanent entries`, checked: includeAuditLogs, set: setIncludeAuditLogs },
-    { label: 'Report drafts', detail: `${state.reportDrafts.length} insurer, counsel and regulator drafts`, checked: includeDrafts, set: setIncludeDrafts },
+    { label: 'Team', detail: `${state.members.length} people`, checked: includeRoster, set: setIncludeRoster },
+    { label: 'Messages', detail: `${state.messages.length} messages`, checked: includeTimeline, set: setIncludeTimeline },
+    { label: 'Affected data', detail: `${state.scopeItems.length} data types`, checked: includeScope, set: setIncludeScope },
+    { label: 'Audit log', detail: `${state.auditLogs.length} entries`, checked: includeAuditLogs, set: setIncludeAuditLogs },
+    { label: 'Reports', detail: `${state.reportDrafts.length} drafts`, checked: includeDrafts, set: setIncludeDrafts },
   ];
   const selectedCount = options.filter((o) => o.checked).length;
 
   return (
     <div className="space-y-10">
-      <PageHeader eyebrow="Record" title="Export" description="Package the incident record for the insurer and outside counsel." />
+      <PageHeader eyebrow="Record" title="Export" description="Download the incident record for your insurer or lawyer." />
 
       {exportNotice && (
         <Alert tone="success" onDismiss={() => setExportNotice('')}>
@@ -77,11 +77,11 @@ export const ExportPage: React.FC = () => {
         </ul>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
           <span className="text-xs text-fg-subtle">
-            {selectedCount} of {options.length} sections · JSON file (PDF coming next)
+            {selectedCount} of {options.length} selected
           </span>
           <Button variant="primary" onClick={handleExport} disabled={selectedCount === 0}>
             <Download className="h-4 w-4" />
-            Download package
+            Download
           </Button>
         </div>
       </Card>

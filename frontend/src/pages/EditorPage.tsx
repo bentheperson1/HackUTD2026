@@ -67,12 +67,12 @@ export const EditorPage: React.FC = () => {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     const res = store.saveDraft(selectedTemplateId, draftTitle, draftContent);
-    if (res.success) setStatusMessage('Draft saved at ' + new Date().toLocaleTimeString());
+    if (res.success) setStatusMessage('Saved ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   };
 
   return (
     <div className="space-y-10">
-      <PageHeader eyebrow="Record" title="Reports" description="Ready-made formats for the insurer, outside counsel and state regulators." />
+      <PageHeader eyebrow="Record" title="Reports" description="Fill-in-the-blank letters for your insurer, lawyer and the state." />
 
       <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-12">
         <div className="space-y-2 lg:col-span-4">
@@ -106,9 +106,8 @@ export const EditorPage: React.FC = () => {
                 onClick={() => STANDARD_TEMPLATES.filter((t) => !templates.find((x) => x.id === t.id)).forEach((t) => store.saveTemplate(t.id, t.name, t.description, t.body))}
               >
                 <Plus className="h-3.5 w-3.5" />
-                Add insurer, counsel and regulator formats
+                Add standard letters
               </Button>
-              <p className="mt-1.5 text-xs text-fg-subtle">Saved to your company's template library. Owners only.</p>
             </div>
           )}
         </div>
@@ -134,7 +133,7 @@ export const EditorPage: React.FC = () => {
         </Card>
       </div>
 
-      <Alert tone="info">Placeholders in brackets, like [DISCOVERY_TIME], still need to be filled in before sending.</Alert>
+      <Alert tone="info">Replace anything in [BRACKETS] before sending.</Alert>
     </div>
   );
 };

@@ -9,7 +9,7 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('Fifth Edge crashed:', error, info.componentStack);
+    console.error('Outpost crashed:', error, info.componentStack);
   }
 
   reset = () => {
@@ -20,7 +20,7 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
     } catch {
       /* ignore */
     }
-    window.location.assign('/admin');
+    window.location.assign('/incident');
   };
 
   render() {
