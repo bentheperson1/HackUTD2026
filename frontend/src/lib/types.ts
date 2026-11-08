@@ -1,8 +1,8 @@
-export type Role = 'owner' | 'it_lead' | 'legal' | 'comms' | 'insurer' | 'outside_counsel';
+export type Role = 'owner' | 'it_lead' | 'legal' | 'comms' | 'member' | 'insurer' | 'outside_counsel';
 
 export type IncidentStatus = 'inactive' | 'active' | 'closed';
 
-export type IncidentPhase = 'detection' | 'containment' | 'eradication' | 'recovery';
+export type IncidentPhase = 'detection' | 'containment' | 'eradication' | 'recovery' | 'post-incident';
 
 export type ScopeStatus = 'locked' | 'exfiltrated' | 'restored' | 'unknown';
 

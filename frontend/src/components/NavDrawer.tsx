@@ -1,8 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { ShieldAlert, X } from 'lucide-react';
 import { NAV_SECTIONS, UTILITY_DESTINATIONS, NavDestination } from '../lib/navigation';
-import { store } from '../lib/store';
+<<<<<<< Updated upstream
+import { useTable } from 'spacetimedb/react';
+import { tables } from '../module_bindings';
+=======
+>>>>>>> Stashed changes
+import { useAuth } from '../lib/authContext';
 import { IconButton } from './Button';
 
 interface NavDrawerProps {
@@ -40,15 +45,15 @@ const NavItem: React.FC<{ item: NavDestination; badge?: number; onNavigate: () =
 };
 
 export const NavDrawer: React.FC<NavDrawerProps> = ({ open, onClose }) => {
-  const [orgName, setOrgName] = useState(store.getState().org.name);
-  const [openTasks, setOpenTasks] = useState(store.getState().tasks.filter((t) => !t.done).length);
-
-  useEffect(() => {
-    return store.subscribe((state) => {
-      setOrgName(state.org.name);
-      setOpenTasks(state.tasks.filter((t) => !t.done).length);
-    });
-  }, []);
+<<<<<<< Updated upstream
+  const { activeOrg, activeIncident } = useAuth();
+  const [tasks] = useTable(tables.task);
+  const orgName = activeOrg?.name ?? 'No company yet';
+  const openTasks = tasks.filter((t) => t.incidentId === activeIncident?.id && t.status !== 'done').length;
+=======
+  const { activeIncident } = useAuth();
+  const orgName = activeIncident?.name ?? 'No active incident';
+>>>>>>> Stashed changes
 
   useEffect(() => {
     if (!open) return;
@@ -57,7 +62,8 @@ export const NavDrawer: React.FC<NavDrawerProps> = ({ open, onClose }) => {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  const badges: Record<string, number> = { '/warroom': openTasks };
+  // No task table in the backend yet, so no badge counts
+  const badges: Record<string, number> = {};
 
   return (
     <>

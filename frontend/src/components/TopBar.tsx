@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { useSpacetimeDB } from 'spacetimedb/react';
 import { useAuth } from '../lib/authContext';
-import { store } from '../lib/store';
-import { Incident } from '../lib/types';
+import { isIncidentOpen, phaseName, toDate } from '../lib/live';
 import { IconButton } from './Button';
 import { Chip } from './Chip';
 import { roleLabel } from './RoleBadge';
@@ -26,14 +25,11 @@ const initials = (name: string) =>
     .join('');
 
 export const TopBar: React.FC<{ onMenu: () => void }> = ({ onMenu }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, activeIncident: incident } = useAuth();
   const conn = useSpacetimeDB();
-  const [incident, setIncident] = useState<Incident>(store.getState().incident);
   const [now, setNow] = useState(Date.now());
 
-  useEffect(() => store.subscribe((state) => setIncident(state.incident)), []);
-
-  const isActive = incident.status === 'active';
+  const isActive = !!incident && isIncidentOpen(incident.status);
 
   useEffect(() => {
     if (!isActive) return;
@@ -53,12 +49,12 @@ export const TopBar: React.FC<{ onMenu: () => void }> = ({ onMenu }) => {
         {isActive ? (
           <Chip tone="error">Incident active</Chip>
         ) : (
-          <Chip>{incident.status === 'closed' ? 'Incident closed' : 'Standby'}</Chip>
+          <Chip>{incident ? 'Incident closed' : 'Standby'}</Chip>
         )}
-        <Chip className="capitalize">{incident.phase}</Chip>
-        {isActive && incident.started_at && (
+        {incident && <Chip className="capitalize">{phaseName(incident.phase)}</Chip>}
+        {isActive && (
           <span className="hidden whitespace-nowrap font-mono type-body-medium text-on-surface-variant sm:inline">
-            {formatElapsed(now - new Date(incident.started_at).getTime())}
+            {formatElapsed(now - toDate(incident.openedAt).getTime())}
           </span>
         )}
       </div>
@@ -73,7 +69,7 @@ export const TopBar: React.FC<{ onMenu: () => void }> = ({ onMenu }) => {
 
       <Link
         to="/login"
-        title="Switch persona"
+        title="Account"
         className="state-layer flex items-center gap-3 rounded-full py-1 pl-1 pr-1 text-on-surface md:pr-4"
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-tertiary-container type-label-medium text-on-tertiary-container">
@@ -81,7 +77,7 @@ export const TopBar: React.FC<{ onMenu: () => void }> = ({ onMenu }) => {
         </span>
         <span className="hidden min-w-0 flex-col leading-tight md:flex">
           <span className="truncate type-label-large">{currentUser.name}</span>
-          <span className="type-body-small text-on-surface-variant">{roleLabel(currentUser.role)}</span>
+          <span className="type-body-small text-on-surface-variant">{currentUser.role ? roleLabel(currentUser.role) : "No role yet"}</span>
         </span>
       </Link>
     </header>

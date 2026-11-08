@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { store } from '../lib/store';
-import { ReportTemplate } from '../lib/types';
+<<<<<<< Updated upstream
+import { useReducer, useTable } from 'spacetimedb/react';
+import { reducers, tables } from '../module_bindings';
+import { useAuth } from '../lib/authContext';
+import { errorMessage, isIncidentOpen, toDate } from '../lib/live';
+=======
+import { useTable } from 'spacetimedb/react';
+import { tables } from '../module_bindings';
+import { useAuth } from '../lib/authContext';
+>>>>>>> Stashed changes
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Field } from '../components/Field';
@@ -8,32 +16,72 @@ import { Notice } from '../components/Notice';
 import { PageHeader } from '../components/PageHeader';
 import { Check, Save } from 'lucide-react';
 
+// Matches CanEditDocs in Helpers.cs
+const CAN_EDIT_DOCS = ['Owner', 'ItLead', 'Legal', 'Comms', 'Counsel'];
+
 export const EditorPage: React.FC = () => {
-  const [templates] = useState<ReportTemplate[]>(store.getState().reportTemplates);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>(templates[0]?.id || '');
+<<<<<<< Updated upstream
+  const { activeIncident, incidentRole } = useAuth();
+  const [templates] = useTable(tables.docTemplate);
+  const [documents] = useTable(tables.incidentDocument);
+  const saveDocument = useReducer(reducers.saveDocument);
+  const [pickedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const selectedTemplateId = pickedTemplateId || templates[0]?.id || '';
+=======
+  const { activeIncident } = useAuth();
+  const [templates] = useTable(tables.docTemplate);
+  const [documents] = useTable(tables.incidentDocument);
+  const [pickedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const selectedTemplateId = pickedTemplateId || templates[0]?.id || '';
   const [draftTitle, setDraftTitle] = useState('');
+>>>>>>> Stashed changes
   const [draftContent, setDraftContent] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
+  const currentTpl = templates.find((t) => t.id === selectedTemplateId);
+  const savedDoc = documents.find((d) => d.incidentId === activeIncident?.id && d.templateId === selectedTemplateId);
+  const canEdit =
+    !!activeIncident && isIncidentOpen(activeIncident.status) && !!incidentRole && CAN_EDIT_DOCS.includes(incidentRole);
+
+  // Load the saved document for this incident, or the template text if nothing is saved yet.
+  // Only reruns when switching template/incident, so a teammate's save doesn't wipe what you're typing.
   useEffect(() => {
-    const currentTpl = templates.find((t) => t.id === selectedTemplateId);
-    const existingDraft = store.getState().reportDrafts.find((d) => d.template_id === selectedTemplateId);
+<<<<<<< Updated upstream
+    setDraftContent(savedDoc?.body ?? currentTpl?.body ?? '');
+    setStatusMessage('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTemplateId, activeIncident?.id, !!currentTpl]);
 
-    if (existingDraft) {
-      setDraftTitle(existingDraft.title);
-      setDraftContent(existingDraft.content);
-    } else if (currentTpl) {
-      setDraftTitle(`${currentTpl.name} - Draft`);
-      setDraftContent(currentTpl.content);
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeIncident) return;
+    setError(null);
+    try {
+      await saveDocument({ incidentId: activeIncident.id, templateId: selectedTemplateId, body: draftContent });
+      setStatusMessage('Draft saved at ' + new Date().toLocaleTimeString());
+    } catch (err) {
+      setError(errorMessage(err));
     }
-  }, [selectedTemplateId, templates]);
+=======
+    const currentTpl = templates.find((t) => t.id === selectedTemplateId);
+    const existingDraft = documents.find(
+      (d) => d.incidentId === activeIncident?.id && d.templateId === selectedTemplateId
+    );
+
+    if (currentTpl) setDraftTitle(`${currentTpl.name} - Draft`);
+    if (existingDraft) {
+      setDraftContent(existingDraft.body);
+    } else if (currentTpl) {
+      setDraftContent(currentTpl.body);
+    }
+  }, [selectedTemplateId, templates, documents, activeIncident?.id]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    const res = store.saveDraft(selectedTemplateId, draftTitle, draftContent);
-    if (res.success) {
-      setStatusMessage('Draft saved at ' + new Date().toLocaleTimeString());
-    }
+    // TODO: needs a SaveDocument reducer in the backend (incident_document table exists, no way to write it yet)
+    setStatusMessage("Saving isn't wired up yet. The backend has no reducer for incident documents.");
+>>>>>>> Stashed changes
   };
 
   return (
@@ -43,7 +91,14 @@ export const EditorPage: React.FC = () => {
         description="Start from a template for your insurer, outside counsel or a state regulator, then edit and save."
       />
 
+<<<<<<< Updated upstream
       {statusMessage && <Notice tone="success">{statusMessage}</Notice>}
+      {error && <Notice tone="error">{error}</Notice>}
+      {!activeIncident && <Notice>Drafts are saved per incident. You're not part of any incident yet.</Notice>}
+=======
+      {statusMessage && <Notice>{statusMessage}</Notice>}
+>>>>>>> Stashed changes
+      {templates.length === 0 && <Notice>No document templates in the database yet.</Notice>}
 
       {/* Filter chips for template choice */}
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Template">
@@ -70,14 +125,15 @@ export const EditorPage: React.FC = () => {
 
       <Card className="p-5">
         <form onSubmit={handleSave} className="space-y-5">
-          <Field label="Title">
-            <input
-              type="text"
-              value={draftTitle}
-              onChange={(e) => setDraftTitle(e.target.value)}
-              className="w-full type-title-medium"
-            />
-          </Field>
+          <div>
+            <div className="type-title-medium">{currentTpl?.name}</div>
+            {currentTpl?.description && (
+              <div className="type-body-small text-on-surface-variant">{currentTpl.description}</div>
+            )}
+            <div className="mt-1 type-body-small text-on-surface-variant">
+              {savedDoc ? `Last saved ${toDate(savedDoc.updatedAt).toLocaleString()}` : 'Not saved yet, showing the template'}
+            </div>
+          </div>
 
           <Field label="Body">
             <textarea
@@ -85,12 +141,15 @@ export const EditorPage: React.FC = () => {
               onChange={(e) => setDraftContent(e.target.value)}
               rows={18}
               className="w-full font-mono leading-relaxed"
+              disabled={!canEdit}
             />
           </Field>
 
-          <Button type="submit" icon={<Save />}>
-            Save draft
-          </Button>
+          {canEdit && (
+            <Button type="submit" icon={<Save />} disabled={!currentTpl}>
+              Save draft
+            </Button>
+          )}
         </form>
       </Card>
     </div>

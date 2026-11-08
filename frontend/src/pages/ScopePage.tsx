@@ -1,83 +1,93 @@
-import React, { useState, useEffect } from 'react';
+<<<<<<< Updated upstream
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useReducer, useTable } from 'spacetimedb/react';
+import { reducers, tables } from '../module_bindings';
+import type { ScopeItem } from '../module_bindings/types';
 import { useAuth } from '../lib/authContext';
-import { store } from '../lib/store';
-import { ScopeItem, ScopeStatus } from '../lib/types';
+import { errorMessage, isIncidentOpen, SCOPE_STATUSES, toDate } from '../lib/live';
+=======
+import React from 'react';
+import { useTable } from 'spacetimedb/react';
+import { tables } from '../module_bindings';
+import type { ScopeItem } from '../module_bindings/types';
+import { useAuth } from '../lib/authContext';
+import { scopeStatus, toDate } from '../lib/live';
+>>>>>>> Stashed changes
 import { DataTable, Column } from '../components/DataTable';
-import { Button } from '../components/Button';
-import { Card, SectionTitle } from '../components/Card';
-import { Field } from '../components/Field';
+import { Chip } from '../components/Chip';
+import { SectionTitle } from '../components/Card';
 import { Notice } from '../components/Notice';
 import { PageHeader } from '../components/PageHeader';
+<<<<<<< Updated upstream
 import { ArrowRight } from 'lucide-react';
 
-const SCOPE_STATUSES: { value: ScopeStatus; label: string }[] = [
-  { value: 'unknown', label: 'Under investigation' },
-  { value: 'locked', label: 'Encrypted' },
-  { value: 'exfiltrated', label: 'Exfiltrated' },
-  { value: 'restored', label: 'Restored' },
-];
+// Matches CanEditScope in Helpers.cs
+const CAN_EDIT_SCOPE = ['Owner', 'ItLead', 'Legal'];
+// Data types the seeded notification rules match on (NotificationRule.coveredData in Seed.cs)
+const DATA_TYPE_SUGGESTIONS = ['ssn', 'payment', 'health'];
+
+const parseStates = (raw: string) =>
+  raw
+    .split(',')
+    .map((s) => s.trim().toUpperCase())
+    .filter((s) => s.length > 0);
 
 export const ScopePage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
-  const [scopeItems, setScopeItems] = useState<ScopeItem[]>(store.getState().scopeItems);
-  const [category, setCategory] = useState('');
-  const [status, setStatus] = useState<ScopeStatus>('unknown');
-  const [affectedStates, setAffectedStates] = useState('TX, CA');
-  const [notes, setNotes] = useState('');
+  const { activeIncident, incidentRole } = useAuth();
+  const [allScopeItems] = useTable(tables.scopeItem);
+  const upsertScopeItem = useReducer(reducers.upsertScopeItem);
+
+  const [dataType, setDataType] = useState('');
+  const [recordCount, setRecordCount] = useState('');
+  const [status, setStatus] = useState(0);
+  const [affectedStates, setAffectedStates] = useState('TX');
   const [error, setError] = useState<string | null>(null);
-  const [successInfo, setSuccessInfo] = useState<{ category: string; states: string[] } | null>(null);
+  const [successInfo, setSuccessInfo] = useState<{ dataType: string; states: string[] } | null>(null);
 
-  useEffect(() => {
-    return store.subscribe((state) => {
-      setScopeItems(state.scopeItems);
-    });
-  }, []);
+  const scopeItems = allScopeItems.filter((i) => i.incidentId === activeIncident?.id);
+  const canEdit =
+    !!activeIncident && isIncidentOpen(activeIncident.status) && !!incidentRole && CAN_EDIT_SCOPE.includes(incidentRole);
 
-  const handleAddScopeItem = (e: React.FormEvent) => {
-    e.preventDefault();
+  // id 0 creates a new row; any other id updates that row
+  const save = async (item: Pick<ScopeItem, 'id' | 'dataType' | 'recordCount' | 'status' | 'states'>) => {
+    if (!activeIncident) return false;
     setError(null);
-    if (!category.trim()) {
-      setError('Enter the system or kind of data affected.');
-      return;
-    }
-
-    const stateList = affectedStates
-      .split(',')
-      .map((s) => s.trim().toUpperCase())
-      .filter((s) => s.length > 0);
-
-    const res = store.addScopeItem(currentUser.name, category, status, stateList, notes);
-    if (!res.success) {
-      setError(res.error || 'Failed to add scope item');
-    } else {
-      setSuccessInfo({ category, states: stateList });
-      setCategory('');
-      setNotes('');
+    try {
+      await upsertScopeItem({ incidentId: activeIncident.id, ...item });
+      return true;
+    } catch (err) {
+      setError(errorMessage(err));
+      return false;
     }
   };
 
-  const handleUpdateStatus = (item: ScopeItem, newStatus: ScopeStatus) => {
-    const res = store.updateScopeItem(currentUser.name, item.id, newStatus, item.notes);
-    if (!res.success) {
-      setError(res.error || 'Failed to update scope status');
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const states = parseStates(affectedStates);
+    const ok = await save({ id: 0n, dataType, recordCount: BigInt(recordCount || 0), status, states });
+    if (ok) {
+      setSuccessInfo({ dataType, states });
+      setDataType('');
+      setRecordCount('');
     }
   };
 
   const columns: Column<ScopeItem>[] = [
     {
-      header: 'System or data',
-      render: (item) => item.category,
+      header: 'Data type',
+      render: (item) => <span className="font-mono">{item.dataType}</span>,
     },
     {
       header: 'Status',
       render: (item) => (
         <select
-          aria-label={`Status for ${item.category}`}
+          aria-label={`Status for ${item.dataType}`}
           value={item.status}
-          onChange={(e) => handleUpdateStatus(item, e.target.value as ScopeStatus)}
-          className={`h-9 py-0 ${item.status === 'exfiltrated' ? 'border-error text-error' : ''}`}
+          disabled={!canEdit}
+          onChange={(e) => save({ ...item, status: Number(e.target.value) })}
+          className={`h-9 py-0 ${item.status === 1 ? 'border-error text-error' : ''}`}
         >
           {SCOPE_STATUSES.map((s) => (
             <option key={s.value} value={s.value}>
@@ -88,20 +98,43 @@ export const ScopePage: React.FC = () => {
       ),
     },
     {
-      header: 'States',
-      render: (item) => (
-        <span className="font-mono text-on-surface-variant">{item.affected_states.join(', ') || '—'}</span>
-      ),
+      header: 'Records',
+      render: (item) => <span className="font-mono text-on-surface-variant">{item.recordCount.toLocaleString()}</span>,
     },
     {
-      header: 'Notes',
-      render: (item) => <span className="text-on-surface-variant">{item.notes || '—'}</span>,
+=======
+
+export const ScopePage: React.FC = () => {
+  const { activeIncident } = useAuth();
+  const [allScopeItems] = useTable(tables.scopeItem);
+  const scopeItems = allScopeItems.filter((i) => i.incidentId === activeIncident?.id);
+
+  const columns: Column<ScopeItem>[] = [
+    {
+      header: 'System or data',
+      render: (item) => item.dataType,
+    },
+    {
+      header: 'Status',
+      render: (item) => {
+        const st = scopeStatus(item.status);
+        return <Chip tone={st.value === 'exfiltrated' ? 'error' : 'neutral'}>{st.label}</Chip>;
+      },
+    },
+    {
+      header: 'Records',
+      render: (item) => <span className="font-mono text-on-surface-variant">{item.recordCount.toString()}</span>,
+    },
+    {
+>>>>>>> Stashed changes
+      header: 'States',
+      render: (item) => <span className="font-mono text-on-surface-variant">{item.states.join(', ') || '—'}</span>,
     },
     {
       header: 'Updated',
       render: (item) => (
         <span className="whitespace-nowrap text-on-surface-variant">
-          {new Date(item.updated_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          {toDate(item.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
         </span>
       ),
     },
@@ -111,15 +144,17 @@ export const ScopePage: React.FC = () => {
     <div className="space-y-8">
       <PageHeader
         title="Affected data"
-        description="Every system or data set that may be compromised, and which states its records come from. This drives the notification deadlines."
+        description="Every kind of data that may be compromised, and which states its records come from. This drives the notification deadlines."
       />
 
+<<<<<<< Updated upstream
       {error && <Notice tone="error">{error}</Notice>}
+      {!activeIncident && <Notice>You're not part of any incident yet.</Notice>}
 
       {successInfo && (
         <Notice
           tone="success"
-          title={`Added ${successInfo.category}`}
+          title={`Added ${successInfo.dataType}`}
           action={
             <Button variant="text" onClick={() => navigate('/notify')} className="!text-on-tertiary-container">
               View deadlines <ArrowRight className="h-4 w-4" />
@@ -127,63 +162,82 @@ export const ScopePage: React.FC = () => {
           }
         >
           {successInfo.states.length > 0
-            ? `Notification rules now apply for ${successInfo.states.join(', ')}.`
+            ? `Checked notification rules for ${successInfo.states.join(', ')}.`
             : 'No states were listed, so no notification rules apply yet.'}
         </Notice>
       )}
+=======
+      {/* TODO: needs AddScopeItem / UpdateScopeItem reducers in the backend to bring back the form */}
+      <Notice>Logging affected data isn't wired up yet. The backend has no reducer for it.</Notice>
+>>>>>>> Stashed changes
 
       <section>
         <SectionTitle trailing={`${scopeItems.length} items`}>Inventory</SectionTitle>
         <DataTable columns={columns} data={scopeItems} emptyMessage="Nothing logged yet." />
       </section>
+<<<<<<< Updated upstream
 
-      <Card className="p-5">
-        <SectionTitle>Log affected data</SectionTitle>
-        <form onSubmit={handleAddScopeItem} className="space-y-5">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="System or data">
-              <input
-                type="text"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="Customer billing database"
-                className="w-full"
-              />
-            </Field>
+      {canEdit && (
+        <Card className="p-5">
+          <SectionTitle>Log affected data</SectionTitle>
+          <form onSubmit={handleAdd} className="space-y-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field label="Data type" help="Use the standard names so state rules match: ssn, payment, health">
+                <input
+                  type="text"
+                  list="scope-data-types"
+                  value={dataType}
+                  onChange={(e) => setDataType(e.target.value)}
+                  placeholder="ssn"
+                  className="w-full font-mono"
+                  maxLength={40}
+                />
+                <datalist id="scope-data-types">
+                  {DATA_TYPE_SUGGESTIONS.map((d) => (
+                    <option key={d} value={d} />
+                  ))}
+                </datalist>
+              </Field>
 
-            <Field label="Status">
-              <select value={status} onChange={(e) => setStatus(e.target.value as ScopeStatus)} className="w-full">
-                {SCOPE_STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+              <Field label="Status">
+                <select value={status} onChange={(e) => setStatus(Number(e.target.value))} className="w-full">
+                  {SCOPE_STATUSES.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
 
-            <Field label="Affected states" help="Comma-separated, e.g. TX, CA, NY">
-              <input
-                type="text"
-                value={affectedStates}
-                onChange={(e) => setAffectedStates(e.target.value)}
-                className="w-full font-mono"
-              />
-            </Field>
+              <Field label="Affected states" help="Comma-separated, e.g. TX, CA, NY">
+                <input
+                  type="text"
+                  value={affectedStates}
+                  onChange={(e) => setAffectedStates(e.target.value)}
+                  className="w-full font-mono"
+                />
+              </Field>
 
-            <Field label="Notes" help="Record counts, encryption, anything forensics found">
-              <input
-                type="text"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="About 14,000 records, backup drive unencrypted"
-                className="w-full"
-              />
-            </Field>
-          </div>
+              <Field label="Record count" help="Best estimate">
+                <input
+                  type="number"
+                  min={0}
+                  value={recordCount}
+                  onChange={(e) => setRecordCount(e.target.value.replace(/\D/g, ''))}
+                  placeholder="14000"
+                  className="w-full"
+                />
+              </Field>
+            </div>
 
-          <Button type="submit">Add to inventory</Button>
-        </form>
-      </Card>
+            <Button type="submit" disabled={!dataType.trim()}>
+              Add to inventory
+            </Button>
+          </form>
+        </Card>
+      )}
+=======
+>>>>>>> Stashed changes
     </div>
   );
 };

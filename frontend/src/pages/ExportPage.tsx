@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { store } from '../lib/store';
+<<<<<<< Updated upstream
+import { useReducer, useTable } from 'spacetimedb/react';
+import { reducers, tables } from '../module_bindings';
+import { useAuth } from '../lib/authContext';
+import { errorMessage, jsonReplacer } from '../lib/live';
+=======
+import { useTable } from 'spacetimedb/react';
+import { tables } from '../module_bindings';
+import { useAuth } from '../lib/authContext';
+import { jsonReplacer } from '../lib/live';
+>>>>>>> Stashed changes
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Notice } from '../components/Notice';
@@ -13,24 +23,79 @@ export const ExportPage: React.FC = () => {
   const [includeDrafts, setIncludeDrafts] = useState(true);
   const [includeRoster, setIncludeRoster] = useState(true);
   const [exportNotice, setExportNotice] = useState('');
+<<<<<<< Updated upstream
+  const { activeIncident, incidentRole } = useAuth();
+  const logExport = useReducer(reducers.logExport);
+  const [error, setError] = useState<string | null>(null);
+  const [users] = useTable(tables.user);
+  const [members] = useTable(tables.incidentMember);
+  // message is private; these views only return what the signed-in user may see
+  const [adminMessages] = useTable(tables.adminMessages);
+  const [incidentMessages] = useTable(tables.incidentMessages);
+  const [generalMessages] = useTable(tables.generalMessages);
+  const [scopeItems] = useTable(tables.scopeItem);
+  const [timeline] = useTable(tables.timelineEntry);
+  const [documents] = useTable(tables.incidentDocument);
+  const [tasks] = useTable(tables.task);
+  const [obligations] = useTable(tables.notificationObligation);
+
+  const handleExport = async () => {
+    if (!activeIncident) return;
+    setError(null);
+    try {
+      // Records the export in the audit log first; the backend only lets staff export
+      await logExport({ incidentId: activeIncident.id, sections: sections.filter((s) => s.checked).map((s) => s.label) });
+    } catch (err) {
+      setError(errorMessage(err));
+      return;
+    }
+=======
+  const { activeIncident } = useAuth();
+  const [users] = useTable(tables.user);
+  const [members] = useTable(tables.incidentMember);
+  const [messages] = useTable(tables.message);
+  const [scopeItems] = useTable(tables.scopeItem);
+  const [timeline] = useTable(tables.timelineEntry);
+  const [documents] = useTable(tables.incidentDocument);
 
   const handleExport = () => {
-    const state = store.getState();
+    if (!activeIncident) return;
+>>>>>>> Stashed changes
+    const id = activeIncident.id;
+    const roster = members
+      .filter((m) => m.incidentId === id)
+      .map((m) => ({ ...m, user: users.find((u) => u.id.isEqual(m.person)) }));
     const packet = {
       title: 'Drill Night Crisis Command Center - Formal Incident Package',
       generated_at: new Date().toISOString(),
-      organization: state.org.name,
-      incident: state.incident,
+      incident: activeIncident,
       contents: {
-        ...(includeRoster ? { roster: state.members } : {}),
-        ...(includeTimeline ? { warroom_messages: state.messages } : {}),
-        ...(includeScope ? { scope_records: state.scopeItems } : {}),
-        ...(includeAuditLogs ? { immutable_audit_logs: state.auditLogs } : {}),
-        ...(includeDrafts ? { report_drafts: state.reportDrafts } : {}),
+        ...(includeRoster ? { roster } : {}),
+<<<<<<< Updated upstream
+        ...(includeTimeline ? {
+              warroom_messages: [...adminMessages, ...incidentMessages, ...generalMessages]
+                .filter((m) => m.incidentId === id)
+                .sort((a, b) => Number(a.sentAt.microsSinceUnixEpoch - b.sentAt.microsSinceUnixEpoch)),
+            } : {}),
+        ...(includeScope
+          ? {
+              scope_records: scopeItems.filter((s) => s.incidentId === id),
+              notification_obligations: obligations.filter((o) => o.incidentId === id),
+            }
+          : {}),
+        ...(includeAuditLogs
+          ? { timeline: timeline.filter((t) => t.incidentId === id), tasks: tasks.filter((t) => t.incidentId === id) }
+          : {}),
+=======
+        ...(includeTimeline ? { warroom_messages: messages.filter((m) => m.incidentId === id) } : {}),
+        ...(includeScope ? { scope_records: scopeItems.filter((s) => s.incidentId === id) } : {}),
+        ...(includeAuditLogs ? { timeline: timeline.filter((t) => t.incidentId === id) } : {}),
+>>>>>>> Stashed changes
+        ...(includeDrafts ? { documents: documents.filter((d) => d.incidentId === id) } : {}),
       },
     };
 
-    const blob = new Blob([JSON.stringify(packet, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(packet, jsonReplacer, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -43,10 +108,10 @@ export const ExportPage: React.FC = () => {
 
   const sections = [
     { label: 'Team roster', detail: 'Everyone with access and their roles', checked: includeRoster, set: setIncludeRoster },
-    { label: 'War room messages', detail: 'All channels, in order', checked: includeTimeline, set: setIncludeTimeline },
+    { label: 'War room messages', detail: 'All messages, in order', checked: includeTimeline, set: setIncludeTimeline },
     { label: 'Affected data', detail: 'Inventory and status of each item', checked: includeScope, set: setIncludeScope },
-    { label: 'Audit log', detail: 'Every recorded action with actor and time', checked: includeAuditLogs, set: setIncludeAuditLogs },
-    { label: 'Insurance & legal drafts', detail: 'Saved drafts only', checked: includeDrafts, set: setIncludeDrafts },
+    { label: 'Timeline', detail: 'Every recorded action with actor and time', checked: includeAuditLogs, set: setIncludeAuditLogs },
+    { label: 'Incident documents', detail: 'Insurance and legal drafts', checked: includeDrafts, set: setIncludeDrafts },
   ];
   const nothingSelected = sections.every((s) => !s.checked);
 
@@ -58,6 +123,10 @@ export const ExportPage: React.FC = () => {
       />
 
       {exportNotice && <Notice tone="success">{exportNotice}</Notice>}
+      {error && <Notice tone="error">{error}</Notice>}
+      {activeIncident && !['Owner', 'ItLead', 'Legal', 'Comms'].includes(incidentRole ?? '') && (
+        <Notice>Only company staff can export. Guests can view but not download the package.</Notice>
+      )}
 
       <Card variant="outlined" className="overflow-hidden">
         <div className="px-4 pb-1 pt-4 type-title-small text-on-surface-variant">Include</div>
@@ -75,7 +144,7 @@ export const ExportPage: React.FC = () => {
           ))}
         </ul>
         <div className="flex justify-end border-t border-outline-variant p-4">
-          <Button icon={<Download />} onClick={handleExport} disabled={nothingSelected}>
+          <Button icon={<Download />} onClick={handleExport} disabled={nothingSelected || !activeIncident}>
             Download JSON
           </Button>
         </div>

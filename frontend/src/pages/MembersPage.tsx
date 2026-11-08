@@ -1,186 +1,401 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+<<<<<<< Updated upstream
+import type { Identity } from 'spacetimedb';
+import { useReducer, useTable } from 'spacetimedb/react';
+import { reducers, tables } from '../module_bindings';
+import type { GuestGrant, OrgMember } from '../module_bindings/types';
 import { useAuth } from '../lib/authContext';
-import { store } from '../lib/store';
-import { Member, Role } from '../lib/types';
+import { Role } from '../lib/types';
+import { errorMessage, GUEST_ROLES, STAFF_ROLES, toBackendRole, toDate, toUiRole } from '../lib/live';
+=======
+import { useReducer, useTable } from 'spacetimedb/react';
+import { reducers, tables } from '../module_bindings';
+import type { IncidentMember } from '../module_bindings/types';
+import { useAuth, UI_ROLE_TO_BACKEND } from '../lib/authContext';
+import { Role } from '../lib/types';
 import { ROLES } from '../lib/constants';
+import { toDate } from '../lib/live';
+>>>>>>> Stashed changes
 import { DataTable, Column } from '../components/DataTable';
-import { Button, IconButton } from '../components/Button';
+import { Button } from '../components/Button';
 import { Card, SectionTitle } from '../components/Card';
 import { Field } from '../components/Field';
 import { Notice } from '../components/Notice';
 import { PageHeader } from '../components/PageHeader';
+<<<<<<< Updated upstream
+import { RoleBadge, roleLabel } from '../components/RoleBadge';
 import { Trash2 } from 'lucide-react';
+=======
+import { RoleBadge } from '../components/RoleBadge';
+
+// Only roles the backend's AddMember accepts
+const ASSIGNABLE_ROLES = ROLES.filter((r) => UI_ROLE_TO_BACKEND[r.value]);
+const BACKEND_TO_UI = Object.fromEntries(Object.entries(UI_ROLE_TO_BACKEND).map(([ui, be]) => [be, ui])) as Record<
+  string,
+  Role
+>;
+>>>>>>> Stashed changes
+
+const CreateCompany: React.FC<{ onError: (msg: string) => void }> = ({ onError }) => {
+  const createOrganization = useReducer(reducers.createOrganization);
+  const [name, setName] = useState('');
+  const [industry, setIndustry] = useState('');
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      // Makes me the Owner and an admin of the new company
+      await createOrganization({ name, industry });
+    } catch (err) {
+      onError(errorMessage(err));
+    }
+  };
+
+  return (
+    <Card className="p-5">
+      <SectionTitle>Set up your company</SectionTitle>
+      <p className="mb-5 mt-0 type-body-medium text-on-surface-variant">
+        You become the owner. Teammates join when you add their phone number, so ask them to sign in once first.
+      </p>
+      <form onSubmit={handleCreate} className="space-y-5">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Field label="Company name">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Acme Logistics"
+              className="w-full"
+              maxLength={100}
+            />
+          </Field>
+          <Field label="Industry" help="Optional">
+            <input
+              type="text"
+              value={industry}
+              onChange={(e) => setIndustry(e.target.value)}
+              placeholder="Logistics"
+              className="w-full"
+              maxLength={60}
+            />
+          </Field>
+        </div>
+        <Button type="submit" disabled={!name.trim()}>
+          Create company
+        </Button>
+      </form>
+    </Card>
+  );
+};
 
 export const MembersPage: React.FC = () => {
-  const { currentUser } = useAuth();
-  const [members, setMembers] = useState<Member[]>(store.getState().members);
-  const [newName, setNewName] = useState('');
+<<<<<<< Updated upstream
+  const { isRegistered, myOrgs, activeOrg, setActiveOrgId, isAdmin, activeIncident, incidentRole, me } = useAuth();
+  const [users] = useTable(tables.user);
+  const [orgMembers] = useTable(tables.orgMember);
+  const [guestGrants] = useTable(tables.guestGrant);
+  const addOrgMember = useReducer(reducers.addOrgMember);
+  const setOrgRole = useReducer(reducers.setOrgRole);
+  const grantGuest = useReducer(reducers.grantGuest);
+  const revokeGuest = useReducer(reducers.revokeGuest);
+
   const [newPhone, setNewPhone] = useState('');
   const [newRole, setNewRole] = useState<Role>('it_lead');
-  const [guestDays, setGuestDays] = useState('7');
+  const [guestPhone, setGuestPhone] = useState('');
+  const [guestRole, setGuestRole] = useState<Role>('insurer');
+  const [guestDays, setGuestDays] = useState(7);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    return store.subscribe((state) => {
-      setMembers(state.members);
-    });
-  }, []);
+  const userFor = (person: Identity) => users.find((u) => u.id.isEqual(person));
+  const roster = orgMembers.filter((m) => m.orgId === activeOrg?.id);
+  const guests = guestGrants.filter((g) => g.incidentId === activeIncident?.id);
+  const canGrantGuests = !!activeIncident && incidentRole === 'Owner';
 
-  const isGuestRole = newRole === 'insurer' || newRole === 'outside_counsel';
-
-  const handleAddMember = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Wraps a reducer call so its error shows on the page
+  const run = async (fn: () => Promise<unknown>) => {
     setError(null);
-    if (!newName.trim() || !newPhone.trim()) {
-      setError('Name and phone are required.');
-      return;
-    }
-
-    const expiresAt = isGuestRole ? new Date(Date.now() + parseInt(guestDays, 10) * 86400000).toISOString() : null;
-
-    const res = store.addMember(currentUser.name, newName, newPhone, newRole, expiresAt);
-    if (!res.success) {
-      setError(res.error || 'Failed to add member');
-    } else {
-      setNewName('');
-      setNewPhone('');
+    try {
+      await fn();
+      return true;
+    } catch (err) {
+      setError(errorMessage(err));
+      return false;
     }
   };
 
-  const handleRoleChange = (memberId: string, role: Role) => {
-    const res = store.updateMemberRole(currentUser.name, memberId, role);
-    if (!res.success) {
-      setError(res.error || 'Failed to update role');
-    }
+  const handleAddMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeOrg) return;
+    const ok = await run(() => addOrgMember({ orgId: activeOrg.id, phone: newPhone, role: toBackendRole(newRole) }));
+    if (ok) setNewPhone('');
   };
 
-  const handleRemove = (memberId: string) => {
-    if (confirm('Remove this person from the response roster?')) {
-      const res = store.removeMember(currentUser.name, memberId);
-      if (!res.success) {
-        setError(res.error || 'Failed to remove member');
-      }
-    }
+  const handleGrantGuest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeIncident) return;
+    const ok = await run(() =>
+      grantGuest({ incidentId: activeIncident.id, phone: guestPhone, role: toBackendRole(guestRole), days: guestDays })
+    );
+    if (ok) setGuestPhone('');
   };
 
-  const columns: Column<Member>[] = [
-    {
-      header: 'Name',
-      render: (m) => m.name,
-    },
+  const rosterColumns: Column<OrgMember>[] = [
+    { header: 'Name', render: (m) => userFor(m.person)?.displayName ?? 'Unknown' },
     {
       header: 'Role',
-      render: (m) => (
-        <select
-          aria-label={`Role for ${m.name}`}
-          value={m.role}
-          onChange={(e) => handleRoleChange(m.id, e.target.value as Role)}
-          className="h-9 py-0"
-        >
-          {ROLES.map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.label}
-            </option>
-          ))}
-        </select>
-      ),
+      render: (m) => {
+        const isSelf = !!me && m.person.isEqual(me.id);
+        if (!isAdmin || isSelf) return <RoleBadge role={toUiRole(m.role)} />;
+        return (
+          <select
+            aria-label={`Role for ${userFor(m.person)?.displayName}`}
+            value={toUiRole(m.role)}
+            onChange={(e) =>
+              run(() => setOrgRole({ orgId: m.orgId, person: m.person, role: toBackendRole(e.target.value as Role) }))
+            }
+            className="h-9 py-0"
+          >
+            {STAFF_ROLES.map((r) => (
+              <option key={r} value={r}>
+                {roleLabel(r)}
+              </option>
+            ))}
+          </select>
+        );
+      },
     },
     {
       header: 'Phone',
-      render: (m) => <span className="whitespace-nowrap font-mono text-on-surface-variant">{m.phone}</span>,
+      render: (m) => <span className="whitespace-nowrap font-mono text-on-surface-variant">{userFor(m.person)?.phone}</span>,
+=======
+  const { activeIncident, currentUser } = useAuth();
+  const [users] = useTable(tables.user);
+  const [allMembers] = useTable(tables.incidentMember);
+  const addMember = useReducer(reducers.addMember);
+  const [newPhone, setNewPhone] = useState('');
+  const [newRole, setNewRole] = useState<Role>('it_lead');
+  const [error, setError] = useState<string | null>(null);
+
+  const members = activeIncident ? allMembers.filter((m) => m.incidentId === activeIncident.id) : [];
+  const userFor = (m: IncidentMember) => users.find((u) => u.id.isEqual(m.person));
+  const isOwner = currentUser.role === 'owner';
+
+  const handleAddMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeIncident) return;
+    setError(null);
+    try {
+      // The person must have signed in once (registerPhone) so their phone is known
+      await addMember({ incidentId: activeIncident.id, phone: newPhone, role: UI_ROLE_TO_BACKEND[newRole]! });
+      setNewPhone('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const columns: Column<IncidentMember>[] = [
+    {
+      header: 'Name',
+      render: (m) => userFor(m)?.displayName ?? 'Unknown',
     },
     {
-      header: 'Identity',
-      render: (m) => (
-        <code className="font-mono type-body-small text-on-surface-variant" title={m.identity}>
-          {m.identity.slice(0, 8)}…{m.identity.slice(-4)}
-        </code>
-      ),
+      header: 'Role',
+      render: (m) => <RoleBadge role={BACKEND_TO_UI[m.role] ?? 'member'} />,
     },
     {
+      header: 'Phone',
+      render: (m) => <span className="whitespace-nowrap font-mono text-on-surface-variant">{userFor(m)?.phone}</span>,
+    },
+    {
+      header: 'Online',
+      render: (m) => (userFor(m)?.online ? '🟢' : '⚪'),
+>>>>>>> Stashed changes
+    },
+    { header: 'Online', render: (m) => (userFor(m.person)?.online ? '🟢' : '⚪') },
+  ];
+
+  const guestColumns: Column<GuestGrant>[] = [
+    { header: 'Name', render: (g) => userFor(g.person)?.displayName ?? 'Unknown' },
+    { header: 'Role', render: (g) => <RoleBadge role={toUiRole(g.role)} /> },
+    {
+<<<<<<< Updated upstream
       header: 'Access until',
-      render: (m) => (
-        <span className="whitespace-nowrap text-on-surface-variant">
-          {m.expires_at ? new Date(m.expires_at).toLocaleDateString() : 'No expiry'}
-        </span>
-      ),
+      render: (g) => <span className="whitespace-nowrap text-on-surface-variant">{toDate(g.expiresAt).toLocaleString()}</span>,
     },
     {
       header: '',
       align: 'right',
-      render: (m) => (
-        <IconButton label={`Remove ${m.name}`} onClick={() => handleRemove(m.id)} className="hover:text-error">
-          <Trash2 />
-        </IconButton>
-      ),
+      render: (g) =>
+        canGrantGuests && (
+          <IconButton
+            label={`Revoke ${userFor(g.person)?.displayName}`}
+            onClick={() => run(() => revokeGuest({ grantId: g.id }))}
+            className="hover:text-error"
+          >
+            <Trash2 />
+          </IconButton>
+        ),
+=======
+      header: 'Added',
+      render: (m) => <span className="whitespace-nowrap text-on-surface-variant">{toDate(m.addedAt).toLocaleString()}</span>,
+>>>>>>> Stashed changes
     },
   ];
 
+  if (!activeIncident) {
+    return (
+      <div className="space-y-8">
+        <PageHeader title="Team roster" description="Who is responding to the active incident." />
+        <Notice>You're not part of any incident yet. Declare one on the Incident page or ask an owner to add you.</Notice>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
-      <PageHeader
-        title="Team roster"
-        description="Who can sign in during an incident. Outside advisors like counsel and insurers get access that expires."
-      />
+      <PageHeader title="Team roster" description={`Who is responding to "${activeIncident.name}".`} />
 
       {error && <Notice tone="error">{error}</Notice>}
+      {!isRegistered && <Notice tone="error">Sign in with your phone number first.</Notice>}
 
-      <section>
-        <SectionTitle trailing={`${members.length} people`}>Responders</SectionTitle>
-        <DataTable columns={columns} data={members} />
-      </section>
+      {isRegistered && !activeOrg && <CreateCompany onError={setError} />}
 
-      <Card className="p-5">
-        <SectionTitle>Add a person</SectionTitle>
-        <form onSubmit={handleAddMember} className="space-y-5">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Field label="Full name">
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Jordan Ellis"
-                className="w-full"
-              />
-            </Field>
+<<<<<<< Updated upstream
+      {myOrgs.length > 1 && (
+        <Field label="Company">
+          <select
+            value={activeOrg?.id.toString()}
+            onChange={(e) => setActiveOrgId(BigInt(e.target.value))}
+            className="w-full md:max-w-sm"
+          >
+            {myOrgs.map((o) => (
+              <option key={o.id.toString()} value={o.id.toString()}>
+                {o.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
 
-            <Field label="Personal phone">
-              <input
-                type="tel"
-                value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
-                placeholder="+1 (555) 000-0000"
-                className="w-full"
-              />
-            </Field>
+      {activeOrg && (
+        <>
+          <section>
+            <SectionTitle trailing={`${roster.length} people`}>{activeOrg.name} responders</SectionTitle>
+            <DataTable columns={rosterColumns} data={roster} />
+          </section>
 
-            <Field label="Role">
-              <select value={newRole} onChange={(e) => setNewRole(e.target.value as Role)} className="w-full">
-                {ROLES.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+          {isAdmin && (
+            <Card className="p-5">
+              <SectionTitle>Add a person</SectionTitle>
+              <form onSubmit={handleAddMember} className="space-y-5">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <Field label="Personal phone" help="They must have signed in once with this number.">
+                    <input
+                      type="tel"
+                      value={newPhone}
+                      onChange={(e) => setNewPhone(e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                      className="w-full"
+                    />
+                  </Field>
+                  <Field label="Role">
+                    <select value={newRole} onChange={(e) => setNewRole(e.target.value as Role)} className="w-full">
+                      {STAFF_ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {roleLabel(r)}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+                <Button type="submit" disabled={!newPhone.trim()}>
+                  Add to roster
+                </Button>
+              </form>
+            </Card>
+          )}
+        </>
+      )}
 
-            {isGuestRole && (
-              <Field label="Access length (days)">
+      {activeIncident && (
+        <section>
+          <SectionTitle trailing={activeIncident.name}>Guest access</SectionTitle>
+          <DataTable columns={guestColumns} data={guests} emptyMessage="No guests on this incident." />
+
+          {canGrantGuests && (
+            <Card className="mt-4 p-5">
+              <form onSubmit={handleGrantGuest} className="space-y-5">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <Field label="Guest phone">
+                    <input
+                      type="tel"
+                      value={guestPhone}
+                      onChange={(e) => setGuestPhone(e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                      className="w-full"
+                    />
+                  </Field>
+                  <Field label="Role">
+                    <select value={guestRole} onChange={(e) => setGuestRole(e.target.value as Role)} className="w-full">
+                      {GUEST_ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {roleLabel(r)}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Access length (days)">
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      value={guestDays}
+                      onChange={(e) => setGuestDays(Number(e.target.value))}
+                      className="w-full"
+                    />
+                  </Field>
+                </div>
+                <Button type="submit" variant="tonal" disabled={!guestPhone.trim()}>
+                  Grant access
+                </Button>
+              </form>
+            </Card>
+          )}
+        </section>
+=======
+      {isOwner && (
+        <Card className="p-5">
+          <SectionTitle>Add a person</SectionTitle>
+          <form onSubmit={handleAddMember} className="space-y-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field label="Personal phone" help="They must have signed in once with this number.">
                 <input
-                  type="number"
-                  value={guestDays}
-                  onChange={(e) => setGuestDays(e.target.value)}
-                  min="1"
-                  max="90"
+                  type="tel"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="+1 (555) 000-0000"
                   className="w-full"
                 />
               </Field>
-            )}
-          </div>
 
-          <Button type="submit">Add to roster</Button>
-        </form>
-      </Card>
+              <Field label="Role">
+                <select value={newRole} onChange={(e) => setNewRole(e.target.value as Role)} className="w-full">
+                  {ASSIGNABLE_ROLES.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+
+            <Button type="submit" disabled={!newPhone.trim()}>
+              Add to incident
+            </Button>
+          </form>
+        </Card>
+>>>>>>> Stashed changes
+      )}
     </div>
   );
 };
