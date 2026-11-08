@@ -69,6 +69,7 @@ public static partial class Module
             Sender = ctx.Sender,
             Text = text,
             SentAt = ctx.Timestamp,
+            ChatType = 3,
             IsSystem = true
         });
     }
@@ -214,7 +215,7 @@ public static partial class Module
     }
 
     [SpacetimeDB.Reducer]
-    public static void SendMessage(ReducerContext ctx, string incidentId, string text)
+    public static void SendMessage(ReducerContext ctx, string incidentId, string text, int chatType)
     {
         RequireMember(ctx, incidentId);
 
@@ -231,6 +232,7 @@ public static partial class Module
             Sender = ctx.Sender,
             Text = text,
             SentAt = ctx.Timestamp,
+            ChatType = chatType,
             IsSystem = false
         });
     }
