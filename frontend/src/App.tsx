@@ -1,20 +1,27 @@
-import React, { useCallback, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { AuthProvider } from './lib/authContext';
-import { TopBar } from './components/TopBar';
-import { NavDrawer } from './components/NavDrawer';
-import { LoginPage } from './pages/LoginPage';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { MembersPage } from './pages/MembersPage';
-import { IncidentPage } from './pages/IncidentPage';
-import { WarRoomPage } from './pages/WarRoomPage';
-import { DocsPage } from './pages/DocsPage';
-import { ScopePage } from './pages/ScopePage';
-import { NotifyPage } from './pages/NotifyPage';
-import { EditorPage } from './pages/EditorPage';
-import { ExportPage } from './pages/ExportPage';
-import { DrillPage } from './pages/DrillPage';
-import { DebugPage } from './pages/DebugPage';
+import React, { useCallback, useState } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
+import { AuthProvider } from "./lib/authContext";
+import { TopBar } from "./components/TopBar";
+import { NavDrawer } from "./components/NavDrawer";
+import { LoginPage } from "./pages/LoginPage";
+import { AdminDashboard } from "./pages/AdminDashboard";
+import { MembersPage } from "./pages/MembersPage";
+import { IncidentPage } from "./pages/IncidentPage";
+import { WarRoomPage } from "./pages/WarRoomPage";
+import { DocsPage } from "./pages/DocsPage";
+import { ScopePage } from "./pages/ScopePage";
+import { NotifyPage } from "./pages/NotifyPage";
+import { EditorPage } from "./pages/EditorPage";
+import { ExportPage } from "./pages/ExportPage";
+import { DrillPage } from "./pages/DrillPage";
+import { DebugPage } from "./pages/DebugPage";
+import { InsurerPage } from "./pages/InsurerPage";
 
 const AppShell: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -52,6 +59,7 @@ export const App: React.FC = () => {
             <Route path="/editor" element={<EditorPage />} />
             <Route path="/export" element={<ExportPage />} />
             <Route path="/debug" element={<DebugPage />} />
+            <Route path="/insurer" element={<InsurerPage />} />
           </Route>
         </Routes>
       </AuthProvider>

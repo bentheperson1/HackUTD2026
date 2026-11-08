@@ -11,6 +11,7 @@ import {
   Timer,
   Users,
   Terminal,
+  Building2,
 } from 'lucide-react';
 
 export interface NavDestination {
@@ -59,6 +60,10 @@ export const NAV_SECTIONS: NavSection[] = [
       { to: '/drill', label: 'Drills', icon: Timer },
       { to: '/members', label: 'Team roster', icon: Users },
     ],
+  },
+  {
+    heading: 'Insurer',
+    items: [{ to: '/insurer', label: 'Insurer board', icon: Building2 }],
   },
 ];
 
