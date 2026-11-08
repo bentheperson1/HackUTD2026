@@ -4,6 +4,8 @@ using SpacetimeDB;
 
 public static partial class Module
 {
+    const bool AllowPhoneTakeover = true;
+
     //helpers
     static string NormalizePhone(string raw)
     {
@@ -52,20 +54,71 @@ public static partial class Module
 
     //main methods
 
+    static void MoveIdentity(ReducerContext ctx, Identity from, Identity to)
+    {
+        foreach (var m in ctx.Db.OrgMember.Person.Filter(from).ToList())
+        {
+            var u = m; u.Person = to;
+            ctx.Db.OrgMember.Id.Update(u);
+        }
+        foreach (var m in ctx.Db.IncidentMember.Person.Filter(from).ToList())
+        {
+            var u = m; u.Person = to;
+            ctx.Db.IncidentMember.Id.Update(u);
+        }
+        foreach (var g in ctx.Db.GuestGrant.Person.Filter(from).ToList())
+        {
+            var u = g; u.Person = to;
+            ctx.Db.GuestGrant.Id.Update(u);
+        }
+        foreach (var p in ctx.Db.DrillPlayer.Iter().ToList())   // no index on Person here
+            if (p.Person == from)
+            {
+                var u = p; u.Person = to;
+                ctx.Db.DrillPlayer.Id.Update(u);
+            }
+    }
+
     [SpacetimeDB.Reducer]
     public static void RegisterPhone(ReducerContext ctx, string phone, string displayName)
     {
         phone = NormalizePhone(phone);
-        displayName = (displayName ?? "").Trim();
-
-        if (displayName.Length == 0 || displayName.Length > 50)
-        {
-            throw new Exception("Display name bust be 1-50 characters.");
-        }
+        displayName = Clean(displayName, 50, "Display name");
 
         if (ctx.Db.User.Phone.Find(phone) is User owner && owner.Id != ctx.Sender)
         {
-            throw new Exception("That phone number belongs to another account.");
+            if (!AllowPhoneTakeover) throw new Exception("That phone number belongs to another account.");
+
+            // Park the old row (keeps names on old messages) and free the number
+            var parked = owner;
+            parked.Phone = $"moved:{owner.Id}";
+            parked.Online = false;
+            ctx.Db.User.Id.Update(parked);
+
+            if (ctx.Db.User.Id.Find(ctx.Sender) is User mine)
+            {
+                // This browser already had an account under another number: reuse it
+                mine.Phone = phone;
+                mine.DisplayName = displayName;
+                mine.Online = true;
+                mine.IsAdmin = mine.IsAdmin || owner.IsAdmin;
+                ctx.Db.User.Id.Update(mine);
+            }
+            else
+            {
+                ctx.Db.User.Insert(new User
+                {
+                    Id = ctx.Sender,
+                    Phone = phone,
+                    DisplayName = displayName,
+                    Online = true,
+                    IsAdmin = owner.IsAdmin,
+                    CreatedAt = owner.CreatedAt,
+                });
+            }
+
+            MoveIdentity(ctx, owner.Id, ctx.Sender);
+            return;
         }
 
         if (ctx.Db.User.Id.Find(ctx.Sender) is User existing)
@@ -82,7 +135,7 @@ public static partial class Module
                 Phone = phone,
                 DisplayName = displayName,
                 Online = true,
-                CreatedAt = ctx.Timestamp
+                CreatedAt = ctx.Timestamp,
             });
         }
     }
