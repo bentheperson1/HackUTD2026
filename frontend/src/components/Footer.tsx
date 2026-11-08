@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
-import { CompanyLogo, Wordmark } from './Masthead';
 
 type FooterLink = { label: string; to?: string; href?: string };
 
@@ -43,7 +42,7 @@ export const Footer: React.FC = () => (
       <div className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-6">
         <div className="col-span-2 space-y-4">
           <Link to="/incident" aria-label="Outpost home" className="inline-block">
-            <Wordmark size="sm" />
+
           </Link>
 
         </div>

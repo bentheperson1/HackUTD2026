@@ -35,11 +35,6 @@ export const Wordmark: React.FC<{ className?: string; size?: 'sm' | 'md' | 'lg' 
   </span>
 );
 
-/** The company logo (public/fifth-edge-logo.png). Used sparingly: footer only. */
-export const CompanyLogo: React.FC<{ className?: string }> = ({ className }) => (
-  <img src="/fifth-edge-logo.png" alt="Fifth Edge" className={cx('block h-8 w-auto object-contain object-left select-none', className)} draggable={false} />
-);
-
 export const Masthead: React.FC = () => {
   const { currentUser, spacetimedbIdentity, mode, liveStatus, signOut } = useAuth();
   const [confirmSignOut, setConfirmSignOut] = useState(false);
