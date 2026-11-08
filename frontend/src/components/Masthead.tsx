@@ -4,7 +4,6 @@ import { useSpacetimeDB } from 'spacetimedb/react';
 import { LogOut, RadioTower } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 import { store } from '../lib/store';
-import { live } from '../lib/live';
 import { useAppState, useNow } from '../lib/useAppState';
 import { ROLE_SHORT } from './RoleBadge';
 import { PLACES } from './places';
@@ -91,22 +90,7 @@ export const Masthead: React.FC = () => {
             <Wordmark />
           </Link>
           <span className="hidden h-6 w-px bg-line-strong sm:block" aria-hidden="true" />
-          {mode === 'live' && live.myOrgs.length > 1 ? (
-            <select
-              aria-label="Company"
-              value={live.orgId !== null ? String(live.orgId) : ''}
-              onChange={(e) => live.setActiveOrg(e.target.value)}
-              className="hidden h-8 w-auto max-w-56 py-0 text-[13px] sm:block"
-            >
-              {live.myOrgs.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span className="hidden truncate text-[13px] text-fg-muted sm:block">{orgName}</span>
-          )}
+          <span className="hidden truncate text-[13px] text-fg-muted sm:block">{orgName}</span>
 
           <div className="ml-auto flex items-center gap-5">
             <Link

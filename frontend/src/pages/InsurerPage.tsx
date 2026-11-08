@@ -4,6 +4,7 @@ import type { Timestamp } from 'spacetimedb';
 import { reducers, tables } from '../module_bindings';
 import type { Incident } from '../module_bindings/types';
 import { useAuth } from '../lib/authContext';
+import { useAppState } from '../lib/useAppState';
 import { askAi } from '../lib/ai';
 import { Alert, Badge, Button, Card, EmptyState, Label, PageHeader, Stat, StatRow, cx } from '../components/ui';
 import type { Tone } from '../components/ui';
@@ -100,13 +101,13 @@ export const InsurerPage: React.FC = () => {
 const InsurerBoard: React.FC = () => {
   const { identity } = useSpacetimeDB();
 
-  // Which company am I acting as? (same logic the app uses, kept local to this page)
+  // The company I'm signed in as (the app's active company)
   const [orgMembers] = useTable(tables.orgMember);
   const [orgs] = useTable(tables.organization);
-  const [pickedOrgId, setPickedOrgId] = useState<bigint | null>(null);
+  const activeOrgId = useAppState((s) => s.org.id);
   const myMemberships = orgMembers.filter((m) => !!identity && m.person.isEqual(identity));
   const myOrgs = orgs.filter((o) => myMemberships.some((m) => m.orgId === o.id));
-  const activeOrg = myOrgs.find((o) => o.id === pickedOrgId) ?? myOrgs[0];
+  const activeOrg = myOrgs.find((o) => String(o.id) === activeOrgId) ?? myOrgs[0];
   const isAdmin = !!myMemberships.find((m) => m.orgId === activeOrg?.id)?.isAdmin;
 
   // Views (the underlying tables are private)
@@ -272,24 +273,6 @@ const InsurerBoard: React.FC = () => {
 
   return (
     <div className="space-y-10">
-      {myOrgs.length > 1 && (
-        <div className="flex items-center gap-3">
-          <Label>Acting as</Label>
-          <select
-            aria-label="Active company"
-            value={activeOrg ? String(activeOrg.id) : ''}
-            onChange={(e) => setPickedOrgId(BigInt(e.target.value))}
-            className={inputCls}
-          >
-            {myOrgs.map((o) => (
-              <option key={String(o.id)} value={String(o.id)}>
-                {o.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
       {error && <Alert tone="error" title="Error" onDismiss={() => setError(null)}>{error}</Alert>}
 
       <StatRow>
