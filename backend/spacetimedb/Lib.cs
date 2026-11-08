@@ -13,6 +13,7 @@ public static partial class Module
 
         public string DisplayName;
         public bool Online;
+        public bool IsAdmin;
         public Timestamp CreatedAt;
     }
 
@@ -43,13 +44,15 @@ public static partial class Module
         [SpacetimeDB.Index.BTree]
         public string IncidentId;
 
+        [SpacetimeDB.Index.BTree]
         public Identity Person;
+
         public string Role;
         public Identity AddedBy;
         public Timestamp AddedAt;
     }
 
-    [SpacetimeDB.Table(Accessor = "Message", Public = true)]
+    [SpacetimeDB.Table(Accessor = "Message")]
     public partial struct Message
     {
         [SpacetimeDB.PrimaryKey]
@@ -62,6 +65,10 @@ public static partial class Module
         public Identity Sender;
         public string Text;
         public Timestamp SentAt;
+
+        [SpacetimeDB.Index.BTree]
+        public int ChatType; // 1 for admin, 2 for incident, 3 for general
+
         public bool IsSystem;
     }
 
