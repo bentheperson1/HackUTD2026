@@ -18,7 +18,9 @@ public static partial class Module
         if (severity < 1 || severity > 4) throw new Exception("Severity out of range.");
 
         string id = NewIncidentId(ctx);
-        OpenWarRoom(ctx, orgId, id, name, incidentType, severity, isDrill: false);
+        var inc = OpenWarRoom(ctx, orgId, id, name, incidentType, severity, isDrill: false);
+        ClusterIncident(ctx, inc);
+        RecomputeTriage(ctx, id);
 
         ctx.Db.Activation.Insert(new Activation
         {
@@ -150,6 +152,7 @@ public static partial class Module
         }
 
         RecomputeObligations(ctx, incidentId);
+        RecomputeTriage(ctx, incidentId);
     }
 
     [SpacetimeDB.Reducer]

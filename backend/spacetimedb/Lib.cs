@@ -300,4 +300,79 @@ public static partial class Module
         public ScheduleAt ScheduledAt;
         [SpacetimeDB.Index.BTree] public ulong SessionId;
     }
+
+    //state farm stuff
+
+    [SpacetimeDB.Table(Accessor = "OrgProfile")]
+    public partial struct OrgProfile
+    {
+        [SpacetimeDB.PrimaryKey] public ulong OrgId;
+        public string Kind; // "policyholder" or "insurer"
+        public string Zip;
+        public List<string> Vendors;
+    }
+
+    [SpacetimeDB.Table(Accessor = "Policy")]
+    public partial struct Policy
+    {
+        [SpacetimeDB.PrimaryKey, SpacetimeDB.AutoInc] public ulong Id;
+        [SpacetimeDB.Index.BTree] public ulong InsurerOrgId;
+        [SpacetimeDB.Index.BTree] public ulong PolicyholderOrgId;
+    }
+
+    [SpacetimeDB.Table(Accessor = "CatastropheEvent")]
+    public partial struct CatastropheEvent
+    {
+        [SpacetimeDB.PrimaryKey, SpacetimeDB.AutoInc] public ulong Id;
+        [SpacetimeDB.Index.BTree] public ulong InsurerOrgId;
+        public string Title;
+        public string Kind;
+        public string Signature;
+        public string Label;
+        public string Status;
+        public Timestamp DetectedAt;
+        public string Summary;
+        public Timestamp? SummaryUpdatedAt;
+    }
+
+    [SpacetimeDB.Table(Accessor = "EventIncident")]
+    public partial struct EventIncident
+    {
+        [SpacetimeDB.PrimaryKey, SpacetimeDB.AutoInc] public ulong Id;
+        [SpacetimeDB.Index.BTree] public ulong EventId;
+        [SpacetimeDB.Unique] public string IncidentId;
+        public Timestamp LinkedAt;
+    }
+
+    [SpacetimeDB.Table(Accessor = "TriageAssessment")]
+    public partial struct TriageAssessment
+    {
+        [SpacetimeDB.PrimaryKey] public string IncidentId;
+        public int Score;
+        public string Level;
+        public List<string> Factors;
+        public Timestamp UpdatedAt;
+    }
+
+    [SpacetimeDB.Table(Accessor = "ExposureAlert")]
+    public partial struct ExposureAlert
+    {
+        [SpacetimeDB.PrimaryKey, SpacetimeDB.AutoInc] public ulong Id;
+        [SpacetimeDB.Index.BTree] public ulong EventId;
+        public ulong PolicyholderOrgId;
+        public string Reason;
+        public string Status;
+        public string Draft;
+        public Timestamp UpdatedAt;
+    }
+
+    [SpacetimeDB.Table(Accessor = "ClaimPacket")]
+    public partial struct ClaimPacket
+    {
+        [SpacetimeDB.PrimaryKey] public string IncidentId;
+        public string Body;
+        public string Narrative;
+        public Timestamp GeneratedAt;
+        public Identity GeneratedBy;
+    }
 }

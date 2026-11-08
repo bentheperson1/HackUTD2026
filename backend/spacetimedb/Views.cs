@@ -11,8 +11,12 @@ public static partial class Module
 
         void AddFrom(string incidentId)
         {
-            foreach (var msg in ctx.Db.Message.IncidentId.Filter(incidentId))
-                if (msg.ChatType == chatType && seen.Add(msg.Id)) result.Add(msg);
+            foreach (var om in ctx.Db.OrgMember.Person.Filter(ctx.Sender))
+            {
+                bool external = IsExternal(om.Role);
+                foreach (var inc in ctx.Db.Incident.OrgId.Filter(om.OrgId))
+                    if ((chatType == 3 && !external) || (om.IsAdmin && chatType <= 2)) AddFrom(inc.Id);
+            }
         }
 
         foreach (var om in ctx.Db.OrgMember.Person.Filter(ctx.Sender))
@@ -36,4 +40,19 @@ public static partial class Module
 
     [SpacetimeDB.View(Accessor = "GeneralMessages", Public = true)]
     public static List<Message> GeneralMessages(ViewContext ctx) => VisibleMessages(ctx, 3);
+
+    [SpacetimeDB.View(Accessor = "InsurerIncidents_Views", Public = true)]
+    public static List<Incident> InsurerIncidents_Views(ViewContext ctx)
+    {
+        var result = new List<Incident>();
+        var seen = new HashSet<string>();
+
+        foreach (var om in ctx.Db.OrgMember.Person.Filter(ctx.Sender))
+        {
+            if (om.Role != RoleName.Insurer) continue;
+            foreach (var inc in ctx.Db.Incident.OrgId.Filter(om.OrgId))
+                if (!inc.IsDrill && inc.Status == StatusOpen && seen.Add(inc.Id)) result.Add(inc);
+        }
+        return result;
+    }
 }

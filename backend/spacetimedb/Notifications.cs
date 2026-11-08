@@ -83,5 +83,6 @@ public static partial class Module
         ob.Status = status;
         ctx.Db.NotificationObligation.Id.Update(ob);
         LogTimeline(ctx, ob.IncidentId, $"Notice for {ob.State} marked {status}");
+        RecomputeTriage(ctx, ob.IncidentId);
     }
 }
