@@ -1,32 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Trash2, UserPlus } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 import { store } from '../lib/store';
 import { Member, Role } from '../lib/types';
 import { ROLES } from '../lib/constants';
+import { useAppState } from '../lib/useAppState';
 import { DataTable, Column } from '../components/DataTable';
-import { Button, IconButton } from '../components/Button';
-import { Card, SectionTitle } from '../components/Card';
 import { Field } from '../components/Field';
-import { Notice } from '../components/Notice';
-import { PageHeader } from '../components/PageHeader';
-import { Trash2 } from 'lucide-react';
+import { Alert, Badge, Button, Card, FilterBar, FilterChip, IconButton, Modal, PageHeader } from '../components/ui';
+import { ROLE_SHORT } from '../components/RoleBadge';
+
+const isGuestRole = (r: Role) => r === 'insurer' || r === 'outside_counsel';
 
 export const MembersPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const [members, setMembers] = useState<Member[]>(store.getState().members);
+  const members = useAppState((s) => s.members);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newRole, setNewRole] = useState<Role>('it_lead');
   const [guestDays, setGuestDays] = useState('7');
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    return store.subscribe((state) => {
-      setMembers(state.members);
-    });
-  }, []);
-
-  const isGuestRole = newRole === 'insurer' || newRole === 'outside_counsel';
+  const [removing, setRemoving] = useState<Member | null>(null);
+  const [roleFilter, setRoleFilter] = useState<Role | 'all' | 'guests'>('all');
+  const [search, setSearch] = useState('');
 
   const handleAddMember = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,9 +31,7 @@ export const MembersPage: React.FC = () => {
       setError('Name and phone are required.');
       return;
     }
-
-    const expiresAt = isGuestRole ? new Date(Date.now() + parseInt(guestDays, 10) * 86400000).toISOString() : null;
-
+    const expiresAt = isGuestRole(newRole) ? new Date(Date.now() + parseInt(guestDays, 10) * 86400000).toISOString() : null;
     const res = store.addMember(currentUser.name, newName, newPhone, newRole, expiresAt);
     if (!res.success) {
       setError(res.error || 'Failed to add member');
@@ -49,113 +43,130 @@ export const MembersPage: React.FC = () => {
 
   const handleRoleChange = (memberId: string, role: Role) => {
     const res = store.updateMemberRole(currentUser.name, memberId, role);
-    if (!res.success) {
-      setError(res.error || 'Failed to update role');
-    }
+    if (!res.success) setError(res.error || 'Failed to update role');
   };
 
-  const handleRemove = (memberId: string) => {
-    if (confirm('Remove this person from the response roster?')) {
-      const res = store.removeMember(currentUser.name, memberId);
-      if (!res.success) {
-        setError(res.error || 'Failed to remove member');
-      }
-    }
+  const confirmRemove = () => {
+    if (!removing) return;
+    const res = store.removeMember(currentUser.name, removing.id);
+    if (!res.success) setError(res.error || 'Failed to remove member');
+    setRemoving(null);
   };
+
+  const guests = members.filter((m) => m.expires_at).length;
+  const q = search.trim().toLowerCase();
+  const visibleMembers = members.filter(
+    (m) =>
+      (roleFilter === 'all' || (roleFilter === 'guests' ? !!m.expires_at : m.role === roleFilter)) &&
+      (!q || `${m.name} ${m.phone}`.toLowerCase().includes(q))
+  );
+  const rolesPresent = ROLES.map((r) => r.value).filter((r) => members.some((m) => m.role === r));
 
   const columns: Column<Member>[] = [
     {
       header: 'Name',
-      render: (m) => m.name,
+      render: (m) => (
+        <div>
+          <div className="font-medium text-fg">{m.name}</div>
+          <div className="font-mono text-xs text-fg-subtle" title={m.identity}>
+            {m.identity.slice(0, 8)}…{m.identity.slice(-4)}
+          </div>
+        </div>
+      ),
     },
     {
       header: 'Role',
       render: (m) => (
-        <select
-          aria-label={`Role for ${m.name}`}
-          value={m.role}
-          onChange={(e) => handleRoleChange(m.id, e.target.value as Role)}
-          className="h-9 py-0"
-        >
-          {ROLES.map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.label}
-            </option>
-          ))}
-        </select>
+        <>
+          <label className="sr-only" htmlFor={`role-${m.id}`}>
+            Role for {m.name}
+          </label>
+          <select id={`role-${m.id}`} value={m.role} onChange={(e) => handleRoleChange(m.id, e.target.value as Role)} className="h-8 w-48 py-0 text-xs">
+            {ROLES.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        </>
       ),
     },
     {
       header: 'Phone',
-      render: (m) => <span className="whitespace-nowrap font-mono text-on-surface-variant">{m.phone}</span>,
+      render: (m) => <span className="font-mono text-xs whitespace-nowrap text-fg-muted">{m.phone}</span>,
     },
     {
-      header: 'Identity',
-      render: (m) => (
-        <code className="font-mono type-body-small text-on-surface-variant" title={m.identity}>
-          {m.identity.slice(0, 8)}…{m.identity.slice(-4)}
-        </code>
-      ),
-    },
-    {
-      header: 'Access until',
-      render: (m) => (
-        <span className="whitespace-nowrap text-on-surface-variant">
-          {m.expires_at ? new Date(m.expires_at).toLocaleDateString() : 'No expiry'}
-        </span>
-      ),
+      header: 'Access',
+      render: (m) =>
+        m.expires_at ? (
+          <Badge tone="accent">Guest until {new Date(m.expires_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</Badge>
+        ) : (
+          <span className="text-xs text-fg-subtle">Permanent</span>
+        ),
     },
     {
       header: '',
-      align: 'right',
+      className: 'w-12 text-right',
       render: (m) => (
-        <IconButton label={`Remove ${m.name}`} onClick={() => handleRemove(m.id)} className="hover:text-error">
-          <Trash2 />
+        <IconButton label={`Remove ${m.name}`} tone="danger" onClick={() => setRemoving(m)}>
+          <Trash2 className="h-4 w-4" />
         </IconButton>
       ),
     },
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <PageHeader
-        title="Team roster"
-        description="Who can sign in during an incident. Outside advisors like counsel and insurers get access that expires."
+        eyebrow="Prepare"
+        title="Team"
+        description="Everyone who can enter the war room. Insurers and outside counsel get time-limited guest access."
       />
 
-      {error && <Notice tone="error">{error}</Notice>}
+      {error && (
+        <Alert tone="error" onDismiss={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
 
-      <section>
-        <SectionTitle trailing={`${members.length} people`}>Responders</SectionTitle>
-        <DataTable columns={columns} data={members} />
-      </section>
+      <FilterBar
+        right={
+          <>
+            <label htmlFor="member-search" className="sr-only">
+              Search people
+            </label>
+            <input id="member-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or phone" className="h-7 w-56 text-xs" />
+          </>
+        }
+      >
+        <FilterChip active={roleFilter === 'all'} onClick={() => setRoleFilter('all')} count={members.length}>
+          All
+        </FilterChip>
+        <FilterChip active={roleFilter === 'guests'} onClick={() => setRoleFilter(roleFilter === 'guests' ? 'all' : 'guests')} count={guests}>
+          Guests
+        </FilterChip>
+        {rolesPresent.map((r) => (
+          <FilterChip key={r} active={roleFilter === r} onClick={() => setRoleFilter(roleFilter === r ? 'all' : r)} count={members.filter((m) => m.role === r).length}>
+            {ROLE_SHORT[r]}
+          </FilterChip>
+        ))}
+      </FilterBar>
 
-      <Card className="p-5">
-        <SectionTitle>Add a person</SectionTitle>
-        <form onSubmit={handleAddMember} className="space-y-5">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Field label="Full name">
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Jordan Ellis"
-                className="w-full"
-              />
+      <Card kind="people" title="Roster" description={`${visibleMembers.length} of ${members.length} people`} padded={false}>
+        <DataTable bare columns={columns} data={visibleMembers} rowKey={(m) => m.id} emptyMessage="No one matches these filters." />
+      </Card>
+
+      <Card kind="form" title="Add a person">
+        <form onSubmit={handleAddMember} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <Field label="Full name" htmlFor="m-name">
+              <input id="m-name" type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Jordan Ellis" />
             </Field>
-
-            <Field label="Personal phone">
-              <input
-                type="tel"
-                value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
-                placeholder="+1 (555) 000-0000"
-                className="w-full"
-              />
+            <Field label="Personal phone" htmlFor="m-phone" help="Used for sign-in codes.">
+              <input id="m-phone" type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="+1 (555) 000-0000" />
             </Field>
-
-            <Field label="Role">
-              <select value={newRole} onChange={(e) => setNewRole(e.target.value as Role)} className="w-full">
+            <Field label="Role" htmlFor="m-role">
+              <select id="m-role" value={newRole} onChange={(e) => setNewRole(e.target.value as Role)}>
                 {ROLES.map((r) => (
                   <option key={r.value} value={r.value}>
                     {r.label}
@@ -163,24 +174,31 @@ export const MembersPage: React.FC = () => {
                 ))}
               </select>
             </Field>
-
-            {isGuestRole && (
-              <Field label="Access length (days)">
-                <input
-                  type="number"
-                  value={guestDays}
-                  onChange={(e) => setGuestDays(e.target.value)}
-                  min="1"
-                  max="90"
-                  className="w-full"
-                />
+            {isGuestRole(newRole) && (
+              <Field label="Guest access (days)" htmlFor="m-days">
+                <input id="m-days" type="number" value={guestDays} onChange={(e) => setGuestDays(e.target.value)} min="1" max="90" />
               </Field>
             )}
           </div>
-
-          <Button type="submit">Add to roster</Button>
+          <Button type="submit" variant="primary">
+            <UserPlus className="h-4 w-4" />
+            Add to roster
+          </Button>
         </form>
       </Card>
+
+      {removing && (
+        <Modal title={`Remove ${removing.name}?`} description="They lose access to the war room immediately. The audit log keeps their past actions." onClose={() => setRemoving(null)}>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setRemoving(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={confirmRemove}>
+              Remove
+            </Button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

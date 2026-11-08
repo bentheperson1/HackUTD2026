@@ -1,36 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Check, Siren, CircleCheck } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 import { store } from '../lib/store';
-import { Incident, IncidentPhase } from '../lib/types';
+import { IncidentPhase } from '../lib/types';
 import { PHASES } from '../lib/constants';
-import { Button } from '../components/Button';
-import { Card, SectionTitle } from '../components/Card';
-import { Chip } from '../components/Chip';
-import { Notice } from '../components/Notice';
-import { PageHeader } from '../components/PageHeader';
-import { Check, Siren } from 'lucide-react';
+import { useAppState, useNow } from '../lib/useAppState';
+import { Alert, Badge, Button, Card, Modal, PageHeader, formatClock, titleCase, cx } from '../components/ui';
+
+const PHASE_HELP: Record<IncidentPhase, string> = {
+  detection: 'Confirm what happened and how far it reaches.',
+  containment: 'Stop the spread. Isolate affected machines.',
+  eradication: 'Remove the attacker and the malware.',
+  recovery: 'Restore systems from clean backups and monitor.',
+};
 
 export const IncidentPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const [incident, setIncident] = useState<Incident>(store.getState().incident);
+  const incident = useAppState((s) => s.incident);
+  const memberCount = useAppState((s) => s.members.length);
+  const now = useNow();
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    return store.subscribe((state) => {
-      setIncident(state.incident);
-    });
-  }, []);
+  const [confirm, setConfirm] = useState<'activate' | 'close' | null>(null);
 
   const handleActivate = () => {
     const res = store.setIncidentStatus(currentUser.name, 'active');
     if (!res.success) setError(res.error || 'Failed to activate incident');
+    setConfirm(null);
   };
 
   const handleClose = () => {
-    if (confirm('Mark the incident as resolved and close it?')) {
-      const res = store.setIncidentStatus(currentUser.name, 'closed');
-      if (!res.success) setError(res.error || 'Failed to close incident');
-    }
+    const res = store.setIncidentStatus(currentUser.name, 'closed');
+    if (!res.success) setError(res.error || 'Failed to close incident');
+    setConfirm(null);
   };
 
   const handlePhaseChange = (phase: IncidentPhase) => {
@@ -39,90 +40,128 @@ export const IncidentPage: React.FC = () => {
   };
 
   const isActive = incident.status === 'active';
-  const currentPhaseIdx = PHASES.indexOf(incident.phase);
+  const currentIdx = PHASES.indexOf(incident.phase);
+  const elapsed = isActive && incident.started_at ? (now - new Date(incident.started_at).getTime()) / 1000 : 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <PageHeader
-        title="Incident status"
-        description="Declaring an incident starts the clock, opens the war room and begins the audit trail."
+        eyebrow="Respond"
+        title="Incident"
+        description="Activating opens the war room, alerts everyone on the roster, and starts the permanent timeline."
       />
 
-      {error && <Notice tone="error">{error}</Notice>}
+      {error && (
+        <Alert tone="error" onDismiss={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
 
-      <section
-        className={`rounded-2xl p-6 ${isActive ? 'bg-error-container text-on-error-container' : 'bg-surface-container'}`}
-      >
+      <Card kind="data" title="Status" className={cx(isActive && 'border-breach/50 hover:border-breach/60')}>
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <Chip className={`capitalize ${isActive ? '!border-on-error-container/40 !text-on-error-container' : ''}`}>
-              {incident.status}
-            </Chip>
-            <h2 className="mb-2 mt-3 type-headline-medium">
-              {isActive ? 'Incident in progress' : incident.status === 'closed' ? 'Incident closed' : 'No active incident'}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Badge tone={isActive ? 'breach' : 'neutral'} dot>
+                {isActive ? 'Active' : incident.status === 'closed' ? 'Closed' : 'Standby'}
+              </Badge>
+              {isActive && <span className="font-mono text-sm text-fg-muted">{formatClock(elapsed)} elapsed</span>}
+            </div>
+            <h2 className="text-xl font-semibold text-fg">
+              {isActive ? 'Emergency response in progress' : 'No active incident'}
             </h2>
-            <dl className="m-0 flex flex-wrap gap-x-8 gap-y-1 type-body-medium">
-              <div className="flex gap-2">
-                <dt className="opacity-75">Phase</dt>
-                <dd className="m-0 capitalize">{incident.phase}</dd>
+            <dl className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm sm:flex sm:gap-8">
+              <div>
+                <dt className="text-xs text-fg-subtle">Phase</dt>
+                <dd className="text-fg">{titleCase(incident.phase)}</dd>
               </div>
-              <div className="flex gap-2">
-                <dt className="opacity-75">Started</dt>
-                <dd className="m-0">{incident.started_at ? new Date(incident.started_at).toLocaleString() : 'Not started'}</dd>
+              <div>
+                <dt className="text-xs text-fg-subtle">Started</dt>
+                <dd className="font-mono text-fg">{incident.started_at ? new Date(incident.started_at).toLocaleString() : 'Not started'}</dd>
               </div>
             </dl>
           </div>
 
           {!isActive ? (
-            <Button variant="danger" icon={<Siren />} onClick={handleActivate} className="h-12 px-8">
-              Declare incident
+            <Button variant="danger" size="lg" onClick={() => setConfirm('activate')}>
+              <Siren className="h-5 w-5" />
+              Activate incident
             </Button>
           ) : (
-            <Button variant="outlined" icon={<Check />} onClick={handleClose} className="!border-on-error-container/40 !text-on-error-container">
+            <Button variant="secondary" size="lg" onClick={() => setConfirm('close')}>
+              <CircleCheck className="h-5 w-5" />
               Close incident
             </Button>
           )}
         </div>
-      </section>
+      </Card>
 
-      <Card variant="outlined" className="p-5">
-        <SectionTitle trailing="NIST SP 800-61">Response phase</SectionTitle>
-        {!isActive && (
-          <p className="mb-4 mt-0 type-body-medium text-on-surface-variant">Declare an incident to move between phases.</p>
-        )}
-
-        <ol className="m-0 grid list-none grid-cols-2 gap-2 p-0 md:grid-cols-4">
+      <Card kind="timeline" title="Response phases" description="NIST SP 800-61 stages · every change is logged">
+        <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {PHASES.map((p, idx) => {
             const isCurrent = incident.phase === p;
-            const isPast = idx < currentPhaseIdx;
+            const isDone = isActive && idx < currentIdx;
             return (
               <li key={p}>
                 <button
+                  type="button"
                   onClick={() => handlePhaseChange(p)}
                   disabled={!isActive}
                   aria-current={isCurrent ? 'step' : undefined}
-                  className={`state-layer flex w-full items-center gap-3 rounded-xl p-3 text-left disabled:cursor-not-allowed disabled:opacity-50 ${
-                    isCurrent ? 'bg-secondary-container text-on-secondary-container' : 'text-on-surface'
-                  }`}
+                  className={cx(
+                    'h-full w-full border-t-4 px-1 pt-3 pb-2 text-left transition-colors disabled:cursor-not-allowed',
+                    isCurrent ? 'border-accent' : isDone ? 'border-accent/45' : 'border-line hover:border-line-strong',
+                    !isActive && 'opacity-60'
+                  )}
                 >
-                  <span
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full type-label-large ${
-                      isCurrent
-                        ? 'bg-primary text-on-primary'
-                        : isPast
-                          ? 'bg-tertiary-container text-on-tertiary-container'
-                          : 'border border-outline text-on-surface-variant'
-                    }`}
-                  >
-                    {isPast ? <Check className="h-4 w-4" /> : idx + 1}
-                  </span>
-                  <span className="type-title-small capitalize">{p}</span>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-mono text-fg-subtle">0{idx + 1}</span>
+                    {isDone && <Check className="h-3.5 w-3.5 text-accent" />}
+                    {isCurrent && <span className="font-medium text-accent">Current</span>}
+                  </div>
+                  <div className="font-display mt-1.5 text-[22px] leading-tight font-bold text-fg uppercase">{titleCase(p)}</div>
+                  <p className="mt-1 text-xs text-fg-muted">{PHASE_HELP[p]}</p>
                 </button>
               </li>
             );
           })}
         </ol>
+        {!isActive && <p className="mt-4 text-xs text-fg-subtle">Phases unlock once an incident is active.</p>}
       </Card>
+
+      {confirm === 'activate' && (
+        <Modal
+          title="Activate an incident?"
+          description={`This opens the war room and alerts all ${memberCount} people on the roster on their personal phones.`}
+          onClose={() => setConfirm(null)}
+        >
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setConfirm(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleActivate} autoFocus>
+              <Siren className="h-4 w-4" />
+              Activate now
+            </Button>
+          </div>
+        </Modal>
+      )}
+
+      {confirm === 'close' && (
+        <Modal
+          title="Close this incident?"
+          description="The timeline stays permanent. You can still export the full record afterwards."
+          onClose={() => setConfirm(null)}
+        >
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setConfirm(null)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleClose} autoFocus>
+              Close incident
+            </Button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

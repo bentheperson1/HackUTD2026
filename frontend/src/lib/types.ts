@@ -14,6 +14,8 @@ export interface Member {
   role: Role;
   org_id: string;
   expires_at: string | null;
+  /** Lifetime Drill Night points */
+  drill_score?: number;
 }
 
 export interface Org {
@@ -84,29 +86,79 @@ export interface ReportDraft {
   updated_at: string;
 }
 
-export type ScenarioType = 'ransomware' | 'phishing' | 'flood' | 'tornado' | 'power_outage';
+/* ---------------- Drill Night (Phase 2) ---------------- */
+
+export interface DrillScenario {
+  id: string;
+  name: string;
+  kind: 'cyber' | 'catastrophe';
+  description: string;
+  window_seconds: number;
+  inject_count: number;
+}
+
+export type DrillStatus = 'lobby' | 'running' | 'finished' | 'cancelled';
 
 export interface DrillSession {
   id: string;
-  scenario: ScenarioType;
-  status: 'pending' | 'running' | 'completed';
+  join_code: string;
+  scenario_id: string;
+  scenario_name: string;
+  host_id: string; // member id
+  host_name: string;
+  status: DrillStatus;
+  round_index: number; // -1 in the lobby
+  created_at: string;
   started_at: string | null;
-  time_remaining_seconds: number;
+  ended_at: string | null;
 }
 
 export interface DrillPlayer {
   id: string;
+  member_id: string;
   name: string;
   role: Role;
   score: number;
+  correct_count: number;
+  joined_at: string;
 }
 
-export interface DrillEvent {
+/** An inject that has gone live. correct_index is -1 until the round closes. */
+export interface DrillRound {
   id: string;
-  timestamp: string;
-  description: string;
+  position: number;
+  title: string;
+  body: string;
+  question: string;
+  options: string[];
   points: number;
-  action_required: string;
+  role: Role;
+  opened_at: string;
+  closes_at: string;
+  closed: boolean;
+  correct_index: number;
+  explanation: string;
+}
+
+/** choice is -1 while sealed (until the round closes) */
+export interface DrillAnswer {
+  id: string;
+  round_id: string;
+  player_id: string;
+  choice: number;
+  correct: boolean;
+  points: number;
+  answered_at: string;
+  revealed: boolean;
+}
+
+export interface DrillState {
+  scenarios: DrillScenario[];
+  /** The org's newest drill (open or the last finished one) */
+  session: DrillSession | null;
+  players: DrillPlayer[];
+  rounds: DrillRound[];
+  answers: DrillAnswer[];
 }
 
 export interface ReducerCallLog {

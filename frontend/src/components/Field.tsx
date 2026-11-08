@@ -2,19 +2,22 @@ import React from 'react';
 
 interface FieldProps {
   label: string;
+  htmlFor?: string;
   error?: string;
   help?: string;
-  className?: string;
   children: React.ReactNode;
+  className?: string;
 }
 
-export const Field: React.FC<FieldProps> = ({ label, error, help, className = '', children }) => {
+export const Field: React.FC<FieldProps> = ({ label, htmlFor, error, help, children, className }) => {
   return (
-    <label className={`flex flex-col gap-1.5 ${className}`}>
-      <span className="type-label-large text-on-surface-variant">{label}</span>
+    <div className={`space-y-1.5 ${className ?? ''}`}>
+      <label htmlFor={htmlFor} className="block text-xs font-medium text-fg-muted">
+        {label}
+      </label>
       {children}
-      {help && !error && <span className="px-4 type-body-small text-on-surface-variant">{help}</span>}
-      {error && <span className="px-4 type-body-small text-error">{error}</span>}
-    </label>
+      {help && <p className="text-xs text-fg-subtle">{help}</p>}
+      {error && <p className="text-xs font-medium text-breach-text">{error}</p>}
+    </div>
   );
 };

@@ -1,105 +1,77 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Send, Megaphone, Lock, MessagesSquare } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 import { store } from '../lib/store';
-import { Message, Task, Role, ChatChannel } from '../lib/types';
+import { Role, ChatChannel } from '../lib/types';
 import { ROLES } from '../lib/constants';
-import { Button } from '../components/Button';
-import { Card, SectionTitle } from '../components/Card';
-import { Field } from '../components/Field';
-import { Notice } from '../components/Notice';
-import { PageHeader } from '../components/PageHeader';
+import { useAppState } from '../lib/useAppState';
 import { RoleBadge } from '../components/RoleBadge';
-import { Send, Megaphone, Lock } from 'lucide-react';
+import { Field } from '../components/Field';
+import { Alert, Button, Card, EmptyState, Kbd, Modal, PageHeader, Segmented, cx } from '../components/ui';
 
-const CHANNELS: { id: ChatChannel; label: string; adminOnly?: boolean }[] = [
-  { id: 'admin', label: 'Leadership', adminOnly: true },
-  { id: 'warroom', label: 'War room' },
-  { id: 'general', label: 'Company Q&A' },
-];
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
 export const WarRoomPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const [messages, setMessages] = useState<Message[]>(store.getState().messages);
-  const [tasks, setTasks] = useState<Task[]>(store.getState().tasks);
-  const [activeBroadcast, setActiveBroadcast] = useState(store.getState().activeBroadcast);
-  const [slowModeSeconds, setSlowModeSeconds] = useState(store.getState().slowModeSeconds || 0);
+  const messages = useAppState((s) => s.messages);
+  const tasks = useAppState((s) => s.tasks);
+  const activeBroadcast = useAppState((s) => s.activeBroadcast);
+  const slowModeSeconds = useAppState((s) => s.slowModeSeconds || 0);
 
-  // Active chat channel
   const [activeChannel, setActiveChannel] = useState<ChatChannel>('warroom');
   const [inputMessage, setInputMessage] = useState('');
   const [broadcastInput, setBroadcastInput] = useState('');
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
-
-  // Slow mode client cooldown
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
-  // Task creation
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDesc, setTaskDesc] = useState('');
   const [taskRole, setTaskRole] = useState<Role>('it_lead');
   const [taskAssignee, setTaskAssignee] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [taskView, setTaskView] = useState<'all' | 'mine' | 'open'>('all');
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  const listRef = useRef<HTMLDivElement>(null);
   const isAdmin = currentUser.role === 'owner';
 
-  useEffect(() => {
-    return store.subscribe((state) => {
-      setMessages(state.messages);
-      setTasks(state.tasks);
-      setActiveBroadcast(state.activeBroadcast);
-      setSlowModeSeconds(state.slowModeSeconds || 0);
-    });
-  }, []);
-
-  // Cooldown countdown
+  // Slow mode cooldown
   useEffect(() => {
     if (cooldownRemaining <= 0) return;
-    const t = setInterval(() => {
-      setCooldownRemaining((prev) => Math.max(0, prev - 1));
-    }, 1000);
+    const t = setInterval(() => setCooldownRemaining((prev) => Math.max(0, prev - 1)), 1000);
     return () => clearInterval(t);
   }, [cooldownRemaining]);
 
+  // Scroll the message list (not the page) to the newest message
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const el = listRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages, activeChannel]);
 
-  // Channel access calculation
-  const canAccessAdmin = isAdmin;
-  // If user is switched to a role that cannot access admin, kick them to warroom or general
+  // Non-admins can't stay in the admin room
   useEffect(() => {
-    if (activeChannel === 'admin' && !canAccessAdmin) {
-      setActiveChannel('warroom');
-    }
-  }, [currentUser, activeChannel, canAccessAdmin]);
-
-  useEffect(() => {
-    if (!isBroadcastModalOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setIsBroadcastModalOpen(false);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isBroadcastModalOpen]);
+    if (activeChannel === 'admin' && !isAdmin) setActiveChannel('warroom');
+  }, [currentUser, activeChannel, isAdmin]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!inputMessage.trim()) return;
-
     if (!isAdmin && cooldownRemaining > 0) {
-      setError(`Slow mode is on. You can post again in ${cooldownRemaining}s.`);
+      setError(`Slow mode is on. Wait ${cooldownRemaining}s before sending another message.`);
       return;
     }
-
     const res = store.sendMessage(currentUser.name, currentUser.role, inputMessage, activeChannel);
     if (!res.success) {
       setError(res.error || 'Failed to send message');
     } else {
       setInputMessage('');
-      if (!isAdmin && slowModeSeconds > 0) {
-        setCooldownRemaining(slowModeSeconds);
-      }
+      if (!isAdmin && slowModeSeconds > 0) setCooldownRemaining(slowModeSeconds);
     }
   };
 
@@ -109,14 +81,6 @@ export const WarRoomPage: React.FC = () => {
     store.setBroadcast(currentUser.name, broadcastInput);
     setBroadcastInput('');
     setIsBroadcastModalOpen(false);
-  };
-
-  const handleClearBroadcast = () => {
-    store.clearBroadcast(currentUser.name);
-  };
-
-  const handleSetSlowMode = (secs: number) => {
-    store.setSlowMode(secs);
   };
 
   const handleCreateTask = (e: React.FormEvent) => {
@@ -138,56 +102,40 @@ export const WarRoomPage: React.FC = () => {
 
   const handleToggleTask = (taskId: string) => {
     const res = store.toggleTask(currentUser.name, taskId);
-    if (!res.success) {
-      setError(res.error || 'Failed to toggle task');
-    }
+    if (!res.success) setError(res.error || 'Failed to toggle task');
   };
 
-  // Filter messages for active channel
+  const count = (c: ChatChannel) => messages.filter((m) => (m.channel || 'warroom') === c).length;
   const channelMessages = messages.filter((m) => (m.channel || 'warroom') === activeChannel);
-  const isCoolingDown = !isAdmin && cooldownRemaining > 0;
-  const openTasks = tasks.filter((t) => !t.done);
-  const doneTasks = tasks.filter((t) => t.done);
+  const coolingDown = !isAdmin && cooldownRemaining > 0;
+  const doneCount = tasks.filter((t) => t.done).length;
+  const visibleTasks = tasks.filter((t) => (taskView === 'mine' ? t.role === currentUser.role : taskView === 'open' ? !t.done : true));
 
   return (
-    <div className="space-y-6">
-      {activeBroadcast && (
-        <div className="flex flex-col gap-3 rounded-2xl bg-primary-container p-4 text-on-primary-container sm:flex-row sm:items-start">
-          <Megaphone className="mt-0.5 h-6 w-6 shrink-0" strokeWidth={1.75} />
-          <div className="min-w-0 flex-1">
-            <div className="type-label-medium opacity-80">
-              Broadcast from {activeBroadcast.author} at {new Date(activeBroadcast.timestamp).toLocaleTimeString()}
-            </div>
-            <p className="m-0 mt-1 type-title-medium">{activeBroadcast.message}</p>
-          </div>
-          {isAdmin && (
-            <Button variant="text" onClick={handleClearBroadcast} className="!text-on-primary-container">
-              Dismiss for everyone
-            </Button>
-          )}
-        </div>
-      )}
-
+    <div className="space-y-10">
       <PageHeader
+        eyebrow="Respond"
         title="War room"
-        description="Team chat that runs outside company email and Slack, which are treated as compromised."
+        description="Out-of-band chat and tasks. Nothing here touches company email or Slack."
         actions={
           isAdmin && (
             <>
-              <label className="flex items-center gap-2 type-label-large text-on-surface-variant">
+              <label className="flex items-center gap-2 text-xs text-fg-muted">
                 Slow mode
                 <select
                   value={slowModeSeconds}
-                  onChange={(e) => handleSetSlowMode(Number(e.target.value))}
-                  className="h-10 py-0"
+                  onChange={(e) => store.setSlowMode(Number(e.target.value))}
+                  className="h-8 w-32 py-0 text-xs"
+                  aria-label="Slow mode"
                 >
                   <option value={0}>Off</option>
-                  <option value={15}>15s</option>
-                  <option value={30}>30s</option>
-                  <option value={60}>60s</option>
+                  <option value={15}>15 seconds</option>
+                  <option value={30}>30 seconds</option>
+                  <option value={60}>60 seconds</option>
                 </select>
               </label>
-              <Button variant="tonal" icon={<Megaphone />} onClick={() => setIsBroadcastModalOpen(true)}>
+              <Button size="sm" onClick={() => setIsBroadcastModalOpen(true)}>
+                <Megaphone className="h-4 w-4" />
                 Broadcast
               </Button>
             </>
@@ -195,193 +143,159 @@ export const WarRoomPage: React.FC = () => {
         }
       />
 
-      {error && <Notice tone="error">{error}</Notice>}
-
-      {isBroadcastModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/50 p-4"
-          onClick={() => setIsBroadcastModalOpen(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="broadcast-title"
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg rounded-[28px] bg-surface-container-high p-6"
-          >
-            <h2 id="broadcast-title" className="m-0 type-headline-small">
-              Send a broadcast
-            </h2>
-            <p className="mb-4 mt-2 type-body-medium text-on-surface-variant">
-              Pins a message above every channel for everyone on the response team until you dismiss it.
-            </p>
-
-            <form onSubmit={handleSendBroadcast}>
-              <textarea
-                value={broadcastInput}
-                onChange={(e) => setBroadcastInput(e.target.value)}
-                placeholder="Do not power off any computers. Unplug network cables now."
-                rows={3}
-                className="w-full"
-                autoFocus
-              />
-              <div className="mt-6 flex justify-end gap-2">
-                <Button variant="text" onClick={() => setIsBroadcastModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button variant="text" type="submit" disabled={!broadcastInput.trim()}>
-                  Send
-                </Button>
-              </div>
-            </form>
+      {activeBroadcast && (
+        <div role="alert" className="flex items-start gap-3 bg-breach px-4 py-3 text-white">
+          <Megaphone className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <div className="text-xs opacity-85">
+              All-hands broadcast from {activeBroadcast.author} · {new Date(activeBroadcast.timestamp).toLocaleTimeString()}
+            </div>
+            <p className="font-display mt-0.5 text-[20px] leading-snug font-bold uppercase">{activeBroadcast.message}</p>
           </div>
+          {isAdmin && (
+            <Button variant="ghost" size="sm" onClick={() => store.clearBroadcast(currentUser.name)}>
+              Clear
+            </Button>
+          )}
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 [&>*]:min-w-0">
-        {/* Chat */}
-        <Card className="flex flex-col overflow-hidden lg:col-span-7">
-          <div role="tablist" className="flex border-b border-outline-variant px-2">
-            {CHANNELS.filter((c) => !c.adminOnly || canAccessAdmin).map((c) => {
-              const selected = c.id === activeChannel;
-              const count = messages.filter((m) => (m.channel || 'warroom') === c.id).length;
-              return (
-                <button
-                  key={c.id}
-                  role="tab"
-                  aria-selected={selected}
-                  onClick={() => setActiveChannel(c.id)}
-                  className={`state-layer relative flex h-12 items-center gap-1.5 whitespace-nowrap px-4 type-title-small ${
-                    selected ? 'text-primary' : 'text-on-surface-variant'
-                  }`}
-                >
-                  {c.adminOnly && <Lock className="h-3.5 w-3.5" />}
-                  {c.label}
-                  <span className="type-label-small opacity-70">{count}</span>
-                  {selected && <span className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-full bg-primary" />}
-                </button>
-              );
-            })}
-            {slowModeSeconds > 0 && (
-              <span className="ml-auto hidden items-center px-2 type-body-small text-on-surface-variant sm:flex">
-                Slow mode {slowModeSeconds}s
-              </span>
-            )}
-          </div>
+      {error && (
+        <Alert tone="error" onDismiss={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
 
-          <div className="h-[440px] space-y-4 overflow-y-auto px-4 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Segmented<ChatChannel>
+          ariaLabel="Chat channel"
+          value={activeChannel}
+          onChange={setActiveChannel}
+          options={[
+            { value: 'warroom', label: 'Incident war room', count: count('warroom') },
+            { value: 'admin', label: <span className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" />Executive</span>, count: count('admin'), hidden: !isAdmin },
+            { value: 'general', label: 'Company Q&A', count: count('general') },
+          ]}
+        />
+        {slowModeSeconds > 0 && <span className="text-xs text-fg-subtle">Slow mode: {slowModeSeconds}s between messages</span>}
+      </div>
+
+      <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-12">
+        {/* Chat */}
+        <Card kind="chat" title={activeChannel === 'warroom' ? 'Incident war room' : activeChannel === 'admin' ? 'Executive' : 'Company Q&A'} description={`${channelMessages.length} messages`} padded={false} className="flex flex-col lg:col-span-7">
+          <div ref={listRef} className="h-0 min-h-[460px] flex-1 space-y-1 overflow-y-auto p-3">
             {channelMessages.length === 0 ? (
-              <div className="flex h-full items-center justify-center type-body-medium text-on-surface-variant">
-                No messages here yet.
-              </div>
+              <EmptyState
+                icon={<MessagesSquare className="h-6 w-6" />}
+                title="No messages yet"
+                description="Post what you're seeing. Everyone in this room sees it instantly."
+              />
             ) : (
               channelMessages.map((m) => {
                 const isMe = m.sender_name === currentUser.name;
                 return (
-                  <div key={m.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                    <div className="mb-1 flex items-center gap-2 px-1 type-body-small text-on-surface-variant">
-                      {!isMe && <span className="type-label-medium text-on-surface">{m.sender_name}</span>}
-                      {!isMe && <RoleBadge role={m.sender_role} />}
-                      <span>{new Date(m.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
-                    </div>
-                    <p
-                      className={`m-0 max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 type-body-large ${
-                        isMe
-                          ? 'rounded-br-md bg-primary-container text-on-primary-container'
-                          : 'rounded-bl-md bg-surface-container-highest text-on-surface'
-                      }`}
+                  <div key={m.id} className={cx('flex gap-3 rounded-md px-2 py-2', isMe && 'bg-surface-2/60')}>
+                    <div
+                      className={cx(
+                        'flex h-8 w-8 shrink-0 items-center justify-center text-[11px] font-semibold',
+                        isMe ? 'bg-accent text-bg' : 'bg-surface-3 text-fg'
+                      )}
                     >
-                      {m.content}
-                    </p>
+                      {initials(m.sender_name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-medium text-fg">{m.sender_name}</span>
+                        <RoleBadge role={m.sender_role} />
+                        <span className="font-mono text-xs text-fg-subtle">
+                          {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-sm leading-relaxed break-words text-fg-muted">{m.content}</p>
+                    </div>
                   </div>
                 );
               })
             )}
-            <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={handleSendMessage} className="flex items-center gap-2 border-t border-outline-variant p-3">
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              disabled={isCoolingDown}
-              aria-label="Message"
-              placeholder={isCoolingDown ? `Slow mode, wait ${cooldownRemaining}s` : 'Write a message'}
-              className="h-12 flex-1 rounded-full border-transparent bg-surface-container-highest px-5"
-            />
-            <Button type="submit" disabled={isCoolingDown || !inputMessage.trim()} icon={<Send />} className="h-12">
-              Send
-            </Button>
+          <form onSubmit={handleSendMessage} className="border-t border-line p-3">
+            <div className="flex gap-2">
+              <label htmlFor="chat-input" className="sr-only">
+                Message
+              </label>
+              <input
+                id="chat-input"
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                disabled={coolingDown}
+                placeholder={coolingDown ? `Slow mode: ${cooldownRemaining}s` : 'Write a message'}
+                autoComplete="off"
+              />
+              <Button type="submit" variant="primary" size="lg" disabled={coolingDown || !inputMessage.trim()} aria-label="Send message">
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="mt-2 flex items-center gap-1.5 px-0.5 text-[11px] text-fg-subtle">
+              <Kbd>↵</Kbd> to send · posts only to this room
+            </div>
           </form>
         </Card>
 
         {/* Tasks */}
         <div className="space-y-6 lg:col-span-5">
-          <section>
-            <SectionTitle trailing={`${doneTasks.length} of ${tasks.length} done`}>Action items</SectionTitle>
-            <Card variant="outlined" className="max-h-[300px] overflow-y-auto">
-              {tasks.length === 0 ? (
-                <p className="m-0 p-4 type-body-medium text-on-surface-variant">No action items yet.</p>
-              ) : (
-                <ul className="m-0 list-none divide-y divide-outline-variant p-0">
-                  {[...openTasks, ...doneTasks].map((t) => (
-                    <li key={t.id}>
-                      <label className="state-layer flex cursor-pointer items-start gap-3 px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={t.done}
-                          onChange={() => handleToggleTask(t.id)}
-                          className="mt-0.5 shrink-0"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div
-                            className={`type-body-large ${t.done ? 'text-on-surface-variant line-through' : 'text-on-surface'}`}
-                          >
-                            {t.title}
-                          </div>
-                          {t.description && !t.done && (
-                            <div className="mt-0.5 type-body-medium text-on-surface-variant">{t.description}</div>
-                          )}
-                          <div className="mt-1.5 flex items-center gap-2 type-body-small text-on-surface-variant">
-                            <RoleBadge role={t.role} />
-                            <span>{t.assignee || 'Unassigned'}</span>
-                          </div>
+          <Card
+            kind="list"
+            title="Tasks by role"
+            actions={
+              <Segmented<'all' | 'mine' | 'open'>
+                ariaLabel="Which tasks"
+                value={taskView}
+                onChange={setTaskView}
+                options={[
+                  { value: 'all', label: 'All', count: tasks.length },
+                  { value: 'mine', label: 'Mine', count: tasks.filter((t) => t.role === currentUser.role).length },
+                  { value: 'open', label: 'Open', count: tasks.length - doneCount },
+                ]}
+              />
+            }
+            padded={false}
+          >
+            {visibleTasks.length === 0 ? (
+              <EmptyState title={tasks.length ? 'Nothing in this view' : 'No tasks yet'} description={tasks.length ? 'Try another filter.' : 'Add the first task below.'} />
+            ) : (
+              <ul className="max-h-[260px] divide-y divide-line overflow-y-auto">
+                {visibleTasks.map((t) => (
+                  <li key={t.id}>
+                    <label className="flex cursor-pointer items-start gap-3 px-5 py-3 hover:bg-surface-2/50">
+                      <input type="checkbox" checked={t.done} onChange={() => handleToggleTask(t.id)} className="mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <div className={cx('text-sm', t.done ? 'text-fg-subtle line-through' : 'text-fg')}>{t.title}</div>
+                        {t.description && <div className="mt-0.5 text-xs text-fg-subtle">{t.description}</div>}
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <RoleBadge role={t.role} />
+                          <span className="text-xs text-fg-subtle">{t.assignee || 'Unassigned'}</span>
                         </div>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          </section>
+                      </div>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
 
-          <section>
-            <SectionTitle>New action item</SectionTitle>
-            <form onSubmit={handleCreateTask} className="space-y-4">
-              <Field label="Title">
-                <input
-                  type="text"
-                  value={taskTitle}
-                  onChange={(e) => setTaskTitle(e.target.value)}
-                  placeholder="Revoke cloud sync API tokens"
-                  className="w-full"
-                />
+          <Card kind="form" title="New task">
+            <form onSubmit={handleCreateTask} className="space-y-3">
+              <Field label="Task" htmlFor="task-title">
+                <input id="task-title" type="text" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="e.g. Revoke cloud sync tokens" />
               </Field>
-
-              <Field label="Instructions">
-                <textarea
-                  value={taskDesc}
-                  onChange={(e) => setTaskDesc(e.target.value)}
-                  placeholder="Optional"
-                  rows={2}
-                  className="w-full"
-                />
+              <Field label="Instructions (optional)" htmlFor="task-desc">
+                <textarea id="task-desc" value={taskDesc} onChange={(e) => setTaskDesc(e.target.value)} rows={2} placeholder="What exactly should they do?" />
               </Field>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Role">
-                  <select value={taskRole} onChange={(e) => setTaskRole(e.target.value as Role)} className="w-full">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Role" htmlFor="task-role">
+                  <select id="task-role" value={taskRole} onChange={(e) => setTaskRole(e.target.value as Role)}>
                     {ROLES.map((r) => (
                       <option key={r.value} value={r.value}>
                         {r.label}
@@ -389,25 +303,48 @@ export const WarRoomPage: React.FC = () => {
                     ))}
                   </select>
                 </Field>
-
-                <Field label="Assignee">
-                  <input
-                    type="text"
-                    value={taskAssignee}
-                    onChange={(e) => setTaskAssignee(e.target.value)}
-                    placeholder="Name"
-                    className="w-full"
-                  />
+                <Field label="Assignee" htmlFor="task-assignee">
+                  <input id="task-assignee" type="text" value={taskAssignee} onChange={(e) => setTaskAssignee(e.target.value)} placeholder="Name" />
                 </Field>
               </div>
-
-              <Button type="submit" variant="tonal">
-                Add action item
+              <Button type="submit" block>
+                Add task
               </Button>
             </form>
-          </section>
+          </Card>
         </div>
       </div>
+
+      {isBroadcastModalOpen && (
+        <Modal
+          title="Send an all-hands broadcast"
+          description="Shows a banner at the top of every responder's screen until you clear it."
+          onClose={() => setIsBroadcastModalOpen(false)}
+        >
+          <form onSubmit={handleSendBroadcast} className="space-y-4">
+            <label htmlFor="broadcast" className="sr-only">
+              Broadcast message
+            </label>
+            <textarea
+              id="broadcast"
+              value={broadcastInput}
+              onChange={(e) => setBroadcastInput(e.target.value)}
+              placeholder="e.g. Do not power off any computers. Unplug network cables now."
+              rows={3}
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setIsBroadcastModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="danger" disabled={!broadcastInput.trim()}>
+                <Megaphone className="h-4 w-4" />
+                Send broadcast
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 };

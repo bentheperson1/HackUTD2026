@@ -1,17 +1,33 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowRight, KeyRound } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
-import { store } from '../lib/store';
-import { Button } from '../components/Button';
+import { useAppState } from '../lib/useAppState';
+import { Wordmark } from '../components/Masthead';
+import { ROLE_SHORT } from '../components/RoleBadge';
 import { Field } from '../components/Field';
-import { Notice } from '../components/Notice';
-import { roleLabel } from '../components/RoleBadge';
-import { ShieldAlert, Check, ArrowLeft } from 'lucide-react';
+import { Alert, Button, cx } from '../components/ui';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser, switchUser, loginAsTestUser } = useAuth();
-  const [members] = useState(store.getState().members);
+  const { currentUser, switchUser, loginAsTestUser, signInWithPhone, mode, liveStatus } = useAuth();
+  const members = useAppState((s) => s.members);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  // Runs a sign-in action, shows the server's error if it fails, otherwise enters the app
+  const attempt = async (fn: () => Promise<void>) => {
+    setError('');
+    setBusy(true);
+    try {
+      await fn();
+      navigate('/admin');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
   const [phone, setPhone] = useState('+1 (555) 302-8841');
   const [otpCode, setOtpCode] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -21,112 +37,115 @@ export const LoginPage: React.FC = () => {
     e.preventDefault();
     if (!phone.trim()) return;
     setIsOtpSent(true);
-    setMessage('Code sent. In this demo, any code works (try 849201).');
+    setMessage('Code sent to your phone. Demo code: 849201');
   };
 
   const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault();
-    const match = members.find((m) => m.phone.trim() === phone.trim()) || members[0];
-    switchUser(match.id);
-    navigate('/admin');
+    // TODO (real version): verify the code with the SMS provider before linking the phone
+    attempt(() => signInWithPhone(phone));
   };
 
-  const handleQuickAdminLogin = () => {
-    loginAsTestUser();
-    navigate('/admin');
-  };
+  const handleQuickAdminLogin = () => attempt(loginAsTestUser);
 
   return (
-    <div className="flex min-h-screen items-start justify-center bg-surface px-4 py-12 text-on-surface md:items-center">
-      <div className="w-full max-w-md">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-container text-on-primary-container">
-            <ShieldAlert className="h-6 w-6" strokeWidth={1.75} />
-          </div>
-          <span className="type-title-large">Drill Night</span>
-        </div>
-
-        <div className="rounded-[28px] bg-surface-container-low p-6 md:p-8">
-          <h1 className="m-0 type-headline-small">Sign in</h1>
-          <p className="mb-6 mt-2 type-body-medium text-on-surface-variant">
-            Use the personal phone number on the response roster. Company SSO and email are treated as compromised
-            during an incident.
+    <div className="flex min-h-screen bg-bg text-fg">
+      {/* Left: what this is */}
+      <section className="hidden w-[50%] flex-col justify-between border-r border-line-strong bg-surface p-12 lg:flex">
+        <Wordmark />
+        <div className="max-w-md space-y-4">
+          <h1 className="font-display text-[64px] leading-[0.92] font-bold uppercase">When your network is compromised, your response shouldn't be.</h1>
+          <p className="text-fg-muted">
+            A crisis command center that runs on separate servers and separate logins. Nothing here touches company email, Slack or SSO.
           </p>
+        </div>
+        <ul className="space-y-2.5 text-sm text-fg-muted">
+          {['Isolated from company infrastructure', 'Personal phone sign-in, passkeys next', 'Append-only audit log'].map((t) => (
+            <li key={t} className="flex items-center gap-2.5">
+              <span className="h-2 w-2 bg-accent" aria-hidden="true" />
+              {t}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* Right: sign in */}
+      <section className="flex flex-1 items-center justify-center px-5 py-12">
+        <div className="w-full max-w-sm space-y-8">
+          <Wordmark className="lg:hidden" />
+
+          <div className="space-y-1.5">
+            <h2 className="font-display text-[32px] leading-none font-bold uppercase">Sign in</h2>
+            <p className="text-sm text-fg-muted">Use the personal phone number on your company's crisis roster.</p>
+            <p className="pt-1 text-xs text-fg-subtle">
+              {mode === 'live' ? 'Connected to SpacetimeDB. Sign-in links this browser to your roster entry.' : liveStatus === 'connecting' ? 'Connecting to SpacetimeDB…' : 'Demo mode: SpacetimeDB not connected, using local demo data.'}
+            </p>
+            {error && <div className="pt-2"><Alert tone="error">{error}</Alert></div>}
+          </div>
 
           {!isOtpSent ? (
-            <form onSubmit={handleSendOtp} className="space-y-6">
-              <Field label="Phone number" help="Must match a number on the roster.">
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+1 (555) 000-0000"
-                  className="w-full font-mono"
-                  autoComplete="tel"
-                />
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              <Field label="Phone number" htmlFor="phone">
+                <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" className="font-mono" autoComplete="tel" />
               </Field>
-              <Button type="submit" className="w-full">
-                Text me a code
+              <Button type="submit" variant="primary" size="lg" block>
+                Send code
               </Button>
             </form>
           ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-6">
-              {message && <Notice tone="success">{message}</Notice>}
-              <Field label="6-digit code">
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              {message && <Alert tone="success">{message}</Alert>}
+              <Field label="6-digit code" htmlFor="otp">
                 <input
+                  id="otp"
                   type="text"
                   inputMode="numeric"
                   autoComplete="one-time-code"
+                  maxLength={6}
                   value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value)}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                   placeholder="000000"
-                  className="w-full text-center font-mono text-lg tracking-[0.4em]"
+                  className="h-12 text-center font-mono text-lg tracking-[0.5em]"
                   autoFocus
                 />
               </Field>
-              <div className="flex items-center justify-between gap-2">
-                <Button variant="text" icon={<ArrowLeft />} onClick={() => setIsOtpSent(false)}>
-                  Change number
-                </Button>
-                <Button type="submit">Verify</Button>
-              </div>
+              <Button type="submit" variant="primary" size="lg" block>
+                <KeyRound className="h-4 w-4" />
+                Verify and continue
+              </Button>
+              <button type="button" onClick={() => setIsOtpSent(false)} className="w-full text-center text-xs text-fg-subtle hover:text-fg">
+                Use a different number
+              </button>
             </form>
           )}
-        </div>
 
-        <section className="mt-8">
-          <div className="mb-2 flex items-baseline justify-between px-1">
-            <h2 className="m-0 type-title-small text-on-surface-variant">Demo personas</h2>
-            <Button variant="text" onClick={handleQuickAdminLogin}>
-              Skip as commander
-            </Button>
+          <div className="space-y-3 border-t border-line-strong pt-5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold tracking-[0.09em] text-fg-subtle uppercase">Demo access</span>
+              <button type="button" onClick={handleQuickAdminLogin} className="flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover">
+                Enter as owner <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 border-t border-l border-line">
+              {members.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => attempt(() => switchUser(m.id))}
+                  disabled={busy}
+                  className={cx(
+                    'border-r border-b border-line px-3 py-2.5 text-left transition-colors',
+                    currentUser.id === m.id ? 'bg-surface shadow-[inset_0_-2px_0_var(--color-accent)]' : 'hover:bg-surface'
+                  )}
+                >
+                  <div className="truncate text-sm text-fg">{m.name}</div>
+                  <div className="text-xs text-fg-subtle">{ROLE_SHORT[m.role] ?? m.role}</div>
+                </button>
+              ))}
+            </div>
           </div>
-          <ul className="m-0 list-none overflow-hidden rounded-xl border border-outline-variant p-0">
-            {members.map((m) => {
-              const isCurrent = currentUser.id === m.id;
-              return (
-                <li key={m.id} className="border-b border-outline-variant last:border-b-0">
-                  <button
-                    onClick={() => {
-                      switchUser(m.id);
-                      navigate('/admin');
-                    }}
-                    className={`state-layer flex w-full items-center gap-3 px-4 py-3 text-left ${
-                      isCurrent ? 'bg-secondary-container text-on-secondary-container' : 'text-on-surface'
-                    }`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate type-body-large">{m.name}</div>
-                      <div className="type-body-small opacity-75">{roleLabel(m.role)}</div>
-                    </div>
-                    {isCurrent && <Check className="h-5 w-5 shrink-0" />}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   );
 };

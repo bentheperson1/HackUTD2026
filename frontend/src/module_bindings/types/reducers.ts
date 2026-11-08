@@ -6,9 +6,53 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
-import AddReducer from "../add_reducer";
-import SayHelloReducer from "../say_hello_reducer";
+import ActivateIncidentReducer from "../activate_incident_reducer";
+import AddMemberReducer from "../add_member_reducer";
+import AddScopeItemReducer from "../add_scope_item_reducer";
+import AdvanceDrillReducer from "../advance_drill_reducer";
+import AnswerRoundReducer from "../answer_round_reducer";
+import CloseIncidentReducer from "../close_incident_reducer";
+import CreateDrillReducer from "../create_drill_reducer";
+import CreateTaskReducer from "../create_task_reducer";
+import EndDrillReducer from "../end_drill_reducer";
+import JoinDrillReducer from "../join_drill_reducer";
+import LeaveDrillReducer from "../leave_drill_reducer";
+import LogActionReducer from "../log_action_reducer";
+import RegisterPhoneReducer from "../register_phone_reducer";
+import ReloadDrillLibraryReducer from "../reload_drill_library_reducer";
+import RemoveMemberReducer from "../remove_member_reducer";
+import SaveDocumentReducer from "../save_document_reducer";
+import SendMessageReducer from "../send_message_reducer";
+import SetBroadcastReducer from "../set_broadcast_reducer";
+import SetMemberRoleReducer from "../set_member_role_reducer";
+import SetPhaseReducer from "../set_phase_reducer";
+import SetSlowModeReducer from "../set_slow_mode_reducer";
+import StartDrillReducer from "../start_drill_reducer";
+import ToggleTaskReducer from "../toggle_task_reducer";
+import UpdateScopeStatusReducer from "../update_scope_status_reducer";
 
-export type AddParams = __Infer<typeof AddReducer>;
-export type SayHelloParams = __Infer<typeof SayHelloReducer>;
+export type ActivateIncidentParams = __Infer<typeof ActivateIncidentReducer>;
+export type AddMemberParams = __Infer<typeof AddMemberReducer>;
+export type AddScopeItemParams = __Infer<typeof AddScopeItemReducer>;
+export type AdvanceDrillParams = __Infer<typeof AdvanceDrillReducer>;
+export type AnswerRoundParams = __Infer<typeof AnswerRoundReducer>;
+export type CloseIncidentParams = __Infer<typeof CloseIncidentReducer>;
+export type CreateDrillParams = __Infer<typeof CreateDrillReducer>;
+export type CreateTaskParams = __Infer<typeof CreateTaskReducer>;
+export type EndDrillParams = __Infer<typeof EndDrillReducer>;
+export type JoinDrillParams = __Infer<typeof JoinDrillReducer>;
+export type LeaveDrillParams = __Infer<typeof LeaveDrillReducer>;
+export type LogActionParams = __Infer<typeof LogActionReducer>;
+export type RegisterPhoneParams = __Infer<typeof RegisterPhoneReducer>;
+export type ReloadDrillLibraryParams = __Infer<typeof ReloadDrillLibraryReducer>;
+export type RemoveMemberParams = __Infer<typeof RemoveMemberReducer>;
+export type SaveDocumentParams = __Infer<typeof SaveDocumentReducer>;
+export type SendMessageParams = __Infer<typeof SendMessageReducer>;
+export type SetBroadcastParams = __Infer<typeof SetBroadcastReducer>;
+export type SetMemberRoleParams = __Infer<typeof SetMemberRoleReducer>;
+export type SetPhaseParams = __Infer<typeof SetPhaseReducer>;
+export type SetSlowModeParams = __Infer<typeof SetSlowModeReducer>;
+export type StartDrillParams = __Infer<typeof StartDrillReducer>;
+export type ToggleTaskParams = __Infer<typeof ToggleTaskReducer>;
+export type UpdateScopeStatusParams = __Infer<typeof UpdateScopeStatusReducer>;
 

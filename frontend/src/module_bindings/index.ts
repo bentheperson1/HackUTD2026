@@ -34,31 +34,273 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
-import AddReducer from "./add_reducer";
-import SayHelloReducer from "./say_hello_reducer";
+import ActivateIncidentReducer from "./activate_incident_reducer";
+import AddMemberReducer from "./add_member_reducer";
+import AddScopeItemReducer from "./add_scope_item_reducer";
+import AdvanceDrillReducer from "./advance_drill_reducer";
+import AnswerRoundReducer from "./answer_round_reducer";
+import CloseIncidentReducer from "./close_incident_reducer";
+import CreateDrillReducer from "./create_drill_reducer";
+import CreateTaskReducer from "./create_task_reducer";
+import EndDrillReducer from "./end_drill_reducer";
+import JoinDrillReducer from "./join_drill_reducer";
+import LeaveDrillReducer from "./leave_drill_reducer";
+import LogActionReducer from "./log_action_reducer";
+import RegisterPhoneReducer from "./register_phone_reducer";
+import ReloadDrillLibraryReducer from "./reload_drill_library_reducer";
+import RemoveMemberReducer from "./remove_member_reducer";
+import SaveDocumentReducer from "./save_document_reducer";
+import SendMessageReducer from "./send_message_reducer";
+import SetBroadcastReducer from "./set_broadcast_reducer";
+import SetMemberRoleReducer from "./set_member_role_reducer";
+import SetPhaseReducer from "./set_phase_reducer";
+import SetSlowModeReducer from "./set_slow_mode_reducer";
+import StartDrillReducer from "./start_drill_reducer";
+import ToggleTaskReducer from "./toggle_task_reducer";
+import UpdateScopeStatusReducer from "./update_scope_status_reducer";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
-import PersonRow from "./person_table";
+import DocTemplateRow from "./doc_template_table";
+import DrillAnswerRow from "./drill_answer_table";
+import DrillPlayerRow from "./drill_player_table";
+import DrillRoundRow from "./drill_round_table";
+import DrillScenarioRow from "./drill_scenario_table";
+import DrillSessionRow from "./drill_session_table";
+import IncidentRow from "./incident_table";
+import IncidentDocumentRow from "./incident_document_table";
+import MemberRow from "./member_table";
+import MessageRow from "./message_table";
+import OrganizationRow from "./organization_table";
+import ScopeItemRow from "./scope_item_table";
+import TaskRow from "./task_table";
+import TimelineEntryRow from "./timeline_entry_table";
 
 /** Type-only namespace exports for generated type groups. */
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
-  person: __table({
-    name: 'person',
+  docTemplate: __table({
+    name: 'doc_template',
     indexes: [
+      { accessor: 'id', name: 'doc_template_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
     ],
     constraints: [
+      { name: 'doc_template_id_key', constraint: 'unique', columns: ['id'] },
     ],
-  }, PersonRow),
+  }, DocTemplateRow),
+  drillAnswer: __table({
+    name: 'drill_answer',
+    indexes: [
+      { accessor: 'id', name: 'drill_answer_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'roundId', name: 'drill_answer_round_id_idx_btree', algorithm: 'btree', columns: [
+        'roundId',
+      ] },
+      { accessor: 'sessionId', name: 'drill_answer_session_id_idx_btree', algorithm: 'btree', columns: [
+        'sessionId',
+      ] },
+    ],
+    constraints: [
+      { name: 'drill_answer_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, DrillAnswerRow),
+  drillPlayer: __table({
+    name: 'drill_player',
+    indexes: [
+      { accessor: 'id', name: 'drill_player_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'sessionId', name: 'drill_player_session_id_idx_btree', algorithm: 'btree', columns: [
+        'sessionId',
+      ] },
+    ],
+    constraints: [
+      { name: 'drill_player_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, DrillPlayerRow),
+  drillRound: __table({
+    name: 'drill_round',
+    indexes: [
+      { accessor: 'id', name: 'drill_round_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'sessionId', name: 'drill_round_session_id_idx_btree', algorithm: 'btree', columns: [
+        'sessionId',
+      ] },
+    ],
+    constraints: [
+      { name: 'drill_round_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, DrillRoundRow),
+  drillScenario: __table({
+    name: 'drill_scenario',
+    indexes: [
+      { accessor: 'id', name: 'drill_scenario_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'drill_scenario_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, DrillScenarioRow),
+  drillSession: __table({
+    name: 'drill_session',
+    indexes: [
+      { accessor: 'id', name: 'drill_session_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'joinCode', name: 'drill_session_join_code_idx_btree', algorithm: 'btree', columns: [
+        'joinCode',
+      ] },
+      { accessor: 'orgId', name: 'drill_session_org_id_idx_btree', algorithm: 'btree', columns: [
+        'orgId',
+      ] },
+    ],
+    constraints: [
+      { name: 'drill_session_id_key', constraint: 'unique', columns: ['id'] },
+      { name: 'drill_session_join_code_key', constraint: 'unique', columns: ['joinCode'] },
+    ],
+  }, DrillSessionRow),
+  incident: __table({
+    name: 'incident',
+    indexes: [
+      { accessor: 'id', name: 'incident_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'incident_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, IncidentRow),
+  incidentDocument: __table({
+    name: 'incident_document',
+    indexes: [
+      { accessor: 'id', name: 'incident_document_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'incidentId', name: 'incident_document_incident_id_idx_btree', algorithm: 'btree', columns: [
+        'incidentId',
+      ] },
+    ],
+    constraints: [
+      { name: 'incident_document_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, IncidentDocumentRow),
+  member: __table({
+    name: 'member',
+    indexes: [
+      { accessor: 'id', name: 'member_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'phone', name: 'member_phone_idx_btree', algorithm: 'btree', columns: [
+        'phone',
+      ] },
+    ],
+    constraints: [
+      { name: 'member_id_key', constraint: 'unique', columns: ['id'] },
+      { name: 'member_phone_key', constraint: 'unique', columns: ['phone'] },
+    ],
+  }, MemberRow),
+  message: __table({
+    name: 'message',
+    indexes: [
+      { accessor: 'id', name: 'message_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'incidentId', name: 'message_incident_id_idx_btree', algorithm: 'btree', columns: [
+        'incidentId',
+      ] },
+    ],
+    constraints: [
+      { name: 'message_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, MessageRow),
+  organization: __table({
+    name: 'organization',
+    indexes: [
+      { accessor: 'id', name: 'organization_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'organization_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, OrganizationRow),
+  scopeItem: __table({
+    name: 'scope_item',
+    indexes: [
+      { accessor: 'id', name: 'scope_item_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'incidentId', name: 'scope_item_incident_id_idx_btree', algorithm: 'btree', columns: [
+        'incidentId',
+      ] },
+    ],
+    constraints: [
+      { name: 'scope_item_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ScopeItemRow),
+  task: __table({
+    name: 'task',
+    indexes: [
+      { accessor: 'id', name: 'task_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'incidentId', name: 'task_incident_id_idx_btree', algorithm: 'btree', columns: [
+        'incidentId',
+      ] },
+    ],
+    constraints: [
+      { name: 'task_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, TaskRow),
+  timelineEntry: __table({
+    name: 'timeline_entry',
+    indexes: [
+      { accessor: 'id', name: 'timeline_entry_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'incidentId', name: 'timeline_entry_incident_id_idx_btree', algorithm: 'btree', columns: [
+        'incidentId',
+      ] },
+    ],
+    constraints: [
+      { name: 'timeline_entry_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, TimelineEntryRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
-  __reducerSchema("add", AddReducer),
-  __reducerSchema("say_hello", SayHelloReducer),
+  __reducerSchema("activate_incident", ActivateIncidentReducer),
+  __reducerSchema("add_member", AddMemberReducer),
+  __reducerSchema("add_scope_item", AddScopeItemReducer),
+  __reducerSchema("advance_drill", AdvanceDrillReducer),
+  __reducerSchema("answer_round", AnswerRoundReducer),
+  __reducerSchema("close_incident", CloseIncidentReducer),
+  __reducerSchema("create_drill", CreateDrillReducer),
+  __reducerSchema("create_task", CreateTaskReducer),
+  __reducerSchema("end_drill", EndDrillReducer),
+  __reducerSchema("join_drill", JoinDrillReducer),
+  __reducerSchema("leave_drill", LeaveDrillReducer),
+  __reducerSchema("log_action", LogActionReducer),
+  __reducerSchema("register_phone", RegisterPhoneReducer),
+  __reducerSchema("reload_drill_library", ReloadDrillLibraryReducer),
+  __reducerSchema("remove_member", RemoveMemberReducer),
+  __reducerSchema("save_document", SaveDocumentReducer),
+  __reducerSchema("send_message", SendMessageReducer),
+  __reducerSchema("set_broadcast", SetBroadcastReducer),
+  __reducerSchema("set_member_role", SetMemberRoleReducer),
+  __reducerSchema("set_phase", SetPhaseReducer),
+  __reducerSchema("set_slow_mode", SetSlowModeReducer),
+  __reducerSchema("start_drill", StartDrillReducer),
+  __reducerSchema("toggle_task", ToggleTaskReducer),
+  __reducerSchema("update_scope_status", UpdateScopeStatusReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */

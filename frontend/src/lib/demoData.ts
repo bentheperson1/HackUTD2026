@@ -59,7 +59,7 @@ export const DEMO_SCENARIOS: SimulationScenario[] = [
         source: 'Tor Leak Site Monitor',
         narrative: 'Threat actors post a screenshot showing 3 customer records with Texas addresses and credit numbers as proof of exfiltration.',
         targetRole: 'Legal & Compliance',
-        recommendedAction: 'Log compromised category in Scope as "Exfiltrated" for Texas. State statutory deadline clock starts.',
+        recommendedAction: 'Log the customer records in Scope as "Exfiltrated" with Texas as an affected state.',
         points: 75,
         mistakeWarning: 'DO NOT negotiate or message the hackers directly. Only authorized incident response negotiators should initiate contact.',
       },
@@ -141,7 +141,7 @@ export const ROLE_GUIDANCE_CARDS: PlainGuidanceCard[] = [
     primaryAction: 'Trigger Privileged Forensic Triage',
     plainSteps: [
       'Formally engage external incident response counsel under attorney-client privilege.',
-      'Review Texas Business & Commerce Code § 521 (60-day notification requirement).',
+      'Record which states affected customers live in so counsel can assess notification duties.',
       'Begin documenting chronological timeline for regulatory disclosure defense.',
     ],
     doNotDoThis: 'Do NOT publish public blame statements before scope of actual data compromise is confirmed.',

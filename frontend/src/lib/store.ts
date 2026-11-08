@@ -8,16 +8,16 @@ import {
   ScopeItem,
   ReportTemplate,
   ReportDraft,
-  DrillSession,
-  DrillPlayer,
-  DrillEvent,
+  DrillState,
+  DrillRound,
   ReducerCallLog,
   IncidentPhase,
   Role,
   ScopeStatus,
-  ScenarioType,
   ChatChannel,
 } from './types';
+import { live, toLiveCall } from './live';
+import { DRILL_SCENARIOS } from './drillContent';
 
 export interface AppState {
   org: Org;
@@ -29,9 +29,7 @@ export interface AppState {
   scopeItems: ScopeItem[];
   reportTemplates: ReportTemplate[];
   reportDrafts: ReportDraft[];
-  drillSession: DrillSession;
-  drillPlayers: DrillPlayer[];
-  drillEvents: DrillEvent[];
+  drill: DrillState;
   reducerLogs: ReducerCallLog[];
   activeBroadcast?: { id: string; message: string; author: string; timestamp: string } | null;
   slowModeSeconds: number;
@@ -51,6 +49,7 @@ const INITIAL_STATE: AppState = {
       role: 'owner',
       org_id: 'org-001',
       expires_at: null,
+      drill_score: 150,
     },
     {
       id: 'm-2',
@@ -60,6 +59,7 @@ const INITIAL_STATE: AppState = {
       role: 'it_lead',
       org_id: 'org-001',
       expires_at: null,
+      drill_score: 200,
     },
     {
       id: 'm-3',
@@ -69,6 +69,7 @@ const INITIAL_STATE: AppState = {
       role: 'legal',
       org_id: 'org-001',
       expires_at: null,
+      drill_score: 180,
     },
     {
       id: 'm-4',
@@ -78,6 +79,7 @@ const INITIAL_STATE: AppState = {
       role: 'insurer',
       org_id: 'org-001',
       expires_at: new Date(Date.now() + 86400000 * 7).toISOString(),
+      drill_score: 0,
     },
   ],
   incident: {
@@ -180,7 +182,7 @@ const INITIAL_STATE: AppState = {
       id: 'tpl-2',
       name: 'Outside Counsel Privileged Assessment Memo',
       target: 'lawyer',
-      content: `CONFIDENTIAL ATTORNEY-CLIENT PRIVILEGED / WORK PRODUCT\n\nMEMORANDUM\nTO: Outside Counsel\nFROM: Incident Response Team\nDATE: [CURRENT_DATE]\nSUBJECT: Ransomware Incident Initial Briefing\n\n- Affected Systems & Scope: [SCOPE_SUMMARY]\n- Forensic Findings: Pending containment.\n- Notification Analysis: Evaluating state statutory deadlines.`,
+      content: `CONFIDENTIAL ATTORNEY-CLIENT PRIVILEGED / WORK PRODUCT\n\nMEMORANDUM\nTO: Outside Counsel\nFROM: Incident Response Team\nDATE: [CURRENT_DATE]\nSUBJECT: Ransomware Incident Initial Briefing\n\n- Affected Systems & Scope: [SCOPE_SUMMARY]\n- Forensic Findings: Pending containment.\n- Notification Analysis: Pending counsel review.`,
     },
     {
       id: 'tpl-3',
@@ -198,40 +200,26 @@ const INITIAL_STATE: AppState = {
       updated_at: new Date().toISOString(),
     },
   ],
-  drillSession: {
-    id: 'drill-001',
-    scenario: 'ransomware',
-    status: 'pending',
-    started_at: null,
-    time_remaining_seconds: 900,
+  drill: {
+    scenarios: DRILL_SCENARIOS.map((sc) => ({
+      id: sc.id,
+      name: sc.name,
+      kind: sc.kind,
+      description: sc.description,
+      window_seconds: sc.windowSeconds,
+      inject_count: sc.injects.length,
+    })),
+    session: null,
+    players: [],
+    rounds: [],
+    answers: [],
   },
-  drillPlayers: [
-    { id: 'dp-1', name: 'Alex Rivera', role: 'owner', score: 150 },
-    { id: 'dp-2', name: 'Taylor IT Lead', role: 'it_lead', score: 200 },
-    { id: 'dp-3', name: 'Morgan Legal', role: 'legal', score: 180 },
-  ],
-  drillEvents: [
-    {
-      id: 'dev-1',
-      timestamp: '00:00',
-      description: 'Ransomware detected on NAS storage cluster. Threat actor demands 15 BTC.',
-      points: 50,
-      action_required: 'Isolate storage vLAN immediately.',
-    },
-    {
-      id: 'dev-2',
-      timestamp: '03:15',
-      description: 'Threat actor leaks sample proof of customer directory on dark web forum.',
-      points: 75,
-      action_required: 'Review regulatory notification timeline for affected states.',
-    },
-  ],
   reducerLogs: [],
   activeBroadcast: null,
   slowModeSeconds: 0,
 };
 
-const STORAGE_KEY = 'drill_night_state_v1';
+const STORAGE_KEY = 'drill_night_state_v2'; // v2: Drill Night multiplayer state
 
 function loadState(): AppState {
   try {
@@ -255,11 +243,28 @@ function saveState(state: AppState) {
 let currentState: AppState = loadState();
 const listeners = new Set<(state: AppState) => void>();
 
+/* ---------- Live mode: when SpacetimeDB is connected, its tables replace the demo slices ---------- */
+let merged: AppState | null = null;
+let lastError: { id: number; message: string } | null = null;
+const effectiveState = (): AppState => {
+  if (live.isLive && live.slices) {
+    if (!merged) merged = { ...currentState, ...live.slices } as AppState;
+    return merged;
+  }
+  return currentState;
+};
+const notifyAll = () => {
+  merged = null;
+  const s = effectiveState();
+  listeners.forEach((l) => l(s));
+};
+live.subscribe(notifyAll);
+
 window.addEventListener('storage', (e) => {
   if (e.key === STORAGE_KEY && e.newValue) {
     try {
       currentState = JSON.parse(e.newValue);
-      listeners.forEach((l) => l(currentState));
+      notifyAll();
     } catch (err) {
       console.error(err);
     }
@@ -267,12 +272,30 @@ window.addEventListener('storage', (e) => {
 });
 
 window.addEventListener('drill_night_store_update', () => {
-  listeners.forEach((l) => l(currentState));
+  notifyAll();
 });
 
 export const store = {
   getState(): AppState {
-    return currentState;
+    return effectiveState();
+  },
+
+  /** 'live' when reading from SpacetimeDB, 'demo' when using local demo data */
+  mode(): 'live' | 'demo' {
+    return live.isLive ? 'live' : 'demo';
+  },
+
+  /** The latest error returned by the server (shown as a toast). */
+  getLastError() {
+    return lastError;
+  },
+  clearLastError() {
+    lastError = null;
+    notifyAll();
+  },
+  reportError(message: string) {
+    lastError = { id: Date.now(), message };
+    notifyAll();
   },
 
   subscribe(listener: (state: AppState) => void): () => void {
@@ -286,6 +309,25 @@ export const store = {
     mutator: (state: AppState) => T
   ): { success: boolean; result?: T; error?: string } {
     const callId = 'call-' + Math.random().toString(36).substring(2, 9);
+
+    // LIVE: send it to the SpacetimeDB reducer instead of changing local data.
+    // The table subscription updates every screen when the server accepts it.
+    const route = live.isLive ? toLiveCall(reducerName, args) : null;
+    if (route) {
+      const entry: ReducerCallLog = { id: callId, reducer_name: route.reducer, args: route.args, status: 'success', timestamp: new Date().toISOString() };
+      currentState = { ...currentState, reducerLogs: [entry, ...currentState.reducerLogs].slice(0, 200) };
+      live.call(route.reducer, route.args).catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        currentState = {
+          ...currentState,
+          reducerLogs: currentState.reducerLogs.map((l) => (l.id === callId ? { ...l, status: 'error', error_message: message } : l)),
+        };
+        store.reportError(message);
+      });
+      notifyAll();
+      return { success: true };
+    }
+
     try {
       // Execute mutation on a cloned state
       const nextState: AppState = JSON.parse(JSON.stringify(currentState));
@@ -570,31 +612,122 @@ export const store = {
     });
   },
 
-  // Reducer: startDrill
-  startDrill(actor: string, scenario: ScenarioType) {
-    return this.callReducer('start_drill', { scenario }, (draft) => {
-      draft.drillSession = {
-        id: 'drill-' + Date.now(),
-        scenario,
-        status: 'running',
-        started_at: new Date().toISOString(),
-        time_remaining_seconds: 900,
+  /* ---------------- Drill Night ----------------
+   * Live: each call goes to the matching SpacetimeDB reducer (see toLiveCall in live.ts).
+   * Demo: the same rules run locally, with teammates simulated so one person can try it.
+   */
+  drillCreate(me: Member, scenarioId: string) {
+    return this.callReducer('create_drill', { scenarioId }, (draft) => {
+      if (me.role !== 'owner' && me.role !== 'it_lead') throw new Error(`Your role (${me.role}) can't host a drill.`);
+      if (draft.incident.status === 'active') throw new Error("A real incident is active. Drills are paused until it's closed.");
+      const open = draft.drill.session;
+      if (open && (open.status === 'lobby' || open.status === 'running')) throw new Error(`A drill is already open. Join it with code ${open.join_code}.`);
+      const sc = draft.drill.scenarios.find((x) => x.id === scenarioId);
+      if (!sc) throw new Error('Unknown scenario.');
+      const now = new Date().toISOString();
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      draft.drill = {
+        ...draft.drill,
+        session: {
+          id: 'ds-' + Date.now(),
+          join_code: Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join(''),
+          scenario_id: sc.id,
+          scenario_name: sc.name,
+          host_id: me.id,
+          host_name: me.name,
+          status: 'lobby',
+          round_index: -1,
+          created_at: now,
+          started_at: null,
+          ended_at: null,
+        },
+        players: [],
+        rounds: [],
+        answers: [],
       };
-      draft.auditLogs.unshift({
-        id: 'aud-' + Date.now(),
-        actor,
-        action: 'START_DRILL',
-        timestamp: new Date().toISOString(),
-        details: `Started 15-minute drill session: ${scenario.toUpperCase()}`,
-      });
+      // Host joins automatically. In demo mode, simulated teammates join too.
+      const team = [me, ...draft.members.filter((m) => m.id !== me.id && m.role !== 'insurer' && m.role !== 'outside_counsel').slice(0, 3)];
+      team.forEach((m, i) =>
+        draft.drill.players.push({ id: `dp-${Date.now()}-${i}`, member_id: m.id, name: m.name, role: m.role, score: 0, correct_count: 0, joined_at: now })
+      );
     });
   },
 
-  // Reducer: awardPoints
-  awardPoints(playerId: string, points: number) {
-    return this.callReducer('award_drill_points', { playerId, points }, (draft) => {
-      const p = draft.drillPlayers.find((x) => x.id === playerId);
-      if (p) p.score += points;
+  drillJoin(me: Member, code: string) {
+    return this.callReducer('join_drill', { code: code.trim().toUpperCase() }, (draft) => {
+      const s = draft.drill.session;
+      if (!s || s.join_code !== code.trim().toUpperCase()) throw new Error('No drill with that code.');
+      if (s.status !== 'lobby' && s.status !== 'running') throw new Error('That drill has already ended.');
+      if (!draft.drill.players.some((p) => p.member_id === me.id)) {
+        draft.drill.players.push({ id: 'dp-' + Date.now(), member_id: me.id, name: me.name, role: me.role, score: 0, correct_count: 0, joined_at: new Date().toISOString() });
+      }
+    });
+  },
+
+  drillLeave(me: Member) {
+    const s = this.getState().drill.session;
+    return this.callReducer('leave_drill', { sessionId: s?.id ?? '0' }, (draft) => {
+      if (draft.drill.session?.status !== 'lobby') throw new Error('You can only leave before the drill starts.');
+      if (draft.drill.session.host_id === me.id) throw new Error('The host can cancel the drill instead.');
+      draft.drill.players = draft.drill.players.filter((p) => p.member_id !== me.id);
+    });
+  },
+
+  drillStart(me: Member) {
+    const s = this.getState().drill.session;
+    return this.callReducer('start_drill', { sessionId: s?.id ?? '0' }, (draft) => {
+      const ses = draft.drill.session;
+      if (!ses) throw new Error('Drill not found.');
+      demoRequireHost(me, ses.host_id);
+      if (ses.status !== 'lobby') throw new Error('This drill has already started.');
+      ses.status = 'running';
+      ses.started_at = new Date().toISOString();
+      ses.round_index = 0;
+      demoOpenRound(draft, 0);
+      draft.auditLogs.unshift({ id: 'aud-' + Date.now(), actor: me.name, action: 'DRILL_STARTED', timestamp: new Date().toISOString(), details: `${ses.scenario_name} drill started with ${draft.drill.players.length} players.` });
+    });
+  },
+
+  drillAnswer(me: Member, roundId: string, choice: number) {
+    return this.callReducer('answer_round', { roundId, choice }, (draft) => {
+      const ses = draft.drill.session;
+      const round = draft.drill.rounds.find((r) => r.id === roundId);
+      if (!ses || !round) throw new Error('Inject not found.');
+      if (ses.status !== 'running' || round.closed || round.position !== ses.round_index) throw new Error('This inject is closed.');
+      if (Date.now() > Date.parse(round.closes_at)) throw new Error("Time's up for this inject.");
+      const p = draft.drill.players.find((x) => x.member_id === me.id);
+      if (!p) throw new Error('Join the drill first.');
+      if (draft.drill.answers.some((a) => a.round_id === round.id && a.player_id === p.id)) throw new Error('You already locked in an answer.');
+      demoLockIn(draft, round, p.id, choice);
+      demoMaybeAdvance(draft);
+    });
+  },
+
+  drillAdvance(me: Member) {
+    const s = this.getState().drill.session;
+    return this.callReducer('advance_drill', { sessionId: s?.id ?? '0' }, (draft) => {
+      const ses = draft.drill.session;
+      if (!ses) throw new Error('Drill not found.');
+      demoRequireHost(me, ses.host_id);
+      if (ses.status !== 'running') throw new Error('The drill is not running.');
+      demoAdvance(draft);
+    });
+  },
+
+  drillEnd(me: Member) {
+    const s = this.getState().drill.session;
+    return this.callReducer('end_drill', { sessionId: s?.id ?? '0' }, (draft) => {
+      const ses = draft.drill.session;
+      if (!ses) throw new Error('Drill not found.');
+      demoRequireHost(me, ses.host_id);
+      if (ses.status === 'lobby') {
+        ses.status = 'cancelled';
+        ses.ended_at = new Date().toISOString();
+        return;
+      }
+      if (ses.status !== 'running') throw new Error('This drill has already ended.');
+      demoCloseRound(draft);
+      demoFinish(draft);
     });
   },
 
@@ -605,3 +738,153 @@ export const store = {
   },
 };
 
+
+/* ---------------- Demo-mode drill engine (same rules as the server module) ---------------- */
+
+const DEMO_KEY = (scenarioId: string) => DRILL_SCENARIOS.find((s) => s.id === scenarioId)!;
+
+function demoRequireHost(me: Member, hostId: string) {
+  if (me.id !== hostId && me.role !== 'owner') throw new Error('Only the drill host can do that.');
+}
+
+function demoOpenRound(draft: AppState, position: number) {
+  const ses = draft.drill.session!;
+  const sc = DEMO_KEY(ses.scenario_id);
+  const inj = sc.injects[position];
+  const now = Date.now();
+  draft.drill.rounds.push({
+    id: `dr-${now}-${position}`,
+    position,
+    title: inj.title,
+    body: inj.body,
+    question: inj.question,
+    options: inj.options,
+    points: inj.points,
+    role: inj.role as Role,
+    opened_at: new Date(now).toISOString(),
+    closes_at: new Date(now + sc.windowSeconds * 1000).toISOString(),
+    closed: false,
+    correct_index: -1,
+    explanation: '',
+  });
+}
+
+function demoLockIn(draft: AppState, round: DrillRound, playerId: string, choice: number) {
+  draft.drill.answers.push({
+    id: `da-${Date.now()}-${playerId}`,
+    round_id: round.id,
+    player_id: playerId,
+    // Demo keeps the choice locally; the UI still hides other people's picks until the reveal.
+    choice,
+    correct: false,
+    points: 0,
+    answered_at: new Date().toISOString(),
+    revealed: false,
+  });
+}
+
+function demoCloseRound(draft: AppState) {
+  const ses = draft.drill.session!;
+  const round = draft.drill.rounds.find((r) => r.position === ses.round_index);
+  if (!round || round.closed) return;
+  const inj = DEMO_KEY(ses.scenario_id).injects[round.position];
+  const windowMs = Date.parse(round.closes_at) - Date.parse(round.opened_at);
+  for (const a of draft.drill.answers.filter((x) => x.round_id === round.id)) {
+    const correct = a.choice === inj.correct;
+    const left = Math.max(0, Date.parse(round.closes_at) - Date.parse(a.answered_at));
+    a.correct = correct;
+    a.points = correct ? round.points + Math.floor((round.points / 2) * Math.min(1, left / windowMs)) : 0;
+    a.revealed = true;
+    const p = draft.drill.players.find((x) => x.id === a.player_id);
+    if (p) {
+      p.score += a.points;
+      p.correct_count += correct ? 1 : 0;
+    }
+  }
+  round.closed = true;
+  round.correct_index = inj.correct;
+  round.explanation = inj.explanation;
+}
+
+function demoAdvance(draft: AppState) {
+  demoCloseRound(draft);
+  const ses = draft.drill.session!;
+  const next = ses.round_index + 1;
+  if (next < DEMO_KEY(ses.scenario_id).injects.length) {
+    ses.round_index = next;
+    demoOpenRound(draft, next);
+  } else {
+    demoFinish(draft);
+  }
+}
+
+function demoFinish(draft: AppState) {
+  const ses = draft.drill.session!;
+  ses.status = 'finished';
+  ses.ended_at = new Date().toISOString();
+  const ranked = [...draft.drill.players].sort((a, b) => b.score - a.score);
+  for (const p of ranked) {
+    const m = draft.members.find((x) => x.id === p.member_id);
+    if (m) m.drill_score = (m.drill_score ?? 0) + p.score;
+  }
+  const team = ranked.reduce((n, p) => n + p.score, 0);
+  draft.auditLogs.unshift({
+    id: 'aud-' + Date.now(),
+    actor: ses.host_name,
+    action: 'DRILL_FINISHED',
+    timestamp: new Date().toISOString(),
+    details: `${ses.scenario_name} drill finished. ${ranked.length} players, team score ${team}${ranked[0] ? `, top: ${ranked[0].name} (${ranked[0].score})` : ''}.`,
+  });
+}
+
+/** Everyone locked in? Close the round now instead of waiting for the timer. */
+function demoMaybeAdvance(draft: AppState) {
+  const ses = draft.drill.session!;
+  const round = draft.drill.rounds.find((r) => r.position === ses.round_index);
+  if (!round) return;
+  const answered = draft.drill.answers.filter((a) => a.round_id === round.id).length;
+  if (answered >= draft.drill.players.length) demoAdvance(draft);
+}
+
+/**
+ * Demo heartbeat (the server uses a scheduled reducer instead).
+ * Simulated teammates lock in answers over time; the round closes when time runs out.
+ */
+const DEMO_BOT_ACCURACY = 0.7;
+setInterval(() => {
+  if (live.isLive) return;
+  const ses = currentState.drill?.session;
+  if (!ses || ses.status !== 'running') return;
+  const draft: AppState = JSON.parse(JSON.stringify(currentState));
+  const d = draft.drill.session!;
+  const round = draft.drill.rounds.find((r) => r.position === d.round_index);
+  if (!round) return;
+  let changed = false;
+  if (Date.now() >= Date.parse(round.closes_at)) {
+    demoAdvance(draft);
+    changed = true;
+  } else {
+    const answeredBy = new Set(draft.drill.answers.filter((a) => a.round_id === round.id).map((a) => a.player_id));
+    const humans = new Set(demoHumans);
+    for (const p of draft.drill.players) {
+      if (answeredBy.has(p.id) || humans.has(p.member_id)) continue;
+      if (Math.random() < 0.09) {
+        const correct = DEMO_KEY(d.scenario_id).injects[round.position].correct;
+        const pick = Math.random() < DEMO_BOT_ACCURACY ? correct : (correct + 1 + Math.floor(Math.random() * (round.options.length - 1))) % round.options.length;
+        demoLockIn(draft, round, p.id, pick);
+        changed = true;
+      }
+    }
+    if (changed) demoMaybeAdvance(draft);
+  }
+  if (changed) {
+    currentState = draft;
+    saveState(currentState);
+  }
+}, 1000);
+
+/** Members being played by a real person in this browser (they never auto-answer). */
+const demoHumans: string[] = [];
+export function markDemoHuman(memberId: string) {
+  if (!demoHumans.includes(memberId)) demoHumans.push(memberId);
+}

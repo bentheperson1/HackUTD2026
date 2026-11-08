@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { store } from '../lib/store';
-import { Button } from '../components/Button';
-import { Card } from '../components/Card';
-import { Notice } from '../components/Notice';
-import { PageHeader } from '../components/PageHeader';
 import { Download } from 'lucide-react';
+import { store } from '../lib/store';
+import { useAppState } from '../lib/useAppState';
+import { Alert, Button, Card, PageHeader } from '../components/ui';
 
 export const ExportPage: React.FC = () => {
+  const state = useAppState((s) => s);
   const [includeTimeline, setIncludeTimeline] = useState(true);
   const [includeScope, setIncludeScope] = useState(true);
   const [includeAuditLogs, setIncludeAuditLogs] = useState(true);
@@ -15,21 +14,20 @@ export const ExportPage: React.FC = () => {
   const [exportNotice, setExportNotice] = useState('');
 
   const handleExport = () => {
-    const state = store.getState();
+    const s = store.getState();
     const packet = {
       title: 'Drill Night Crisis Command Center - Formal Incident Package',
       generated_at: new Date().toISOString(),
-      organization: state.org.name,
-      incident: state.incident,
+      organization: s.org.name,
+      incident: s.incident,
       contents: {
-        ...(includeRoster ? { roster: state.members } : {}),
-        ...(includeTimeline ? { warroom_messages: state.messages } : {}),
-        ...(includeScope ? { scope_records: state.scopeItems } : {}),
-        ...(includeAuditLogs ? { immutable_audit_logs: state.auditLogs } : {}),
-        ...(includeDrafts ? { report_drafts: state.reportDrafts } : {}),
+        ...(includeRoster ? { roster: s.members } : {}),
+        ...(includeTimeline ? { warroom_messages: s.messages } : {}),
+        ...(includeScope ? { scope_records: s.scopeItems } : {}),
+        ...(includeAuditLogs ? { immutable_audit_logs: s.auditLogs } : {}),
+        ...(includeDrafts ? { report_drafts: s.reportDrafts } : {}),
       },
     };
-
     const blob = new Blob([JSON.stringify(packet, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -37,46 +35,49 @@ export const ExportPage: React.FC = () => {
     a.download = `incident-dossier-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-
-    setExportNotice(`Downloaded ${a.download}`);
+    setExportNotice('Incident package downloaded.');
   };
 
-  const sections = [
-    { label: 'Team roster', detail: 'Everyone with access and their roles', checked: includeRoster, set: setIncludeRoster },
-    { label: 'War room messages', detail: 'All channels, in order', checked: includeTimeline, set: setIncludeTimeline },
-    { label: 'Affected data', detail: 'Inventory and status of each item', checked: includeScope, set: setIncludeScope },
-    { label: 'Audit log', detail: 'Every recorded action with actor and time', checked: includeAuditLogs, set: setIncludeAuditLogs },
-    { label: 'Insurance & legal drafts', detail: 'Saved drafts only', checked: includeDrafts, set: setIncludeDrafts },
+  const options = [
+    { label: 'Team roster', detail: `${state.members.length} people with roles and phones`, checked: includeRoster, set: setIncludeRoster },
+    { label: 'War room messages', detail: `${state.messages.length} messages across all channels`, checked: includeTimeline, set: setIncludeTimeline },
+    { label: 'Scope of affected data', detail: `${state.scopeItems.length} data types with status and states`, checked: includeScope, set: setIncludeScope },
+    { label: 'Audit log', detail: `${state.auditLogs.length} permanent entries`, checked: includeAuditLogs, set: setIncludeAuditLogs },
+    { label: 'Report drafts', detail: `${state.reportDrafts.length} insurer, counsel and regulator drafts`, checked: includeDrafts, set: setIncludeDrafts },
   ];
-  const nothingSelected = sections.every((s) => !s.checked);
+  const selectedCount = options.filter((o) => o.checked).length;
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <PageHeader
-        title="Export package"
-        description="Bundle the incident record into a single JSON file to hand to counsel or your insurer."
-      />
+    <div className="space-y-10">
+      <PageHeader eyebrow="Record" title="Export" description="Package the incident record for the insurer and outside counsel." />
 
-      {exportNotice && <Notice tone="success">{exportNotice}</Notice>}
+      {exportNotice && (
+        <Alert tone="success" onDismiss={() => setExportNotice('')}>
+          {exportNotice}
+        </Alert>
+      )}
 
-      <Card variant="outlined" className="overflow-hidden">
-        <div className="px-4 pb-1 pt-4 type-title-small text-on-surface-variant">Include</div>
-        <ul className="m-0 list-none p-0">
-          {sections.map((s) => (
-            <li key={s.label}>
-              <label className="state-layer flex cursor-pointer items-center gap-4 px-4 py-3">
-                <input type="checkbox" checked={s.checked} onChange={(e) => s.set(e.target.checked)} />
+      <Card kind="list" title="What to include" className="max-w-2xl" padded={false}>
+        <ul className="divide-y divide-line">
+          {options.map((o) => (
+            <li key={o.label}>
+              <label className="flex cursor-pointer items-start gap-3 px-5 py-3.5 hover:bg-surface-2/50">
+                <input type="checkbox" checked={o.checked} onChange={(e) => o.set(e.target.checked)} className="mt-0.5" />
                 <div>
-                  <div className="type-body-large">{s.label}</div>
-                  <div className="type-body-small text-on-surface-variant">{s.detail}</div>
+                  <div className="text-sm text-fg">{o.label}</div>
+                  <div className="text-xs text-fg-subtle">{o.detail}</div>
                 </div>
               </label>
             </li>
           ))}
         </ul>
-        <div className="flex justify-end border-t border-outline-variant p-4">
-          <Button icon={<Download />} onClick={handleExport} disabled={nothingSelected}>
-            Download JSON
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
+          <span className="text-xs text-fg-subtle">
+            {selectedCount} of {options.length} sections · JSON file (PDF coming next)
+          </span>
+          <Button variant="primary" onClick={handleExport} disabled={selectedCount === 0}>
+            <Download className="h-4 w-4" />
+            Download package
           </Button>
         </div>
       </Card>
