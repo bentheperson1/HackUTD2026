@@ -4,7 +4,6 @@ import { useSpacetimeDB } from 'spacetimedb/react';
 import { LogOut, RadioTower } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 import { store } from '../lib/store';
-import { live } from '../lib/live';
 import { useAppState, useNow } from '../lib/useAppState';
 import { ROLE_SHORT } from './RoleBadge';
 import { PLACES } from './places';
@@ -78,7 +77,7 @@ export const Masthead: React.FC = () => {
         <Link to="/drill" className="block bg-drill text-bg">
           <div className="mx-auto flex h-9 max-w-[1240px] items-center gap-4 px-4 text-[13px] md:px-8">
             <span className="font-display text-[15px] font-bold tracking-[0.04em] uppercase">Drill in progress</span>
-            <span>Practice only</span>
+            <span>This is practice, not a real incident.</span>
             <span className="ml-auto font-semibold">Go to drill →</span>
           </div>
         </Link>
@@ -91,22 +90,7 @@ export const Masthead: React.FC = () => {
             <Wordmark />
           </Link>
           <span className="hidden h-6 w-px bg-line-strong sm:block" aria-hidden="true" />
-          {mode === 'live' && live.myOrgs.length > 1 ? (
-            <select
-              aria-label="Company"
-              value={live.orgId !== null ? String(live.orgId) : ''}
-              onChange={(e) => live.setActiveOrg(e.target.value)}
-              className="hidden h-8 w-auto max-w-56 py-0 text-[13px] sm:block"
-            >
-              {live.myOrgs.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span className="hidden truncate text-[13px] text-fg-muted sm:block">{orgName}</span>
-          )}
+          <span className="hidden truncate text-[13px] text-fg-muted sm:block">{orgName}</span>
 
           <div className="ml-auto flex items-center gap-5">
             <Link
@@ -161,7 +145,7 @@ export const Masthead: React.FC = () => {
       {lastError && (
         <div role="alert" className="fixed right-4 bottom-20 z-50 flex max-w-sm items-start gap-3 border-t-2 border-breach bg-surface px-4 py-3 shadow-2xl">
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-semibold tracking-[0.09em] text-breach-text uppercase">That didn't work</div>
+            <div className="text-[11px] font-semibold tracking-[0.09em] text-breach-text uppercase">Error</div>
             <p className="mt-0.5 text-[13px] text-fg">{lastError.message}</p>
           </div>
           <button type="button" onClick={() => store.clearLastError()} className="text-xs font-semibold text-fg-subtle hover:text-fg">

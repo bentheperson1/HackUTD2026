@@ -44,7 +44,7 @@ export const DrillCalendar: React.FC = () => {
       kind="timeline"
       kindTone="drill"
       title="Schedule"
-      description="Once a month"
+      description="Drill Night happens once a month. Click a day to set this month's date."
       actions={
         <div className="flex items-center gap-0.5">
           <IconButton label="Previous month" onClick={() => setCursor(new Date(year, month - 1, 1))}>
@@ -98,7 +98,6 @@ export const DrillCalendar: React.FC = () => {
             <div className="text-[15px] font-semibold text-fg">{drillDate.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}</div>
             <div className="font-mono text-xs text-fg-muted">7:00 PM</div>
           </div>
-          <p className="border-t border-line pt-3 text-xs text-fg-subtle">Click a day to move it.</p>
         </div>
       </div>
     </Card>

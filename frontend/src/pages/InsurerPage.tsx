@@ -4,6 +4,7 @@ import type { Timestamp } from 'spacetimedb';
 import { reducers, tables } from '../module_bindings';
 import type { Incident } from '../module_bindings/types';
 import { useAuth } from '../lib/authContext';
+import { useAppState } from '../lib/useAppState';
 import { askAi } from '../lib/ai';
 import { Alert, Badge, Button, Card, EmptyState, Label, PageHeader, Stat, StatRow, cx } from '../components/ui';
 import type { Tone } from '../components/ui';
@@ -84,13 +85,13 @@ export const InsurerPage: React.FC = () => {
       <PageHeader
         eyebrow="Insurer"
         title="Insurer board"
-        description="Policyholder incidents across your portfolio. Related incidents are grouped into one event, and exposed companies that haven't reported are listed so no one is overlooked."
+        description="Incidents reported by your policyholders, ranked by how urgent they are. When several policyholders that share a vendor or area report incidents around the same time, they are grouped into one event. Policyholders who may be affected but haven't reported anything are listed separately."
       />
       {mode === 'live' ? (
         <InsurerBoard />
       ) : (
-        <Alert tone="info" title="Live connection needed">
-          The insurer board reads shared data, so it only works when Outpost is online. Sign in with a roster phone to use it.
+        <Alert tone="info" title="Not available in demo mode">
+          The insurer board needs a connection to the Outpost server. Sign in with your phone number to use it.
         </Alert>
       )}
     </div>
@@ -100,13 +101,13 @@ export const InsurerPage: React.FC = () => {
 const InsurerBoard: React.FC = () => {
   const { identity } = useSpacetimeDB();
 
-  // Which company am I acting as? (same logic the app uses, kept local to this page)
+  // The company I'm signed in as (the app's active company)
   const [orgMembers] = useTable(tables.orgMember);
   const [orgs] = useTable(tables.organization);
-  const [pickedOrgId, setPickedOrgId] = useState<bigint | null>(null);
+  const activeOrgId = useAppState((s) => s.org.id);
   const myMemberships = orgMembers.filter((m) => !!identity && m.person.isEqual(identity));
   const myOrgs = orgs.filter((o) => myMemberships.some((m) => m.orgId === o.id));
-  const activeOrg = myOrgs.find((o) => o.id === pickedOrgId) ?? myOrgs[0];
+  const activeOrg = myOrgs.find((o) => String(o.id) === activeOrgId) ?? myOrgs[0];
   const isAdmin = !!myMemberships.find((m) => m.orgId === activeOrg?.id)?.isAdmin;
 
   // Views (the underlying tables are private)
@@ -234,7 +235,7 @@ const InsurerBoard: React.FC = () => {
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className="border-b border-line-strong">
-              {['Triage', 'Incident', 'Why this rank', ''].map((h, i) => (
+              {['Urgency', 'Incident', 'Reasons for the score', ''].map((h, i) => (
                 <th key={i} className="py-2 pr-4 align-bottom">
                   <Label>{h}</Label>
                 </th>
@@ -272,36 +273,18 @@ const InsurerBoard: React.FC = () => {
 
   return (
     <div className="space-y-10">
-      {myOrgs.length > 1 && (
-        <div className="flex items-center gap-3">
-          <Label>Acting as</Label>
-          <select
-            aria-label="Active company"
-            value={activeOrg ? String(activeOrg.id) : ''}
-            onChange={(e) => setPickedOrgId(BigInt(e.target.value))}
-            className={inputCls}
-          >
-            {myOrgs.map((o) => (
-              <option key={String(o.id)} value={String(o.id)}>
-                {o.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {error && <Alert tone="error" title="That didn't work" onDismiss={() => setError(null)}>{error}</Alert>}
+      {error && <Alert tone="error" title="Error" onDismiss={() => setError(null)}>{error}</Alert>}
 
       <StatRow>
         <Stat label="Open events" value={openEvents.length} tone={openEvents.length ? 'breach' : 'neutral'} />
         <Stat label="Open incidents" value={incidents.filter(isOpen).length} />
         <Stat label="Critical" value={criticalCount} tone={criticalCount ? 'breach' : 'neutral'} />
-        <Stat label="Not yet reported" value={openAlerts.length} tone={openAlerts.length ? 'drill' : 'neutral'} />
+        <Stat label="Possibly affected" value={openAlerts.length} tone={openAlerts.length ? 'drill' : 'neutral'} />
       </StatRow>
 
       {notInsurer && (
-        <Alert tone="info" title="Nothing on the board yet">
-          Make your company an insurer and seed a demo portfolio under Demo tools below, or have policyholders share their incidents with you.
+        <Alert tone="info" title="No incidents yet">
+          Incidents appear here once policyholders share them with you. To try the board with sample data, use the demo tools at the bottom of this page.
         </Alert>
       )}
 
@@ -309,8 +292,8 @@ const InsurerBoard: React.FC = () => {
       <Card title="Events" description={`${openEvents.length} open`}>
         {openEvents.length === 0 ? (
           <EmptyState
-            title="No events detected"
-            description="An event appears when three or more policyholders share a vendor or area and have open incidents within two hours."
+            title="No events"
+            description="An event is created when three or more policyholders that share a vendor or area open incidents within two hours of each other."
           />
         ) : (
           <div className="space-y-8">
@@ -325,7 +308,7 @@ const InsurerBoard: React.FC = () => {
                   actions={
                     <>
                       <Button size="sm" disabled={busy === `sum-${ev.id}`} onClick={() => summarizeEvent(ev)}>
-                        {busy === `sum-${ev.id}` ? 'Writing…' : ev.summary ? 'Regenerate summary' : 'AI summary'}
+                        {busy === `sum-${ev.id}` ? 'Writing…' : ev.summary ? 'Rewrite summary' : 'Summarize with AI'}
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => run(`close-${ev.id}`, () => closeEvent({ eventId: ev.id }))}>
                         Close event
@@ -342,7 +325,7 @@ const InsurerBoard: React.FC = () => {
 
                   {ev.summary && (
                     <div className="mb-4 border-l-2 border-accent bg-surface p-3">
-                      <Label>AI-suggested summary</Label>
+                      <Label>AI summary</Label>
                       <p className="mt-1 whitespace-pre-wrap text-[14px] text-fg">{ev.summary}</p>
                     </div>
                   )}
@@ -356,14 +339,14 @@ const InsurerBoard: React.FC = () => {
       </Card>
 
       {/* ---------- Standalone incidents ---------- */}
-      <Card title="Other incidents" description={`${standalone.length} open`}>
+      <Card title="Other incidents" description="Open incidents that aren't part of an event">
         <IncidentTable rows={standalone} empty="No other open incidents." />
       </Card>
 
       {/* ---------- Overlooked ---------- */}
-      <Card title="Overlooked policyholders" description={`${openAlerts.length} awaiting outreach`}>
+      <Card title="Possibly affected policyholders" description="These companies share a vendor or area with an event but haven't reported an incident. Contact them to check.">
         {openAlerts.length === 0 ? (
-          <EmptyState title="Everyone exposed has reported or been contacted." />
+          <EmptyState title="Every possibly affected policyholder has reported an incident or been contacted." />
         ) : (
           <div className="space-y-5">
             {shownAlerts.map((a) => {
@@ -378,12 +361,12 @@ const InsurerBoard: React.FC = () => {
                     {ev && <Badge mono>{ev.label}</Badge>}
                   </div>
                   <details className="mt-2">
-                    <summary className="cursor-pointer text-[13px] font-semibold text-accent">View outreach draft</summary>
+                    <summary className="cursor-pointer text-[13px] font-semibold text-accent">Show draft message</summary>
                     <div className="mt-2 whitespace-pre-wrap bg-surface p-3 text-[13px] text-fg">{a.draft}</div>
                   </details>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button size="sm" disabled={busy === `draft-${a.id}`} onClick={() => polishDraft(a, ev)}>
-                      {busy === `draft-${a.id}` ? 'Polishing…' : 'Polish with AI'}
+                      {busy === `draft-${a.id}` ? 'Rewriting…' : 'Rewrite with AI'}
                     </Button>
                     <Button size="sm" onClick={() => run(`ct-${a.id}`, () => updateAlertStatus({ alertId: a.id, status: 'contacted' }))}>
                       Mark contacted
@@ -434,7 +417,7 @@ const InsurerBoard: React.FC = () => {
               </Button>
               {selectedPacket && (
                 <Button disabled={busy === `narr-${selected.id}`} onClick={() => writeNarrative(selected.id, selectedPacket.body)}>
-                  {busy === `narr-${selected.id}` ? 'Writing…' : 'Add AI narrative'}
+                  {busy === `narr-${selected.id}` ? 'Writing…' : 'Write summary with AI'}
                 </Button>
               )}
               {selectedPacket && (
@@ -451,14 +434,14 @@ const InsurerBoard: React.FC = () => {
               <div className="space-y-3">
                 {selectedPacket.narrative && (
                   <div className="border-l-2 border-accent bg-surface p-3">
-                    <Label>AI-suggested narrative</Label>
+                    <Label>AI summary</Label>
                     <p className="mt-1 whitespace-pre-wrap text-[14px] text-fg">{selectedPacket.narrative}</p>
                   </div>
                 )}
                 <pre className="max-h-[480px] overflow-auto bg-surface p-3 font-mono text-[12px] whitespace-pre-wrap text-fg">{selectedPacket.body}</pre>
               </div>
             ) : (
-              <p className="text-[13px] text-fg-subtle">The packet is assembled from the incident's real data: scope, deadlines, actions and timeline.</p>
+              <p className="text-[13px] text-fg-subtle">A claim packet puts this incident's affected data, notification deadlines, actions taken and timeline into one document.</p>
             )}
           </div>
         </Card>
@@ -467,21 +450,21 @@ const InsurerBoard: React.FC = () => {
       {/* ---------- Demo tools ---------- */}
       <Card title="Demo tools" description={`Acting as ${activeOrg?.name ?? 'no company'}`}>
         <div className="space-y-6">
-          <p className="max-w-xl text-[13px] text-fg-subtle">Seeding and the outage simulator only work for staff of an insurer company.</p>
+          <p className="max-w-xl text-[13px] text-fg-subtle">These tools create sample data for demos. Your company must be set up as an insurer first.</p>
 
           <Button
             disabled={!activeOrg || !isAdmin || busy === 'insurer'}
             onClick={() => run('insurer', () => setOrgProfile({ orgId: activeOrg!.id, kind: 'insurer', zip: '', vendors: [] }))}
           >
-            Make this company an insurer
+            Set up this company as an insurer
           </Button>
 
           <div className="flex flex-wrap items-end gap-3">
-            <FormField label="Policyholders to seed">
+            <FormField label="Number of sample policyholders">
               <input type="number" min={1} max={250} value={seedCount} onChange={(e) => setSeedCount(e.target.value)} className={cx(inputCls, 'w-28')} />
             </FormField>
             <Button variant="primary" disabled={!activeOrg || busy === 'seed'} onClick={() => run('seed', () => seedDemoPortfolio({ insurerOrgId: activeOrg!.id, count: Number(seedCount) }))}>
-              Seed portfolio
+              Add sample policyholders
             </Button>
           </div>
 
@@ -493,7 +476,7 @@ const InsurerBoard: React.FC = () => {
                 ))}
               </select>
             </FormField>
-            <FormField label="Companies hit">
+            <FormField label="Companies affected">
               <input type="number" min={1} max={60} value={outageCount} onChange={(e) => setOutageCount(e.target.value)} className={cx(inputCls, 'w-28')} />
             </FormField>
             <Button
@@ -501,16 +484,16 @@ const InsurerBoard: React.FC = () => {
               disabled={!activeOrg || busy === 'outage'}
               onClick={() => run('outage', () => simulateVendorOutage({ insurerOrgId: activeOrg!.id, vendor, count: Number(outageCount) }))}
             >
-              Simulate vendor ransomware
+              Simulate a ransomware attack on this vendor
             </Button>
           </div>
         </div>
       </Card>
 
-      <Card title="Share my incidents with an insurer" description="For a policyholder company admin">
+      <Card title="Share your incidents with your insurer" description="For company admins at a policyholder">
         <div className="space-y-4">
           <p className="max-w-xl text-[13px] text-fg-subtle">
-            This opts {activeOrg?.name ?? 'your company'} in, so its incidents appear on the insurer's board and can be grouped into events.
+            After you share, incidents at {activeOrg?.name ?? 'your company'} will appear on your insurer's board. Your ZIP code and vendors let the insurer spot attacks that hit several companies at once.
           </p>
           <div className="flex flex-wrap items-end gap-3">
             <FormField label="Insurer company ID">

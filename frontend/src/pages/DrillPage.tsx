@@ -39,8 +39,8 @@ export const DrillPage: React.FC = () => {
       <PageHeader
         eyebrow="Prepare"
         title="Drill Night"
-        description="A short practice quiz for the whole team. Faster right answers score more."
-        actions={mode !== 'live' && <span className="text-xs text-fg-subtle">Demo: teammates are simulated</span>}
+        description="A practice quiz about responding to a cyberattack. Everyone answers on their own device. Correct answers earn points, and faster answers earn more."
+        actions={mode !== 'live' && <span className="text-xs text-fg-subtle">In demo mode, the other players are simulated.</span>}
       />
 
       {open && session.status === 'lobby' && <Lobby session={session} players={drill.players} me={me} currentUser={currentUser} />}
@@ -87,7 +87,7 @@ const JoinForm: React.FC<{ currentUser: Member; presetCode?: string; compact?: b
         />
       )}
       <label className="block">
-        <span className="text-[11px] font-semibold tracking-[0.09em] text-fg-subtle uppercase">Nickname on the leaderboard</span>
+        <span className="text-[11px] font-semibold tracking-[0.09em] text-fg-subtle uppercase">Your name on the leaderboard</span>
         <input className="mt-1.5 w-full" value={nick} maxLength={24} onChange={(e) => setNick(e.target.value)} placeholder="Nickname" />
       </label>
       <Button type="submit" variant="drill" size={compact ? 'md' : 'lg'} block={!compact} disabled={code.length !== 4 || !nick.trim()}>
@@ -115,13 +115,13 @@ const Home: React.FC<{ scenarios: DrillScenario[]; currentUser: Member }> = ({ s
         <div className="space-y-3 lg:col-span-4">
           <Label>Join with a code</Label>
           <JoinForm currentUser={currentUser} />
-          <p className="text-xs text-fg-subtle">Ask the owner for the code.</p>
+          <p className="text-xs text-fg-subtle">The owner gets a 4-character code when they open a lobby.</p>
         </div>
 
         <div className="space-y-3 lg:col-span-8">
           <div className="flex items-baseline justify-between">
             <Label>Host a drill</Label>
-            {!host && <span className="text-xs text-fg-subtle">Only the owner can host</span>}
+            {!host && <span className="text-xs text-fg-subtle">Only the owner can host a drill.</span>}
           </div>
           <div role="radiogroup" aria-label="Scenario" className="divide-y divide-line border-y border-line">
             {scenarios.map((sc) => (
@@ -194,7 +194,7 @@ const Lobby: React.FC<{ session: DrillSession; players: DrillPlayer[]; me: Drill
               {copied ? <Check className="h-5 w-5 text-accent" /> : <Copy className="h-5 w-5" />}
             </button>
           </div>
-          <p className="mt-3 max-w-sm text-sm text-fg-muted">Everyone enters this code on their own phone.</p>
+          <p className="mt-3 max-w-sm text-sm text-fg-muted">Each player enters this code on the Drill Night page on their own device.</p>
 
           <div className="mt-6 space-y-4">
             {!me && (
@@ -216,7 +216,7 @@ const Lobby: React.FC<{ session: DrillSession; players: DrillPlayer[]; me: Drill
               ) : (
                 me && (
                   <span className="flex h-11 items-center gap-2 text-sm text-fg-muted">
-                    <StatusDot tone="drill" pulse /> Waiting for the owner to start
+                    <StatusDot tone="drill" pulse /> Waiting for the owner to start the drill
                   </span>
                 )
               )}
@@ -226,7 +226,7 @@ const Lobby: React.FC<{ session: DrillSession; players: DrillPlayer[]; me: Drill
 
         <div className="lg:col-span-7">
           <div className="flex items-baseline justify-between">
-            <Label>In the room</Label>
+            <Label>Players</Label>
             <span className="font-mono text-xs text-fg-subtle">{players.length} joined</span>
           </div>
           <ul className="mt-2 divide-y divide-line border-y border-line">
@@ -240,7 +240,7 @@ const Lobby: React.FC<{ session: DrillSession; players: DrillPlayer[]; me: Drill
                 <RoleBadge role={p.role} />
               </li>
             ))}
-            {players.length === 0 && <li className="px-1 py-3 text-sm text-fg-subtle">Nobody yet.</li>}
+            {players.length === 0 && <li className="px-1 py-3 text-sm text-fg-subtle">No one has joined yet.</li>}
           </ul>
         </div>
       </div>
@@ -269,22 +269,22 @@ const Running: React.FC<{
 
   const ownerControls = isOwner && (
     <div className="flex gap-1">
-      <Button size="sm" variant="secondary" onClick={() => store.drillNext(currentUser)} title="Fire the next question now">
+      <Button size="sm" variant="secondary" onClick={() => store.drillNext(currentUser)} title="Show the next question now">
         <SkipForward className="h-3.5 w-3.5" />
         Next question
       </Button>
       <Button size="sm" variant="ghost" onClick={() => store.drillEnd(currentUser)}>
         <Square className="h-3.5 w-3.5" />
-        End
+        End drill
       </Button>
     </div>
   );
 
   if (!q) {
     return (
-      <Card kind="drill" kindTone="drill" title="First question incoming" description={session.scenario_name} actions={ownerControls}>
+      <Card kind="drill" kindTone="drill" title="The drill is starting" description={session.scenario_name} actions={ownerControls}>
         <p className="flex items-center gap-2 text-sm text-fg-muted">
-          <StatusDot tone="drill" pulse /> Starting in a few seconds.
+          <StatusDot tone="drill" pulse /> The first question will appear in a few seconds.
         </p>
         {!me && (
           <div className="mt-5 max-w-xs">
@@ -307,13 +307,13 @@ const Running: React.FC<{
     <>
       <StatRow>
         <Stat label="Question" value={total ? `${q.position + 1}/${total}` : q.position + 1} tone="drill" />
-        <Stat label="Open for" value={formatClock(open)} mono hint={canAnswer ? `worth ${potential} if right` : undefined} />
-        <Stat label="Answered" value={`${qAnswers.length}/${eligible.length}`} hint={q.for_role ? `${roleLabel(q.for_role)} only` : 'everyone'} />
-        <Stat label="Your score" value={me?.score ?? '—'} tone="drill" hint={me ? `${myAnswers.filter((a) => a.correct).length} right so far` : 'not playing'} />
+        <Stat label="Time on this question" value={formatClock(open)} mono hint={canAnswer ? `${potential} points if correct` : undefined} />
+        <Stat label="Answered" value={`${qAnswers.length}/${eligible.length}`} hint={q.for_role ? `Only ${roleLabel(q.for_role)} answers this one` : 'Everyone answers this one'} />
+        <Stat label="Your score" value={me?.score ?? '—'} tone="drill" hint={me ? `${myAnswers.filter((a) => a.correct).length} correct so far` : 'You have not joined'} />
       </StatRow>
 
       <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-12">
-        <Card kind="drill" kindTone="drill" title={`For: ${roleLabel(q.for_role)}`} className="lg:col-span-8" actions={ownerControls}>
+        <Card kind="drill" kindTone="drill" title={q.for_role ? `Question for ${roleLabel(q.for_role)}` : 'Question for everyone'} className="lg:col-span-8" actions={ownerControls}>
           <h3 className="font-display text-[26px] leading-tight font-bold text-fg uppercase">{q.text}</h3>
 
           <div className="mt-5 grid grid-cols-1 gap-2" role="group" aria-label="Answers">
@@ -342,17 +342,17 @@ const Running: React.FC<{
 
           <p className="mt-4 min-h-5 text-sm text-fg-muted" aria-live="polite">
             {!me ? (
-              'Join the drill to answer.'
+              'Join the drill to answer questions.'
             ) : mine ? (
               mine.correct ? (
-                <span className="text-accent">Right! +{drillPoints(100, mine.answered_ms)} points.</span>
+                <span className="text-accent">Correct. You earned {drillPoints(100, mine.answered_ms)} points.</span>
               ) : (
-                <span className="text-breach-text">Not quite. You'll see the answer at the end.</span>
+                <span className="text-breach-text">Incorrect. The correct answers are shown when the drill ends.</span>
               )
             ) : !canAnswer ? (
-              `This one is for ${roleLabel(q.for_role)}.`
+              `Only ${roleLabel(q.for_role)} can answer this question.`
             ) : (
-              'Pick one. Faster answers score more.'
+              'Choose an answer. The faster you answer, the more points you earn.'
             )}
           </p>
           {!me && (
@@ -379,7 +379,7 @@ const Running: React.FC<{
                   <li key={x.id} className="flex items-baseline gap-3 py-2.5 text-sm">
                     <span className="font-mono text-xs text-drill">#{x.position + 1}</span>
                     <span className="flex-1 text-fg">{x.text}</span>
-                    <span className={cx('text-xs', a?.correct ? 'text-accent' : 'text-fg-subtle')}>{a ? (a.correct ? 'You got it' : 'Missed') : '—'}</span>
+                    <span className={cx('text-xs', a?.correct ? 'text-accent' : 'text-fg-subtle')}>{a ? (a.correct ? 'Correct' : 'Incorrect') : '—'}</span>
                   </li>
                 );
               })}
@@ -431,7 +431,7 @@ const Results: React.FC<{ session: DrillSession; players: DrillPlayer[]; questio
                     <span className="font-mono text-xs text-drill">#{q.position + 1}</span>
                     <span className="text-[15px] font-semibold text-fg">{q.text}</span>
                     <span className="ml-auto font-mono text-xs text-fg-subtle">
-                      {roleLabel(q.for_role)} · {qa.filter((a) => a.correct).length}/{qa.length} right
+                      {roleLabel(q.for_role)} · {qa.filter((a) => a.correct).length} of {qa.length} correct
                     </span>
                   </div>
                   {q.correct_index !== null && (
@@ -453,7 +453,7 @@ const Results: React.FC<{ session: DrillSession; players: DrillPlayer[]; questio
                           </>
                         )
                       ) : q.for_role && q.for_role !== me.role ? (
-                        `For ${roleLabel(q.for_role)}`
+                        `This question was for ${roleLabel(q.for_role)}`
                       ) : (
                         'You did not answer'
                       )}
@@ -462,7 +462,7 @@ const Results: React.FC<{ session: DrillSession; players: DrillPlayer[]; questio
                 </li>
               );
             })}
-            {questions.length === 0 && <li className="py-3 text-sm text-fg-subtle">The drill ended before any questions fired.</li>}
+            {questions.length === 0 && <li className="py-3 text-sm text-fg-subtle">The drill ended before any questions were asked.</li>}
           </ol>
         </Card>
       </div>
@@ -495,7 +495,7 @@ const Leaderboard: React.FC<{ players: DrillPlayer[]; meId?: string; answered?: 
           <span className="w-12 text-right font-mono text-sm font-semibold text-fg tabular-nums">{p.score}</span>
         </li>
       ))}
-      {ranked.length === 0 && <li className="py-3 text-sm text-fg-subtle">No players.</li>}
+      {ranked.length === 0 && <li className="py-3 text-sm text-fg-subtle">No one has joined.</li>}
     </ol>
   );
 };

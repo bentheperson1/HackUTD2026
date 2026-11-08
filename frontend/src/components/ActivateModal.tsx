@@ -36,7 +36,7 @@ export const ActivateModal: React.FC<{ actor: string; rosterSize: number; onClos
       onClose={onClose}
     >
       <form onSubmit={submit} className="space-y-4">
-        <Field label="What's happening?" htmlFor="inc-name">
+        <Field label="Describe what happened" htmlFor="inc-name">
           <input id="inc-name" className="w-full" value={name} maxLength={100} onChange={(e) => setName(e.target.value)} autoFocus />
         </Field>
         <div>
@@ -65,7 +65,7 @@ export const ActivateModal: React.FC<{ actor: string; rosterSize: number; onClos
           </Button>
           <Button type="submit" variant="danger" disabled={!name.trim()}>
             <Siren className="h-4 w-4" />
-            Activate now
+            Activate incident
           </Button>
         </div>
       </form>

@@ -45,10 +45,7 @@ export const Footer: React.FC = () => (
           <Link to="/incident" aria-label="Outpost home" className="inline-block">
             <Wordmark size="sm" />
           </Link>
-          <p className="max-w-xs text-[13px] leading-relaxed text-fg-muted">Your crisis room when company systems are down.</p>
-          <a href="https://fifthedgestudios.com/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs text-fg-subtle hover:text-fg">
-            By <CompanyLogo className="h-6" />
-          </a>
+
         </div>
 
         {COLUMNS.map((col) => (
@@ -75,8 +72,7 @@ export const Footer: React.FC = () => (
       </div>
 
       <div className="mt-12 flex flex-col gap-2 border-t border-line pt-6 text-xs text-fg-subtle md:flex-row md:items-center md:justify-between">
-        <span>© {new Date().getFullYear()} Fifth Edge. All rights reserved.</span>
-        <span>Not legal advice. Check with your lawyer.</span>
+        <span>Outpost is not legal advice. Confirm your notification duties with a lawyer.</span>
       </div>
     </div>
   </footer>

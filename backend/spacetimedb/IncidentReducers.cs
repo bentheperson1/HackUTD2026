@@ -30,7 +30,7 @@ public static partial class Module
             ActivatedAt = ctx.Timestamp,
             Notified = false,
         });
-        PostSystemMessage(ctx, id, "Incident activated. All hands to the war room.");
+        PostSystemMessage(ctx, id, "Incident activated. Use this chat to coordinate the response.");
     }
 
     [SpacetimeDB.Reducer]

@@ -117,7 +117,7 @@ export const ChatPage: React.FC = () => {
       <PageHeader
         eyebrow="Respond"
         title="Chat"
-        description="Talk to your team and track tasks. Use it any time."
+        description="Message your team and assign tasks. Chat is available whether or not an incident is active."
         actions={
           isAdmin && (
             <>
@@ -190,8 +190,7 @@ export const ChatPage: React.FC = () => {
             {channelMessages.length === 0 ? (
               <EmptyState
                 icon={<MessagesSquare className="h-6 w-6" />}
-                title="No messages yet"
-                description="Post what you're seeing."
+                title="No messages in this channel yet"
               />
             ) : (
               channelMessages.map((m) => {
@@ -274,7 +273,7 @@ export const ChatPage: React.FC = () => {
             padded={false}
           >
             {visibleTasks.length === 0 ? (
-              <EmptyState title={tasks.length ? 'Nothing in this view' : 'No tasks yet'} description={tasks.length ? 'Try another filter.' : 'Add the first task below.'} />
+              <EmptyState title={tasks.length ? 'No tasks match this filter' : 'No tasks yet'} />
             ) : (
               <ul className="max-h-[260px] divide-y divide-line overflow-y-auto">
                 {visibleTasks.map((t) => (
@@ -333,7 +332,7 @@ export const ChatPage: React.FC = () => {
       {isBroadcastModalOpen && (
         <Modal
           title="Send a message to everyone"
-          description="Shows at the top of everyone's screen until you clear it."
+          description="Your message appears in red at the top of Chat for everyone until you clear it."
           onClose={() => setIsBroadcastModalOpen(false)}
         >
           <form onSubmit={handleSendBroadcast} className="space-y-4">

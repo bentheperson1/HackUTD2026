@@ -39,7 +39,7 @@ export const ExportPage: React.FC = () => {
     URL.revokeObjectURL(url);
     // Record the export in the permanent timeline (log_export on the server)
     store.logExport(currentUser.name, options.filter((o) => o.checked).map((o) => o.label));
-    setExportNotice('Downloaded.');
+    setExportNotice('The incident record was downloaded as a JSON file.');
   };
 
   const options = [
@@ -53,7 +53,7 @@ export const ExportPage: React.FC = () => {
 
   return (
     <div className="space-y-10">
-      <PageHeader eyebrow="Record" title="Export" description="Download the incident record for your insurer or lawyer." />
+      <PageHeader eyebrow="Record" title="Export" description="Download the incident record as one file to send to your insurer or lawyer. Choose which sections to include." />
 
       {exportNotice && (
         <Alert tone="success" onDismiss={() => setExportNotice('')}>
